@@ -2,14 +2,22 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
 <title>VSV-like+ Boss/Items (v4_35)</title>
 <style>
   html,body { margin:0; height:100%; background:#0e0e0f; color:#eee; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif; }
-  #wrap { position:relative; width:100%; height:100%; overflow:hidden; touch-action:none; }
+  #wrap { position:relative; width:100%; height:100svh; overflow:hidden; touch-action:none; }
   canvas { position:absolute; inset:0; width:100%; height:100%; }
 #start { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:50; pointer-events:auto; }
-  .hud { position:absolute; left:0; right:0; top:0; display:flex; gap:.75rem; padding:.5rem .75rem; align-items:center; pointer-events:none; }
+.hud {
+  position:absolute; left:0; right:0; top:0;
+  display:flex; gap:.75rem; padding:.5rem .75rem;
+  align-items:center; pointer-events:none;
+  /* ここから追記 */
+  padding-top: calc(.5rem + env(safe-area-inset-top));
+  padding-left: calc(.5rem + env(safe-area-inset-left));
+  padding-right: calc(.75rem + env(safe-area-inset-right));
+}
   .badge { background:#1a1a1a; border:1px solid #333; border-radius:.5rem; padding:.2rem .5rem; font-weight:600; }
   .bar { flex:1; height:.6rem; background:#1a1a1a; border:1px solid #333; border-radius:.4rem; overflow:hidden; }
   .bar > i { display:block; height:100%; width:0%; background:linear-gradient(90deg,#2ecc71,#27ae60); }
@@ -44,6 +52,28 @@
   .btn:hover { filter:brightness(1.05); }
   #gameover h2 { font-size: clamp(24px, 5vw, 44px); margin:.25rem 0 .75rem; }
   #gameover .sub { opacity:.85; margin-bottom:1rem; }
+  /* 縦持ちのときはHUDを少し縮小 */
+@media (orientation:portrait){
+  .hud { transform: scale(.9); transform-origin: top center; opacity:.9; }
+}
+
+/* かなり狭い端末ではHUDを非表示（後でプレイヤー周りリングで代替） */
+@media (max-width:480px){
+  .hud { display:none; }
+  /* ジョイスティックも小さめに */
+  #joy { width:120px; height:120px; left:.7rem; bottom:.7rem; }
+  #joy i { width:52px; height:52px; }
+}
+
+/* さらに狭い幅ならHUDの縮小を強める（HUDを使う構成のままなら） */
+@media (max-width:380px){
+  .hud { transform: scale(.8); }
+}
+
+.bar.hp.low > i {
+  background: linear-gradient(90deg,#ff5a5a,#c0392b);
+}
+  
 </style>
 </head>
 <body>
@@ -106,15 +136,43 @@ window.addEventListener('unhandledrejection', e=>{
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
   let W=0,H=0,DPR=1;
+  
+  /* ▼▼ ここから追加：ビュー縮尺 ▼▼ */
+let VIEW_SCALE = 1; // 1=等倍, 0.92=ちょい引き など
+
+function recomputeViewScale(){
+  const shortSide = Math.min(window.innerWidth, window.innerHeight);
+  const isPortrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+
+  // 端末の短辺や縦持ちで“少し引く”
+  if (shortSide <= 380) {
+    VIEW_SCALE = 0.88;         // かなり小さい端末
+  } else if (shortSide <= 480 || isPortrait) {
+    VIEW_SCALE = 0.92;         // 一般的スマホ縦持ち
+  } else {
+    VIEW_SCALE = 1;            // タブレット/横持ち等は等倍
+  }
+}
+/* ▲▲ ここまで追加 ▲▲ */
+  
   function resize(){
     DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
     const r = cv.getBoundingClientRect();
     W = Math.floor(r.width * DPR);
     H = Math.floor(r.height * DPR);
     cv.width = W; cv.height = H;
-    ctx.setTransform(DPR,0,0,DPR,0,0);
-  }
+    
+    // ▼ 追加：端末条件に応じて縮尺を決める
+  recomputeViewScale();
+
+  // ▼ 変更：スケール込みで描画変換
+  ctx.setTransform(DPR * VIEW_SCALE, 0, 0, DPR * VIEW_SCALE, 0, 0);
+}
   new ResizeObserver(resize).observe(cv); resize();
+  
+  window.addEventListener('orientationchange', resize);
+window.addEventListener('resize', resize);
+
 
   const rnd = (a,b)=>a+Math.random()*(b-a);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -166,7 +224,31 @@ replayBtn.onclick = () => { clearEl.style.display='none'; resetGame(); };
 clearEl.style.display = 'none';
 
   startBtn.onclick = () => { state.started = true; state.paused = false; startEl.style.display='none'; state.last = performance.now(); };
+  
+  async function tryFullscreenAndLandscape(){
+  try{
+    // フルスクリーン（可能な端末）
+    const el = document.documentElement;
+    if (el.requestFullscreen) await el.requestFullscreen();
+
+    // 画面回転ロック（Fullscreen後は成功率が上がる）
+    if (screen.orientation && screen.orientation.lock) {
+      try { await screen.orientation.lock('landscape'); } catch(e){}
+    }
+  }catch(e){ /* iOSなどは失敗するので静かに無視 */ }
+}
+
+startBtn.onclick = async () => {
+  await tryFullscreenAndLandscape();  // ← 追加
+  state.started = true; state.paused = false;
+  startEl.style.display='none'; state.last = performance.now();
+};
+  
+
   retryBtn.onclick = () => { resetGame(); };
+
+
+
 
   function resetGame(){
     // Clear arrays
@@ -220,17 +302,25 @@ state.pickupLv = 0;
 
   }
 
-  function updateHUD(){
-    lvEl.textContent = state.player.level;
-    hpw.style.width = (100*state.player.hp/state.player.maxHp)+'%';
-    xpw.style.width = (100*state.player.xp/state.player.nextXp(state.player.level))+'%';
-    const m = Math.floor(state.timeSec/60), s = (state.timeSec%60)|0;
-    tmEl.textContent = `${m}:${String(s).padStart(2,'0')}`;
-    const names = Object.entries(state.weapons)
-      .filter(([k,w])=>w.lv>0)
-      .map(([k,w])=> `${w.short}${w.lv}${w.awaken?'★':''}`);
-    wepEl.textContent = names.join(', ') || '-';
-  }
+function updateHUD(){
+  lvEl.textContent = state.player.level;
+
+  const hpRatio = state.player.hp / state.player.maxHp;
+  hpw.style.width = (100 * hpRatio) + '%';
+
+  // ← これを追加：20%以下で赤グラデ
+  const hpBar = hpw.parentElement; // .bar.hp
+  if (hpRatio <= 0.20) hpBar.classList.add('low');
+  else hpBar.classList.remove('low');
+
+  xpw.style.width = (100*state.player.xp/state.player.nextXp(state.player.level))+'%';
+  const m = Math.floor(state.timeSec/60), s = (state.timeSec%60)|0;
+  tmEl.textContent = `${m}:${String(s).padStart(2,'0')}`;
+  const names = Object.entries(state.weapons)
+    .filter(([k,w])=>w.lv>0)
+    .map(([k,w])=> `${w.short}${w.lv}${w.awaken?'★':''}`);
+  wepEl.textContent = names.join(', ') || '-';
+}
 
   // Joystick + keyboard
   const joy = document.getElementById('joy');
@@ -367,16 +457,19 @@ function addEffect(type, data){
       state.gather.active = true; state.gather.time = 0; state.gather.totalXP = gained;
       state.paused = true; gatherEl.style.display='flex';
     }else if(it.kind==='nuke'){
-      let killed=0;
-      for(let i=state.enemies.length-1;i>=0;i--){
-        const e=state.enemies[i];
-        if(e.type!=='mid' && e.type!=='big'){
-          dropGem(e.x,e.y,2); spark(e.x,e.y,16);
-          state.enemies.splice(i,1); killed++;
-        }
-      }
-      addEffect('text',{x:state.player.x,y:state.player.y,life:1.2,text:`一掃(${killed})`});
-    }else if(it.kind==='heal'){
+  let killed=0;
+  for(let i=state.enemies.length-1;i>=0;i--){
+    const e = state.enemies[i];
+    // ✅ 殲滅は雑魚のみ（final/mid/big は除外）
+    if (e.type === 'minion' || e.type === 'shooter') {
+      dropGem(e.x, e.y, 2);
+      spark(e.x, e.y, 16);
+      state.enemies.splice(i, 1);
+      killed++;
+    }
+  }
+  addEffect('text', { x: state.player.x, y: state.player.y, life: 1.2, text: `一掃(${killed})` });
+}else if(it.kind==='heal'){
       const amount = Math.round(state.player.maxHp * 0.35);
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + amount);
       addEffect('text',{x:state.player.x,y:state.player.y,life:1.2,text:`回復 +${amount}`});
@@ -1398,21 +1491,76 @@ function draw(){
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
   }
 
+
 // 無敵中は点滅
 if (state.player.iTime > 0 && ((state.t * 20 | 0) % 2 === 0)) {
   ctx.globalAlpha = 0.38; // 薄く
 } else {
   ctx.globalAlpha = 1;
 }
-  // player
-  ctx.fillStyle='#2ecc71';
-  ctx.beginPath(); ctx.arc(state.player.x,state.player.y,state.player.r,0,Math.PI*2); ctx.fill();
-  ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke();
-  ctx.fillStyle = '#0b0b0b';
-  ctx.beginPath(); ctx.arc(state.player.x-5, state.player.y-3, 2, 0, Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(state.player.x+5, state.player.y-3, 2, 0, Math.PI*2); ctx.fill();
+// player
+ctx.fillStyle = '#2ecc71';
+ctx.beginPath(); ctx.arc(state.player.x, state.player.y, state.player.r, 0, Math.PI*2); ctx.fill();
+ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+ctx.fillStyle = '#0b0b0b';
+ctx.beginPath(); ctx.arc(state.player.x-5, state.player.y-3, 2, 0, Math.PI*2); ctx.fill();
+ctx.beginPath(); ctx.arc(state.player.x+5, state.player.y-3, 2, 0, Math.PI*2); ctx.fill();
 
-ctx.globalAlpha = 1;
+ctx.globalAlpha = 1;  // ← ここまでが既存
+
+/* ===== ここから追記：プレイヤー周囲リング（HP/XP） ===== */
+{
+  const hpRatio = Math.max(0, Math.min(1, state.player.hp / state.player.maxHp));
+  const xpRatio = Math.max(0, Math.min(1, state.player.xp / state.player.nextXp(state.player.level)));
+
+  const R0 = state.player.r + 7;   // HPリング半径
+  const R1 = state.player.r + 12;  // XPリング半径
+
+  ctx.save();
+  ctx.lineCap = 'round';
+
+  // 背景リング（薄グレー）
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(state.player.x, state.player.y, R0, 0, Math.PI*2); ctx.stroke();
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(state.player.x, state.player.y, R1, 0, Math.PI*2); ctx.stroke();
+
+  // ★ HPリング（20%以下で赤、それ以外は緑）
+  const hpColor = (hpRatio <= 0.20) ? '#ff5a5a' : '#2ecc71';
+  ctx.strokeStyle = hpColor;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(
+    state.player.x, state.player.y, R0,
+    -Math.PI/2, -Math.PI/2 + Math.PI*2*hpRatio
+  );
+  ctx.stroke();
+
+  // XPリング（青）
+  ctx.strokeStyle = '#3498db';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(
+    state.player.x, state.player.y, R1,
+    -Math.PI/2, -Math.PI/2 + Math.PI*2*xpRatio
+  );
+  ctx.stroke();
+
+  // （狭い画面向け）HP数値の小表示はそのままでOK
+  if (window.innerWidth <= 480) {
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`${Math.ceil(state.player.hp)}/${state.player.maxHp}`,
+      state.player.x, state.player.y - R0 - 6);
+  }
+
+  ctx.restore();
+}
+/* ===== 追記ここまで ===== */
+
 
 // Ghosts render
 if(state.weapons.ghost.lv>0){
