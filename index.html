@@ -703,7 +703,7 @@ const CAPS = {
 };
 
 
-// ===== U（このブロックを差し替え）=====
+// ===== U（上限付きアップグレード定義）=====
 const U = {
   weaponAdd: (key) => ({
     id: `add:${key}`,
@@ -739,18 +739,99 @@ const U = {
       const before = state.player.speed;
       state.player.speed = Math.min(CAPS.speedMax, state.player.speed * 1.15);
       if (state.player.speed === before) {
-        addEffect('text', { x: state.player.x, y:
-  const ALL_UPGRADES = [
-    U.weaponAdd('shotgun'), U.weaponUp('shotgun'), U.weaponAwaken('shotgun'),
-    U.weaponAdd('orbit'),   U.weaponUp('orbit'),   U.weaponAwaken('orbit'),
-    U.weaponAdd('lightning'), U.weaponUp('lightning'), U.weaponAwaken('lightning'),
-    U.weaponAdd('nova'),    U.weaponUp('nova'),    U.weaponAwaken('nova'),
-    U.weaponAdd('rock'),    U.weaponUp('rock'),    U.weaponAwaken('rock'),
-    U.weaponAdd('homing'),  U.weaponUp('homing'),  U.weaponAwaken('homing'),
-    U.weaponAdd('ghost'), U.weaponUp('ghost'), U.weaponAwaken('ghost'),
-  U.weaponUp('blaster'),  U.weaponAwaken('blaster'), // ★ 追加
-    U.speed, U.maxhp, U.regen, U.pickup, U.atkRate, U.atkDmg, U.sizeUp
-  ];
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
+      }
+    }
+  },
+
+  maxhp: {
+    id: 'maxhp+',
+    name: '最大HPアップ',
+    desc: '+15%最大HP（上限あり）',
+    can: () => state.player.maxHp < CAPS.hpMax - 1,
+    apply: () => {
+      const before = state.player.maxHp;
+      state.player.maxHp = Math.min(CAPS.hpMax, Math.round(state.player.maxHp * 1.15));
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + Math.round(state.player.maxHp * 0.15));
+      if (state.player.maxHp === before) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
+      }
+    }
+  },
+
+  regen: {
+    id: 'regen',
+    name: '自然回復',
+    desc: '毎秒 最大HPの0.8% 回復（1回きり）',
+    can: () => !state.upgradesTaken.has('regen'),
+    apply: () => {
+      state.upgradesTaken.add('regen');
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: 'リジェネ+' });
+    }
+  },
+
+  pickup: {
+    id: 'pickup+',
+    name: '吸引範囲アップ',
+    desc: '経験値吸引範囲アップ（Lv3で全域）',
+    can: () => state.pickupLv < 3,
+    apply: () => { state.pickupLv++; }
+  },
+
+  atkRate: {
+    id: 'rate+',
+    name: '攻撃速度アップ',
+    desc: 'クールダウン -12%（下限あり）',
+    can: () => state.mods.rateMul > CAPS.rateMulMin + 1e-6,
+    apply: () => {
+      state.mods.rateMul = Math.max(CAPS.rateMulMin, state.mods.rateMul * 0.88);
+      if (state.mods.rateMul === CAPS.rateMulMin) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '最速!' });
+      }
+    }
+  },
+
+  atkDmg: {
+    id: 'dmg+',
+    name: '与ダメージアップ',
+    desc: 'ダメージ +15%（上限あり）',
+    can: () => state.mods.dmgMul < CAPS.dmgMulMax - 1e-6,
+    apply: () => {
+      const before = state.mods.dmgMul;
+      state.mods.dmgMul = Math.min(CAPS.dmgMulMax, state.mods.dmgMul * 1.15);
+      if (state.mods.dmgMul === before) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
+      }
+    }
+  },
+
+  sizeUp: {
+    id: 'size+',
+    name: '弾サイズアップ',
+    desc: '弾・範囲 +12%（上限あり）',
+    can: () => state.mods.sizeMul < CAPS.sizeMulMax - 1e-6,
+    apply: () => {
+      const before = state.mods.sizeMul;
+      state.mods.sizeMul = Math.min(CAPS.sizeMulMax, state.mods.sizeMul * 1.12);
+      if (state.mods.sizeMul === before) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
+      }
+    }
+  },
+};
+
+// ===== ここから選択肢リスト =====
+const ALL_UPGRADES = [
+  U.weaponAdd('shotgun'),   U.weaponUp('shotgun'),   U.weaponAwaken('shotgun'),
+  U.weaponAdd('orbit'),     U.weaponUp('orbit'),     U.weaponAwaken('orbit'),
+  U.weaponAdd('lightning'), U.weaponUp('lightning'), U.weaponAwaken('lightning'),
+  U.weaponAdd('nova'),      U.weaponUp('nova'),      U.weaponAwaken('nova'),
+  U.weaponAdd('rock'),      U.weaponUp('rock'),      U.weaponAwaken('rock'),
+  U.weaponAdd('homing'),    U.weaponUp('homing'),    U.weaponAwaken('homing'),
+  U.weaponAdd('ghost'),     U.weaponUp('ghost'),     U.weaponAwaken('ghost'),
+  U.weaponUp('blaster'),    U.weaponAwaken('blaster'), // 既存武器の強化/覚醒
+  U.speed, U.maxhp, U.regen, U.pickup, U.atkRate, U.atkDmg, U.sizeUp
+];
 
 // ==== メインループ ====
 function loop(now){
