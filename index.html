@@ -90,7 +90,36 @@ canvas {
 .bar.hp.low > i {
   background: linear-gradient(90deg,#ff5a5a,#c0392b);
 }
-  
+
+/* 浮遊タイマー（デフォルトは非表示） */
+.time-float{
+  position:absolute;
+  right: calc(.5rem + env(safe-area-inset-right));
+  top:   calc(.5rem + env(safe-area-inset-top));
+  z-index: 15;
+  pointer-events: none; /* タップを邪魔しない */
+  display: none;
+  font-weight: 700;
+}
+
+/* 縦持ち or かなり狭い画面ではHUDを隠し、浮遊タイマーを出す */
+@media (orientation:portrait){
+  .time-float{ display:block; }
+}
+@media (max-width:480px){
+  .hud{ display:none; }      /* 既に入れている設定と整合 */
+  .time-float{ display:block; }
+}
+
+.hpval {
+  min-width: 60px;
+  text-align: right;
+  font-size: 0.8rem;
+  color: #fff;
+  opacity: 0.85;
+}
+
+
 </style>
 </head>
 <body>
@@ -113,6 +142,7 @@ canvas {
   <div class="hud">
     <span class="badge">Lv <b id="lv">1</b></span>
     <div class="bar hp"><i id="hpw"></i></div>
+    <span id="hpval" class="hpval"></span>   <!-- ★ 追加 -->
     <div class="bar xp"><i id="xpw"></i></div>
     <span class="badge">⌛ <b id="tm">0:00</b></span>
     <span class="badge">武器: <b id="wep">-</b></span>
@@ -215,8 +245,10 @@ window.addEventListener('resize', resize);
   // UI
   const lvEl = document.getElementById('lv');
   const hpw = document.getElementById('hpw');
+  const hpValEl = document.getElementById('hpval'); // ← 追加
   const xpw = document.getElementById('xpw');
   const tmEl = document.getElementById('tm');
+  const tm2El = document.getElementById('tm2'); // ← 追加
   const levelupEl = document.getElementById('levelup');
   const cardRow = document.getElementById('cardRow');
   const wepEl = document.getElementById('wep');
@@ -239,8 +271,6 @@ replayBtn.onclick = () => { clearEl.style.display='none'; resetGame(); };
 
 // resetGame() の最後あたりでクリア画面も隠す
 clearEl.style.display = 'none';
-
-  startBtn.onclick = () => { state.started = true; state.paused = false; startEl.style.display='none'; state.last = performance.now(); };
   
   async function tryFullscreenAndLandscape(){
   try{
@@ -263,7 +293,6 @@ startBtn.onclick = async () => {
   
 
   retryBtn.onclick = () => { resetGame(); };
-
 
 
 
@@ -322,22 +351,25 @@ state.pickupLv = 0;
 function updateHUD(){
   lvEl.textContent = state.player.level;
 
-  const hpRatio = state.player.hp / state.player.maxHp;
-  hpw.style.width = (100 * hpRatio) + '%';
-
-  // ← これを追加：20%以下で赤グラデ
-  const hpBar = hpw.parentElement; // .bar.hp
-  if (hpRatio <= 0.20) hpBar.classList.add('low');
-  else hpBar.classList.remove('low');
-
+  hpw.style.width = (100*state.player.hp/state.player.maxHp)+'%';
+    // ★ HP数値の更新
+  if (hpValEl) {
+    hpValEl.textContent = `${Math.max(0, Math.floor(state.player.hp))} / ${state.player.maxHp}`;
+  }
+  
   xpw.style.width = (100*state.player.xp/state.player.nextXp(state.player.level))+'%';
+
   const m = Math.floor(state.timeSec/60), s = (state.timeSec%60)|0;
-  tmEl.textContent = `${m}:${String(s).padStart(2,'0')}`;
+  const txt = `${m}:${String(s).padStart(2,'0')}`;
+  tmEl.textContent = txt;
+  if (tm2El) tm2El.textContent = txt; // ← 追加（浮遊タイマーにも反映）
+
   const names = Object.entries(state.weapons)
     .filter(([k,w])=>w.lv>0)
     .map(([k,w])=> `${w.short}${w.lv}${w.awaken?'★':''}`);
   wepEl.textContent = names.join(', ') || '-';
 }
+
 
   // Joystick + keyboard
   const joy = document.getElementById('joy');
@@ -406,19 +438,38 @@ function updateHUD(){
 }
   }
 
-  function spawnMidBoss(){
-    const x = rnd(40, W/DPR-40), y = rnd(40, H/DPR-40);
-    let hp = 420 + state.difficulty*120; if(state.timeSec>=360){ hp *= 1.6; }
-    const e = { x,y, size:48, hp, maxHp:hp, speed:80, type:'mid', cd:0, hitFlash:0 };
-    state.enemies.push(e); flashBossMsg();
-  }
+function spawnMidBoss(){
+  const margin = 80;
+  const side = Math.floor(Math.random()*4);
+  let x,y;
+  if(side===0){ x=rnd(-margin,0); y=rnd(0,H/DPR); }
+  else if(side===1){ x=rnd(W/DPR,W/DPR+margin); y=rnd(0,H/DPR); }
+  else if(side===2){ x=rnd(0,W/DPR); y=rnd(-margin,0); }
+  else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
 
-  function spawnBigBoss(){
-    const x = rnd(60, W/DPR-60), y = rnd(60, H/DPR-60);
-    let hp = 900 + state.difficulty*240; if(state.timeSec>=360){ hp *= 1.6; }
-    const e = { x,y, size:70, hp, maxHp:hp, speed:95, type:'big', cd:0, phase:'shoot', tele:0, dashCD:6, dashDir:{x:0,y:0}, hitFlash:0 };
-    state.enemies.push(e); flashBossMsg();
-  }
+  let hp = 420 + state.difficulty*120;
+  if(state.timeSec>=360){ hp *= 1.6; }
+  const e = { x,y, size:48, hp, maxHp:hp, speed:80, type:'mid', cd:0, hitFlash:0 };
+  state.enemies.push(e);
+  flashBossMsg();
+}
+
+function spawnBigBoss(){
+  const margin = 100;
+  const side = Math.floor(Math.random()*4);
+  let x,y;
+  if(side===0){ x=rnd(-margin,0); y=rnd(0,H/DPR); }
+  else if(side===1){ x=rnd(W/DPR,W/DPR+margin); y=rnd(0,H/DPR); }
+  else if(side===2){ x=rnd(0,W/DPR); y=rnd(-margin,0); }
+  else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
+
+  let hp = 900 + state.difficulty*240;
+  if(state.timeSec>=360){ hp *= 1.6; }
+  const e = { x,y, size:70, hp, maxHp:hp, speed:95, type:'big', cd:0, phase:'shoot',
+              tele:0, dashCD:6, dashDir:{x:0,y:0}, hitFlash:0 };
+  state.enemies.push(e);
+  flashBossMsg();
+}
 
   function flashBossMsg(){ bossMsg.style.display='block'; setTimeout(()=>bossMsg.style.display='none',1500); }
 
@@ -725,11 +776,14 @@ ghost:{
         const spread = 0.18; // 3発の拡散
         for(const off of [0, -spread, spread]){
           state.bullets.push({
-            type:'bullet', x:gx, y:gy,
-            vx:Math.cos(base+off)*360, vy:Math.sin(base+off)*360,
-            r:4*state.mods.sizeMul,
+            type:'ghost',             // ← 区別できるよう変更
+            x:gx, y:gy,
+            vx:Math.cos(base+off)*360,
+            vy:Math.sin(base+off)*360,
+            r:6*state.mods.sizeMul,   // ← 少し大きめ
             dmg:(10 + 4*(this.lv-1)) * (this.awaken ? 1.2 : 1.0) * state.mods.dmgMul,
-            life:1.5
+            life:1.5,
+            pierce:3                  // ← 貫通回数3
           });
         }
       }
@@ -737,6 +791,7 @@ ghost:{
     // ゴーストの見た目は draw() 側でOK（半透明の霊体など）
   }
 },
+
 
     
     
@@ -1039,50 +1094,76 @@ function loop(now){
     // weapons update
     for(const k in state.weapons){ state.weapons[k].update(dt); }
 
-    // === プレイヤー弾 ===
-    for(let i=state.bullets.length-1;i>=0;i--){
-      const b=state.bullets[i];
-      if(b.type==='homing'){
-        const t = nearestEnemy(b.x,b.y);
-        if(t){
-          const dx=t.x-b.x, dy=t.y-b.y;
-          const ang = Math.atan2(dy,dx);
-          const speed = Math.hypot(b.vx,b.vy);
-          const cur = Math.atan2(b.vy,b.vx);
-          const diff = ((ang-cur+Math.PI*3)%(Math.PI*2))-Math.PI;
-          const maxTurn = b.turn * dt;
-          const newAng = cur + clamp(diff, -maxTurn, maxTurn);
-          b.vx = Math.cos(newAng)* speed;
-          b.vy = Math.sin(newAng)* speed;
-        }
-      }
-      if(b.type==='rock'){ b.spin += 6*dt; }
-      b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
-      if(b.x<-60||b.x>W/DPR+60||b.y<-60||b.y>H/DPR+60|| b.life<=0){ 
-        state.bullets.splice(i,1); 
-        continue; 
-      }
-      for(let j=state.enemies.length-1;j>=0;j--){
-        const e=state.enemies[j];
-        const r = (e.type==='big'? e.size*0.55 : e.type==='mid'? e.size*0.6 : e.type==='minion'? e.size*0.7 : e.size*0.7);
-        if(dist2(b.x,b.y,e.x,e.y) < (b.r + r)**2){
-          e.hp -= b.dmg; e.hitFlash = Math.max(e.hitFlash, 0.12);
-          spark(b.x,b.y, b.type==='rock'? 3 : 4);
-          if(b.type==='homing'){
-            const R = (b.bigBoom ? 90 : 46) * state.mods.sizeMul;
-            addEffect('nova',{x:b.x,y:b.y,r:R, life:.26});
-            for(const e2 of state.enemies){
-              const d = Math.hypot(e2.x-b.x, e2.y-b.y);
-              if(d<R) { e2.hp -= b.dmg * (b.bigBoom? 1.2:1); e2.hitFlash = Math.max(e2.hitFlash, 0.12); }
-            }
-            state.bullets.splice(i,1);
-          }else if(b.type==='bullet'){
-            state.bullets.splice(i,1);
-          }
-          break;
-        }
-      }
+// === プレイヤー弾 ===
+for(let i=state.bullets.length-1;i>=0;i--){
+  const b=state.bullets[i];
+  
+  // ホーミングは敵を追尾
+  if(b.type==='homing'){
+    const t = nearestEnemy(b.x,b.y);
+    if(t){
+      const dx=t.x-b.x, dy=t.y-b.y;
+      const ang = Math.atan2(dy,dx);
+      const speed = Math.hypot(b.vx,b.vy);
+      const cur = Math.atan2(b.vy,b.vx);
+      const diff = ((ang-cur+Math.PI*3)%(Math.PI*2))-Math.PI;
+      const maxTurn = b.turn * dt;
+      const newAng = cur + clamp(diff, -maxTurn, maxTurn);
+      b.vx = Math.cos(newAng)* speed;
+      b.vy = Math.sin(newAng)* speed;
     }
+  }
+
+  if(b.type==='rock'){ b.spin += 6*dt; }
+
+  // 移動と寿命処理
+  b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
+  if(b.x<-60||b.x>W/DPR+60||b.y<-60||b.y>H/DPR+60|| b.life<=0){ 
+    state.bullets.splice(i,1); 
+    continue; 
+  }
+
+  // 敵との当たり判定
+  for(let j=state.enemies.length-1;j>=0;j--){
+    const e=state.enemies[j];
+    const r = (e.type==='big'? e.size*0.55 : e.type==='mid'? e.size*0.6 : e.type==='minion'? e.size*0.7 : e.size*0.7);
+    
+    if(dist2(b.x,b.y,e.x,e.y) < (b.r + r)**2){
+      // --- ヒット ---
+      e.hp -= b.dmg; 
+      e.hitFlash = Math.max(e.hitFlash, 0.12);
+      spark(b.x,b.y, b.type==='rock'? 3 : 4);
+
+      if(b.type==='homing'){
+        // ホーミングは爆発して消える
+        const R = (b.bigBoom ? 90 : 46) * state.mods.sizeMul;
+        addEffect('nova',{x:b.x,y:b.y,r:R, life:.26});
+        for(const e2 of state.enemies){
+          const d = Math.hypot(e2.x-b.x, e2.y-b.y);
+          if(d<R) { e2.hp -= b.dmg * (b.bigBoom? 1.2:1); e2.hitFlash = Math.max(e2.hitFlash, 0.12); }
+        }
+        state.bullets.splice(i,1);
+
+      }else if(b.type==='bullet'){
+        // 通常弾は1体に当たったら消える
+        state.bullets.splice(i,1);
+
+      }else if(b.type==='ghost'){
+        // 👻 ゴースト弾：貫通3回まで
+        if(b.pierce > 0){
+          b.pierce--;   // 残りカウントを減らして弾は残す
+        }else{
+          state.bullets.splice(i,1); // もう残弾数ないので消える
+        }
+
+      }
+      // rock は既存通り消さない（残る）
+
+      break; // 1体に当たったらこの弾の処理は終わり
+    }
+  }
+}
+
 
     // === 敵弾 ===
     for(let i=state.enemyBullets.length-1;i>=0;i--){
@@ -1233,10 +1314,13 @@ if(e.phase === 'shoot'){
   const L = Math.max(W, H)/DPR + 200;
   const x2 = e.x + Math.cos(e.laserAng)*L;
   const y2 = e.y + Math.sin(e.laserAng)*L;
-  addEffect('laserWarn', { x1:e.x, y1:e.y, x2, y2, life:.06 });
+
+  // 目立つ“半透明の太い予備線”
+  addEffect('laserGhost', { x1:e.x, y1:e.y, x2, y2, w:56, life:.06 });
+
   if(e.laserAimT <= 0){
     e.phase = 'laser';
-    e.laserDur = 1.6; // ★ 1.1→1.6
+    e.laserDur = 1.6;
   }
 
 }else if(e.phase === 'laser'){
@@ -1253,33 +1337,50 @@ if(e.phase === 'shoot'){
   if(e.laserDur <= 0){ e.cd = 1.8; e.phase = 'shoot'; }
 
 }else if(e.phase === 'charge_boom'){
+  // 予備動作：小さめの白パルス（短め）
   e.chargeT -= dt;
-  const r0 = 120, r1 = 260; // ちょい大きく
-  addEffect('whiteCharge', { x:e.x, y:e.y, r0, r1, life:.06 });
+  const r0 = 60, r1 = 120;
+  addEffect('whitePulse', { x:e.x, y:e.y, r0, r1, life:.06 }); // ← 新しい軽い予備表示
   if(e.chargeT <= 0){
+    // 本番：拡大波の初期化
     e.phase = 'boom';
-    e.boomT = 1.0; // 0.9→1.0
+    e.boomDur = 1.8;             // ★ 拡大にかける時間（避け猶予）
+    e.boomT   = e.boomDur;
+    e.boomR0  = 80;               // ★ 開始半径（小さく始める）
+    e.boomR1  = Math.hypot(W/DPR, H/DPR) * 0.9; // 画面対角の9割まで
     e.didBoomDamage = false;
   }
 
 }else if(e.phase === 'boom'){
+  // 進行度（0→1）と現在半径
   e.boomT -= dt;
-  const R = 700; // 660→700
-  addEffect('megaNova', { x:e.x, y:e.y, r:R, life:.06 });
-  if(!e.didBoomDamage){
-    const d = Math.hypot(state.player.x - e.x, state.player.y - e.y);
-    if(d < R && state.player.iTime <= 0){ playerHit(40, e.x, e.y); }
+  const life0 = e.boomDur;
+  const p = 1 - Math.max(0, e.boomT) / life0; // 0..1
+  const R = e.boomR0 + (e.boomR1 - e.boomR0) * p;
+
+  addEffect('boomWave', { x:e.x, y:e.y, r:R, w:28, life:.06, life0:.06 });
+
+  const d = Math.hypot(state.player.x - e.x, state.player.y - e.y);
+  if (!e.didBoomDamage && d <= R) {
+    if (state.player.iTime <= 0) playerHit(40, e.x, e.y);
     e.didBoomDamage = true;
   }
-  if(e.boomT <= 0){ e.cd = 2.4; e.phase = 'shoot'; }
-}
 
-        } else {
-          // === 既存 big の処理 ===
-          if(e.phase==='shoot'){
+  if(e.boomT <= 0){
+    e.cd = 2.4;
+    e.phase = 'shoot';
+  }
+  }
+  }
+  
+else {
+  // === 既存 big の処理 ===
+  
+            if(e.phase==='shoot'){
             e.x += Math.cos(ang)*e.speed*dt*0.6;
             e.y += Math.sin(ang)*e.speed*dt*0.6;
-            if(e.cd<=0){
+            if(e.cd<=0)
+            {
               for(let k=-3;k<=3;k++){
                 const a2 = ang + k*0.12;
                 state.enemyBullets.push({
@@ -1480,27 +1581,53 @@ function draw(){
     ctx.beginPath(); ctx.arc(g.x,g.y,g.r,0,Math.PI*2); ctx.fill();
   }
 
-  // bullets
-  for(const b of state.bullets){
-    if(b.type==='rock'){
-      ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.spin||0);
-      ctx.fillStyle='#b39c82';
-      const n=8, r=b.r;
-      ctx.beginPath();
-      for(let i=0;i<n;i++){
-        const a = (i/n)*Math.PI*2;
-        const px = Math.cos(a)*r, py = Math.sin(a)*r;
-        if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
-      }
-      ctx.closePath(); ctx.fill(); ctx.restore();
-    }else if(b.type==='homing'){
-      ctx.save(); ctx.translate(b.x,b.y);
-      ctx.fillStyle='#a0e1ff'; ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fill(); ctx.restore();
-    }else{
-      ctx.fillStyle='#f1c40f';
-      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+// bullets
+for (const b of state.bullets){
+  if (b.type === 'rock'){
+    // 既存そのまま
+    ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.spin||0);
+    ctx.fillStyle = '#b39c82';
+    const n=8, r=b.r;
+    ctx.beginPath();
+    for(let i=0;i<n;i++){
+      const a=(i/n)*Math.PI*2, px=Math.cos(a)*r, py=Math.sin(a)*r;
+      if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
     }
+    ctx.closePath(); ctx.fill(); ctx.restore();
+
+  } else if (b.type === 'homing'){
+    // 既存そのまま
+    ctx.save(); ctx.translate(b.x,b.y);
+    ctx.fillStyle = '#a0e1ff';
+    ctx.beginPath(); ctx.arc(0,0,b.r,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+
+  } else if (b.type === 'ghost') {
+    // ★ ゴースト弾：紫＋発光
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.fillStyle = '#a56bff';      // 紫
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#cfa9ff';    // 薄紫に光らせる
+    ctx.beginPath();
+    ctx.arc(0, 0, b.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+  } else {
+    // ★ 自分の通常弾：白系に変更（見分けやすい軽い発光）
+    ctx.save();
+    ctx.fillStyle = '#f5f7ff';          // 明るい白
+    ctx.shadowBlur = 8;                  // うっすら光る
+    ctx.shadowColor = '#ffffff';
+    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
   }
+}
+
+
 
   // enemy bullets
   for(const b of state.enemyBullets){
@@ -1584,16 +1711,29 @@ if(state.weapons.ghost.lv>0){
   const w = state.weapons.ghost;
   const count = w.awaken ? 6 : w.lv;
   ctx.save();
-  ctx.globalAlpha = 0.7;
-  ctx.fillStyle = '#7ee4ff';
+  ctx.globalAlpha = 0.85;
   for(let k=0;k<count;k++){
     const a = w.ang + k * (Math.PI*2/count);
     const r = 60 + 10*(w.lv-1);
     const gx = state.player.x + Math.cos(a)*r;
     const gy = state.player.y + Math.sin(a)*r;
+
+    // --- 本体 ---
+    ctx.fillStyle = '#7ee4ff'; // 水色ボディ
     ctx.beginPath();
     ctx.arc(gx, gy, 9, 0, Math.PI*2);
     ctx.fill();
+
+    // --- 顔（目＋口） ---
+    ctx.fillStyle = '#000';  // 黒目
+    ctx.beginPath(); ctx.arc(gx - 3, gy - 2, 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(gx + 3, gy - 2, 1.5, 0, Math.PI*2); ctx.fill();
+
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(gx, gy + 2, 3, 0, Math.PI); // 半円の口
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -1708,22 +1848,33 @@ for (const ef of state.effects) {
     ctx.fillText(ef.text, ef.x, ef.y - (1 - ef.life) * 20);
     ctx.restore();
 
-  } else if (ef.type === 'laserWarn') {
-  // レーザーの予備線：しっかり見えるように正規化
+} else if (ef.type === 'laserGhost') {
+  // 予備線：太い半透明の帯。球が多くても視認しやすい
   ctx.save();
   const life0 = 0.06;
   const a = Math.max(0, ef.life / life0); // 0→1 に正規化
-  ctx.globalAlpha = 0.85 * a;
-  ctx.strokeStyle = '#aee9ff';
-  ctx.lineWidth = 3;
-  ctx.setLineDash([2, 10]);
-  ctx.shadowBlur = 14;
-  ctx.shadowColor = '#c6f2ff';
+
+  // 外側のやわらかい“色つきハロ”
+  ctx.globalAlpha = 0.35 * a;
+  ctx.strokeStyle = '#7fd9ff';       // 薄いシアン系
+  ctx.lineWidth = (ef.w || 48) * 2;  // 外ハロは太め
+  ctx.shadowBlur = 28;
+  ctx.shadowColor = '#90e4ff';
   ctx.beginPath();
   ctx.moveTo(ef.x1, ef.y1);
   ctx.lineTo(ef.x2, ef.y2);
   ctx.stroke();
-  ctx.setLineDash([]);
+
+  // 内側の軸（さらに薄い）
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 0.22 * a;
+  ctx.strokeStyle = '#dff6ff';
+  ctx.lineWidth = (ef.w || 48);
+  ctx.beginPath();
+  ctx.moveTo(ef.x1, ef.y1);
+  ctx.lineTo(ef.x2, ef.y2);
+  ctx.stroke();
+
   ctx.restore();
 
 } else if (ef.type === 'laserBeam') {
@@ -1803,6 +1954,52 @@ for (const ef of state.effects) {
     ctx.fill();
     ctx.restore();
 
+} else if (ef.type === 'whitePulse') {
+  // 予備パルス：小さく白く光る玉（charge_boomで使用）
+  ctx.save();
+  const a = Math.max(0, ef.life / 0.06);           // 0→1
+  const r = ef.r0 + (ef.r1 - ef.r0) * (1 - a);     // だんだん小→大 でも OK（好み）
+  ctx.globalAlpha = 0.4 * a;
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = '#ffffff';
+  ctx.beginPath(); ctx.arc(ef.x, ef.y, r * 0.9, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 0.9 * a;
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(ef.x, ef.y, r, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+
+} else if (ef.type === 'boomWave') {
+  // 本番：半透明の“拡大リング”
+  ctx.save();
+  const a = Math.max(0, ef.life / (ef.life0 || 0.06)); // フレームのフェード
+  const w = ef.w || 24;
+
+  // 外側ハロ（薄いオレンジ系）
+  ctx.globalAlpha = 0.28 * a;
+  ctx.strokeStyle = '#ffd27a';
+  ctx.lineWidth = w * 1.6;
+  ctx.shadowBlur = 24;
+  ctx.shadowColor = '#ffe4ad';
+  ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.stroke();
+
+  // 主リング
+  ctx.shadowBlur = 0;
+  ctx.globalAlpha = 0.9 * a;
+  ctx.strokeStyle = '#fff4c1';
+  ctx.lineWidth = w;
+  ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.stroke();
+
+  // 内ハイライト
+  ctx.globalAlpha = 0.85 * a;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = Math.max(4, w - 6);
+  ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.stroke();
+
+  ctx.restore();
+
   } else if (ef.type === 'bossExplode') {
     // ボス撃破演出：画面フラッシュ＋多重リング
     ctx.save();
@@ -1870,8 +2067,8 @@ for (const ef of state.effects) {
     ctx.stroke();
 
     ctx.restore();
+   }
   } // ← for(const ef of state.effects) の閉じカッコ
-}
   } catch (err) {
     showErrorBanner(err.stack || err.message || String(err));
     throw err; // loop 側でも拾えるように
@@ -1941,32 +2138,26 @@ function gameOver(){
 
   // Final Boss spawn
 function spawnFinalBoss(){
-  const x = rnd(80, W/DPR-80), y = rnd(80, H/DPR-80);
+  const margin = 120;
+  const side = Math.floor(Math.random()*4);
+  let x,y;
+  if(side===0){ x=rnd(-margin,0); y=rnd(0,H/DPR); }
+  else if(side===1){ x=rnd(W/DPR,W/DPR+margin); y=rnd(0,H/DPR); }
+  else if(side===2){ x=rnd(0,W/DPR); y=rnd(-margin,0); }
+  else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
+
   const base = 2600 + state.difficulty*300;
-  const hp = base * 10; // ★ HP 10倍
+  const hp = base * 10;
   const e = {
-    x,y,
-    size: 84*2,                // ★ サイズ2倍
-    hp, maxHp: hp,
-    speed: 70,
-    type:'final',
-    phase:'shoot',
-    cd: 0,
-    tele: 0,
-    dashCD: 5.5,
-    dashDir:{x:0,y:0},
-    // 追加プロパティ（攻撃パターン）
-    patternCD: 4.5,           // 次の特殊行動までのクールダウン
-    blastCharge: 0,           // 大爆発のチャージ
-    blastR: 220,              // 爆発半径（必要に応じて調整）
-    laserAng: 0,              // レーザー角度
-    laserAimT: 0,             // 予備線の時間
-    laserDur: 0,              // 実レーザー時間
-    hitFlash:0
+    x,y, size:84*2, hp, maxHp:hp, speed:70, type:'final',
+    phase:'shoot', cd:0, tele:0, dashCD:5.5, dashDir:{x:0,y:0},
+    patternCD:4.5, blastCharge:0, blastR:220, laserAng:0,
+    laserAimT:0, laserDur:0, hitFlash:0
   };
   state.enemies.push(e);
   flashBossMsg();
 }
+
 
 
   requestAnimationFrame(loop);
