@@ -30,10 +30,11 @@ canvas {
   position:absolute; left:0; right:0; top:0;
   display:flex; gap:.75rem; padding:.5rem .75rem;
   align-items:center; pointer-events:none;
-  /* ここから追記 */
-  padding-top: calc(.5rem + env(safe-area-inset-top));
-  padding-left: calc(.5rem + env(safe-area-inset-left));
-  padding-right: calc(.75rem + env(safe-area-inset-right));
+
+  /* ← ここから追記/置換：セーフエリア考慮しつつ左上Pauseぶんだけ空ける */
+  padding-top:  calc(.5rem + env(safe-area-inset-top));
+  padding-left: calc(44px  + env(safe-area-inset-left));   /* ← 44pxでPauseを避ける */
+  padding-right:calc(.75rem + env(safe-area-inset-right));
 }
   .badge { background:#1a1a1a; border:1px solid #333; border-radius:.5rem; padding:.2rem .5rem; font-weight:600; }
   .bar { flex:1; height:.6rem; background:#1a1a1a; border:1px solid #333; border-radius:.4rem; overflow:hidden; }
@@ -91,52 +92,42 @@ canvas {
   background: linear-gradient(90deg,#ff5a5a,#c0392b);
 }
 
-/* 浮遊タイマー（デフォルトは非表示） */
+/* 浮遊タイマー：常時表示（PC/スマホ共通） */
 .time-float{
-  position:absolute;
-  right: calc(.5rem + env(safe-area-inset-right));
-  top:   calc(.5rem + env(safe-area-inset-top));
-  z-index: 15;
-  pointer-events: none; /* タップを邪魔しない */
-  display: none;
+  position: fixed;
+  top: 8px;
+  right: 12px;      /* PC：右上 */
+  z-index: 9999;
+  pointer-events: none;
+  display: block;
   font-weight: 700;
 }
 
-/* 縦持ち or かなり狭い画面ではHUDを隠し、浮遊タイマーを出す */
-@media (orientation:portrait){
-  .time-float{ display:block; }
-}
-@media (max-width:480px){
-  .hud{ display:none; }
-  .time-float{ display:block; }
-}
-
-/* HUD内のタイマーは常に非表示（浮遊タイマーのみ使用） */
-.hud #tm, .hud .tm, .hud .time,
-.hud .time::before, .hud .tm::before{
-  display:none !important;
-  content:none !important;
-}
-
-/* 端末縦向きのときは、Pauseと重ならない位置に配置 */
-@media (orientation: portrait) {
-  .time-float{
-    position: fixed;
-    top: 8px;
-    right: 64px;     /* Pauseボタンの左にずらす */
-    z-index: 9999;
-    display: block !important;
+/* デスクトップ幅は HUD 右にタイマーぶんの余白を空ける */
+@media (min-width: 768px){
+  .hud{
+    padding-right: 140px; /* ← ここで右側のスペース確保（必要なら160〜180に） */
   }
+}
+
+/* Pause ボタンのデフォルト位置（PC：左上） */
+#pauseBtn{
+  position: fixed;
+  top: 8px;
+  left: 12px;
+  right: auto;
+  z-index: 10000;
+}
+
+/* 縦画面は Pause=右上 / タイマー=その左 にして重なり回避 */
+@media (orientation: portrait){
   #pauseBtn{
-    position: fixed;
-    top: 8px;
+    left: auto;
     right: 12px;
-    z-index: 10000;
   }
-}
-
-
-  
+  .time-float{
+    right: 64px;     /* Pause のぶんだけ左へズラす */
+  }
 }
 
 .hc-badges{
@@ -147,36 +138,52 @@ canvas {
   display: none;                 /* 通常は非表示 */
   gap: .35rem;
 }
-#wrap[data-hc] .hc-badges{       /* Hardcore中のみ表示 */
-  display: flex;
-}
-.hc-badges .badge{
-  background:#231a3a;            /* 既存のHC配色に寄せる紫トーン */
-  border-color:#5b2a8a;
-  font-weight:700;
-  letter-spacing:.01em;
-}
-@media (max-width:480px){
-  .hc-badges { top: calc(3.8rem + env(safe-area-inset-top)); }
-}
-
-
-
-#wrap[data-hc]::after{
+/* ハードコアのラベル＆条件バッジ（本体=bodyにフラグ） */
+body[data-hc]::after{
   content:"HARDCORE";
-  position:absolute;
-  right: calc(.5rem + env(safe-area-inset-right));
-  top:   calc(3.2rem + env(safe-area-inset-top));
+  position: fixed;
+  right: 12px;
+  top:   44px;        /* ← 浮遊タイマーの少し下 */
   background:#8b5cf6; color:#fff; font-weight:700;
   padding:.2rem .5rem; border-radius:.4rem; opacity:.95;
-  z-index: 16;
+  z-index: 10000;
   box-shadow:0 4px 12px rgba(139,92,246,.35);
   font-size:.85rem;
+}
+
+/* 条件バッジはその下に固定表示。HC時のみ表示 */
+.hc-badges{
+  position: fixed;
+  right: 12px;
+  top:   76px;        /* ← ラベルのさらに下 */
+  z-index: 10000;
+  display: none;
+  gap: .35rem;
+}
+body[data-hc] .hc-badges{ display: flex; }
+
+.hc-badges .badge{
+  background:#231a3a;
+  border:1px solid #5b2a8a;
+  color:#e9d5ff;
+  padding:.15rem .35rem;
+  border-radius:.35rem;
+  font-weight:700;
+  letter-spacing:.01em;
+  font-size:.8rem;
+}
+
+/* 縦画面では少し内側に＆Pauseと重ならないように調整 */
+@media (orientation: portrait) {
+  body[data-hc]::after { right: 64px; top: 44px; }
+  .hc-badges           { right: 64px; top: 76px; }
 }
 
 </style>
 </head>
 <body>
+
+
 <div id="wrap">
   <div id="start" style="display:flex;">
     <h1>10分生き延びろ！</h1>
@@ -224,10 +231,7 @@ canvas {
   <div id="hint">Pause: [P]</div>
 </div>
 
-<div id="hcBadges" class="hc-badges">
-  <span class="badge">XP 75%</span>
-  <span class="badge">敵 自動回復</span>
-</div>
+
 </div>
 
 <script>
@@ -570,12 +574,13 @@ if (tf) tf.textContent = `⌛ ${txt}`;
     .map(([k,w])=> `${w.short}${w.lv}${w.awaken?'★':''}`);
   wepEl.textContent = names.join(', ') || '-';
   
-const wrapEl = document.getElementById('wrap');
+const bodyEl = document.body;
 if (state.mode.hardcore) {
-  wrapEl.dataset.hc = "1";
+  bodyEl.dataset.hc = "1";
 } else {
-  delete wrapEl.dataset.hc;
+  delete bodyEl.dataset.hc;
 }
+
 if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
 
 }
@@ -1006,7 +1011,7 @@ homing:{
   }
 },
 
-lightning:{ short:'LT', name:'ライトニング', lv:0, awaken:false, cd:0, baseRate:2.2, baseDmg:30,
+lightning:{ short:'LT', name:'ライトニング', lv:0, awaken:false, cd:0, baseRate:2.2, baseDmg:20,
   update(dt){
     if(this.lv<=0) return;
     this.cd -= dt; if(this.cd>0) return;
@@ -2318,12 +2323,46 @@ for (const b of state.bullets){
 
 
 
-  // enemy bullets
-  for(const b of state.enemyBullets){
-    ctx.fillStyle='#ff9f43';
-    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
-  }
+  // enemy bullets（視認性強化）
+  for (const b of state.enemyBullets){
+    const x = b.x, y = b.y;
+    const rPhys = b.r || 5;        // 当たり判定半径（変更なし）
+    const rVis  = rPhys + 2.5;     // 見た目は少し大きく
 
+    ctx.save();
+
+    // 1) 外縁（ダークアウトライン）
+    ctx.beginPath();
+    ctx.arc(x, y, rVis + 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.65)';
+    ctx.fill();
+
+    // 2) コア（白→オレンジの放射グラデ＋やわらかい発光）
+    const g = ctx.createRadialGradient(x, y, 0, x, y, rVis);
+    g.addColorStop(0.00, '#F47A4D');
+    g.addColorStop(0.55, '#F47A4D');
+    g.addColorStop(1.00, '#E15A28');
+    ctx.beginPath();
+    ctx.arc(x, y, rVis, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.shadowColor = 'rgba(255,255,255,0.85)';
+    ctx.shadowBlur  = 8;
+    ctx.fill();
+
+    // 3) リムハイライト（白い細縁）
+    const dpr = (typeof DPR !== 'undefined' && DPR) ? DPR : (window.devicePixelRatio || 1);
+    ctx.lineWidth = 0.2 * dpr;
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.stroke();
+
+    ctx.restore();
+
+    // 速度が速い弾は1pxの白点でチラ見せ（任意）
+    if ((b.vx*b.vx + b.vy*b.vy) > 120*120){
+      ctx.fillStyle = '#fff';
+      ctx.fillRect((x|0)-0.5, (y|0)-0.5, 1, 1);
+    }
+  }
 
 // 無敵中は点滅
 if (state.player.iTime > 0 && ((state.t * 20 | 0) % 2 === 0)) {
@@ -3030,7 +3069,12 @@ const e = {
 
 
 </script>
+<div id="hcBadges" class="hc-badges">
+  <span class="badge">XP 75%</span>
+  <span class="badge">敵 自動回復</span>
+    <span class="badge">攻撃&体力×1.5</span>
 
+</div>
 
 </body>
 </html>
