@@ -107,41 +107,36 @@ canvas {
   .time-float{ display:block; }
 }
 @media (max-width:480px){
-  .hud{ display:none; }      /* 既に入れている設定と整合 */
+  .hud{ display:none; }
   .time-float{ display:block; }
 }
 
-.hpval {
-  min-width: 60px;
-  text-align: right;
-  font-size: 0.8rem;
-  color: #fff;
-  opacity: 0.85;
+/* HUD内のタイマーは常に非表示（浮遊タイマーのみ使用） */
+.hud #tm, .hud .tm, .hud .time,
+.hud .time::before, .hud .tm::before{
+  display:none !important;
+  content:none !important;
 }
 
-.hud-btn{
-  position:absolute;
-  right: calc(.5rem + env(safe-area-inset-right));
-  /* HUD の下にずらす：以前は .5rem → 2.8rem へ */
-  top:   calc(2.8rem + env(safe-area-inset-top));
-  z-index: 30;
-  pointer-events: auto;
-  background:#1f6feb;
-  color:#fff;
-  border:none;
-  border-radius:.5rem;
-  font-weight:700;
-  padding:.5rem .7rem;
-  box-shadow:0 4px 14px rgba(31,111,235,.35);
-}
-.hud-btn:active{ transform: translateY(1px); }
-
-/* HUD を非表示にしている超狭画面では、ボタンを上に戻す */
-@media (max-width:480px){
-  .hud{ display:none; }
-  .hud-btn{
-    top: calc(.5rem + env(safe-area-inset-top));
+/* 端末縦向きのときは、Pauseと重ならない位置に配置 */
+@media (orientation: portrait) {
+  .time-float{
+    position: fixed;
+    top: 8px;
+    right: 64px;     /* Pauseボタンの左にずらす */
+    z-index: 9999;
+    display: block !important;
   }
+  #pauseBtn{
+    position: fixed;
+    top: 8px;
+    right: 12px;
+    z-index: 10000;
+  }
+}
+
+
+  
 }
 
 .hc-badges{
@@ -202,16 +197,20 @@ canvas {
   </div>
 </div>
   
-  <div class="time-float">⌛ <b id="tm2">0:00</b></div>
-
+<div class="time-float">
+  <div id="timeFloat">⌛ 0:00</div>
+</div>
   
   <canvas id="cv"></canvas>
   <div class="hud">
+    <!-- ▼スコア表示を追加 -->
+  <div id="scoreHud" style="font-weight:700; margin:4px 0;">
+    SCORE: <span id="scoreVal">0</span>
+  </div>
     <span class="badge">Lv <b id="lv">1</b></span>
     <div class="bar hp"><i id="hpw"></i></div>
     <span id="hpval" class="hpval"></span>   <!-- ★ 追加 -->
     <div class="bar xp"><i id="xpw"></i></div>
-    <span class="badge">⌛ <b id="tm">0:00</b></span>
     <span class="badge">武器: <b id="wep">-</b></span>
   </div>
   <!-- ⏸/▶ ボタン（.hud の外！） -->
@@ -325,8 +324,7 @@ window.addEventListener('resize', resize);
   const hpw = document.getElementById('hpw');
   const hpValEl = document.getElementById('hpval'); // ← 追加
   const xpw = document.getElementById('xpw');
-  const tmEl = document.getElementById('tm');
-  const tm2El = document.getElementById('tm2');  // ← これを追加
+const timeFloatEl = document.getElementById('timeFloat');
   const levelupEl = document.getElementById('levelup');
   const cardRow = document.getElementById('cardRow');
   const wepEl = document.getElementById('wep');
@@ -343,7 +341,19 @@ window.addEventListener('resize', resize);
   const retryBtn = document.getElementById('retryBtn');
   const clearEl = document.getElementById('gameclear');
 const replayBtn = document.getElementById('replayBtn');
-const pauseBtn = document.getElementById('pauseBtn'); // ← ここに追加
+const pauseBtn = document.getElementById('pauseBtn'); 
+
+// === resize: 縦横切り替えでズーム更新 ===
+window.addEventListener('resize', ()=>{
+  try { if (typeof fitCanvas === 'function') fitCanvas(); } catch(e){}
+  const isPortrait = (window.matchMedia && window.matchMedia('(orientation: portrait)').matches);
+  state.cameraZoom = isPortrait ? 0.85 : 1.0;
+});
+
+
+const scoreVal = document.getElementById('scoreVal');
+
+
 
 // === Debug hotkeys on Start screen (H/F/N inside IIFE) ===
 document.addEventListener('keydown', (ev)=>{
@@ -441,6 +451,19 @@ retryBtn.onclick = () => { resetGame(); syncPauseButton(); };
 
 function syncPauseButton(){
   if (!pauseBtn) return;
+  const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
+  const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
+
+  // 表示としては「手動停止なら⏵、それ以外は⏸」
+  pauseBtn.textContent = state.manualPaused ? '▶︎' : '⏸';
+
+  // オーバーレイ中は半透明＆押せない風
+  const locked = (lvlOpen || chestOpen);
+  pauseBtn.style.opacity = locked ? '0.6' : '1';
+}
+
+function syncPauseButton(){
+  if (!pauseBtn) return;
   pauseBtn.textContent = state.paused ? '▶' : '⏸';
   pauseBtn.setAttribute('aria-label', state.paused ? 'Resume' : 'Pause');
 }
@@ -450,7 +473,8 @@ if (pauseBtn){
     state.paused = !state.paused;
     syncPauseButton();
   };
-}
+} // ← ここで必ず閉じる！
+
 
 
   function resetGame(){
@@ -471,6 +495,7 @@ state.player.kbx = 0;
 state.player.kby = 0;
 state.pickupLv = 0;
     // Reset meta
+    state.manualPaused = false;
     state.mods.sizeMul = 1.0;
     state.spawnTimer = 0;
     state.difficulty = 1;
@@ -480,6 +505,11 @@ state.pickupLv = 0;
     state.bigBossTimer = 9999;
     state.gather.active = false; state.gather.time = 0; state.gather.totalXP = 0;
       state.winCountdown = 0;
+    state.score = 0;
+state.killScore = 0;
+state.bossBonus = 0;
+
+
 
     // Reset upgrades
     state.upgradesTaken = new Set();
@@ -492,6 +522,7 @@ state.pickupLv = 0;
       if('cd' in w) w.cd = 0;
       if(k==='orbit'){ w.ang = 0; }
     }
+    
     // UI
     levelupEl.style.display='none';
     chestEl.style.display='none';
@@ -502,6 +533,18 @@ state.pickupLv = 0;
     state.paused = false;
     state.last = performance.now();
     clearEl.style.display='none';
+    
+    // === score & records ===
+state.score = 0;                 // 現在スコア
+state.killScore = 0;             // キルのみの加算追跡（任意）
+state.bossBonus = 0;             // ボス撃破ボーナス
+
+// === viewport zoom（縦画面は少し引く）===
+state.cameraZoom = (window.matchMedia && window.matchMedia('(orientation: portrait)').matches)
+  ? 0.85   // 縦画面は縮小（数値はお好みで 0.80〜0.95）
+  : 1.0;   // 横画面は等倍
+state.records = JSON.parse(localStorage.getItem('vs_records') || '[]'); // [{score,timeSec,date,hardcore}]
+
 
   }
 
@@ -516,10 +559,11 @@ function updateHUD(){
   
   xpw.style.width = (100*state.player.xp/state.player.nextXp(state.player.level))+'%';
 
-  const m = Math.floor(state.timeSec/60), s = (state.timeSec%60)|0;
-  const txt = `${m}:${String(s).padStart(2,'0')}`;
-  tmEl.textContent = txt;
-  if (tm2El) tm2El.textContent = txt; // ← 追加（浮遊タイマーにも反映）
+const m   = Math.floor(state.timeSec/60);
+const s   = (state.timeSec%60)|0;
+const txt = `${m}:${String(s).padStart(2,'0')}`;
+const tf  = document.getElementById('timeFloat'); // 常に浮遊タイマーへ
+if (tf) tf.textContent = `⌛ ${txt}`;
 
   const names = Object.entries(state.weapons)
     .filter(([k,w])=>w.lv>0)
@@ -532,6 +576,8 @@ if (state.mode.hardcore) {
 } else {
   delete wrapEl.dataset.hc;
 }
+if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
+
 }
 
 
@@ -717,17 +763,30 @@ function spawnItemRandom(){
       state.gems.length = 0;
       state.gather.active = true; state.gather.time = 0; state.gather.totalXP = gained;
       state.paused = true; gatherEl.style.display='flex';
-    }else if(it.kind==='nuke'){
-  let killed=0;
-  for(let i=state.enemies.length-1;i>=0;i--){
+}else if(it.kind==='nuke'){
+  const NUKE_KILL_SCORE = 5;   // 1体あたりの少額スコア
+  const NUKE_SCORE_CAP  = 50;  // 一掃1回あたりの上限
+
+  let killed = 0, gained = 0;
+  for (let i = state.enemies.length - 1; i >= 0; i--) {
     const e = state.enemies[i];
-    // ✅ 殲滅は雑魚のみ（final/mid/big は除外）
     if (e.type === 'minion' || e.type === 'shooter') {
-      dropGem(e.x, e.y, 2);
+      // 少額スコア（上限あり）
+      if (gained < NUKE_SCORE_CAP) {
+        gained += NUKE_KILL_SCORE;
+        if (gained > NUKE_SCORE_CAP) gained = NUKE_SCORE_CAP;
+      }
+      // XP控えめ
+      dropGem(e.x, e.y, 1);
       spark(e.x, e.y, 16);
       state.enemies.splice(i, 1);
       killed++;
     }
+  }
+  if (gained > 0) {
+    state.score += gained;
+    state.killScore = (state.killScore || 0) + gained;
+    if (scoreVal) scoreVal.textContent = Math.floor(state.score);
   }
   addEffect('text', { x: state.player.x, y: state.player.y, life: 1.2, text: `一掃(${killed})` });
 }else if(it.kind==='heal'){
@@ -1435,7 +1494,16 @@ try {
       draw(); requestAnimationFrame(loop); return;
     }
 
-    if(state.paused){ draw(); requestAnimationFrame(loop); return; }
+// 画面オーバーレイに応じた pause 合成
+const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
+const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
+
+// pauseの最終値 = 画面停止(オーバーレイ) or 手動停止
+state.paused = !!(lvlOpen || chestOpen || state.manualPaused);
+
+if (state.paused){
+  draw(); requestAnimationFrame(loop); return;
+}
 
     state.t += dt; 
     state.timeSec += dt;
@@ -2038,17 +2106,36 @@ if (poisonDps > 0) {
   e.hitFlash = Math.max(e.hitFlash, 0.06);
 }
       // 敵死亡処理
-      if (e.hp <= 0) {
+      if(e.hp <= 0) {
+          
+          // ▼ キルスコア（敵種別で配点）
+{
+  let add = 0;
+  if (e.type === 'final') add = 5000;
+  else if (e.type === 'big') add = 150;
+  else if (e.type === 'mid') add = 60;
+  else if (e.type === 'shooter') add = 30;
+  else add = 20; // minion 等
+
+  state.score += add;
+  state.killScore = (state.killScore || 0) + add;
+  if (scoreVal) scoreVal.textContent = Math.floor(state.score);
+}
+
+          
 if (e.type === 'final') {
   // 見た目：強い発光＋爆発
   addEffect('bossExplode', { x: e.x, y: e.y, R: 420, life: 0.9, life0: 0.9 });
   addEffect('flash', { life: 0.08 });
+
 
   // 後始末：敵・敵弾・アイテムをクリア＆スポーン停止
   state.enemies.length = 0;
   state.enemyBullets.length = 0;
   state.items.length = 0;
   state.spawnTimer = 9999;
+
+
 
   // クリア遷移（少し見せてから）
   state.winCountdown = 1.2; // 1.2秒後に showGameClear() が呼ばれる想定
@@ -2129,6 +2216,7 @@ if (e.type === 'final') {
 
 // ==== 描画 ====
 function draw(){
+
   try {
   ctx.clearRect(0,0,cv.width,cv.height);
 // grid（置き換え）
@@ -2143,6 +2231,13 @@ for (let y = 0; y < cv.height / DPR; y += step) {
   ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cv.width / DPR, y); ctx.stroke();
 }
 ctx.restore();
+
+// === ワールド縮尺（縦画面は少し引いて描く） ===
+ctx.save();
+const z = state.cameraZoom || 1.0;
+ctx.scale(z, z);
+
+
 
   // items
   for(const it of state.items){
@@ -2782,6 +2877,11 @@ for (const ef of state.effects) {
     showErrorBanner(err.stack || err.message || String(err));
     throw err; // loop 側でも拾えるように
   }
+  
+if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);  
+
+ctx.restore();
+
 } // ← function draw の閉じカッコ
 
 
