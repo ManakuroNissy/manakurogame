@@ -815,83 +815,125 @@ if(e.key==='p'||e.key==='P'){
     const m=Math.hypot(x,y)||1; return {x:x/m,y:y/m};
   }
 
-  // Spawns
-  function spawnEnemy(){
-    const margin = 30;
-    const side = Math.floor(Math.random()*4);
-    let x,y;
-    if(side===0){ x=rnd(-margin,0); y=rnd(0,H/DPR); }
-    else if(side===1){ x=rnd(W/DPR,W/DPR+margin); y=rnd(0,H/DPR); }
-    else if(side===2){ x=rnd(0,W/DPR); y=rnd(-margin,0); }
-    else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
-    const shooterProb = state.timeSec > 150 ? 0.04 : 0.0; // 120→150s、0.05→0.04
-    if(Math.random()<shooterProb){
-      const hp = (20 + state.difficulty*2.5) * 1.5;
-      const hcHp = state.mode.hardcore ? hp * 1.5 : hp;   // ← 追加
-      const cx = (W/DPR)/2, cy = (H/DPR)/2;
-      const dx = cx - x, dy = cy - y; const m = Math.hypot(dx,dy)||1;
-      const dir = {x:dx/m, y:dy/m};
-      state.enemies.push({
-  x,y, size:20, hp:hcHp, maxHp:hcHp, type:'shooter',
-  phase:'move', dir, moved:0, moveDist: rnd(240, 360),
-  moveSpeed: 120, cd: rnd(0.2,0.8), hitFlash:0,
-  kbx:0, kby:0
-});
-}else{
-  let hp = 16 + state.difficulty*2.2;
-  hp = state.mode.hardcore ? hp * 1.5 : hp;    
-  if(state.timeSec>=360){ hp *= 2.0; }
+// Spawns
+function spawnEnemy(){
+  const B = worldBounds();              // ← ズーム反映の表示境界
+  const margin = 30;
+  const side = Math.floor(Math.random()*4);
+  let x, y;
 
-  // ★ 速度成長の上限を導入
-  const dForSpeed = Math.min(state.difficulty, 16); // ← 上限（例：16）
-  const sp = 30 + dForSpeed*4.5;                   // ← 伸び率も少し抑える
-
-  state.enemies.push({
-  x,y, size:18, hp, maxHp:hp, speed:sp, type:'minion',
-  hitFlash:0, kbx:0, kby:0
-});
-
-}
+  // 画面の四辺「外」から湧かせる（ズーム対応）
+  if (side === 0) { // 上
+    x = rnd(B.minX - margin, B.maxX + margin);
+    y = B.minY - margin;
+  } else if (side === 1) { // 右
+    x = B.maxX + margin;
+    y = rnd(B.minY - margin, B.maxY + margin);
+  } else if (side === 2) { // 下
+    x = rnd(B.minX - margin, B.maxX + margin);
+    y = B.maxY + margin;
+  } else { // 左
+    x = B.minX - margin;
+    y = rnd(B.minY - margin, B.maxY + margin);
   }
 
+  const shooterProb = state.timeSec > 150 ? 0.04 : 0.0;
+
+  if (Math.random() < shooterProb) {
+    // 射撃タイプ
+    let hp = (20 + state.difficulty*2.5) * 1.5;
+    if (state.mode.hardcore) hp *= 1.5;
+
+    // ねらい：プレイヤー（※画面中心にしたいなら (B.minX+B.maxX)/2 などでも可）
+    const tx = state.player.x, ty = state.player.y;
+    const dx = tx - x, dy = ty - y; const m = Math.hypot(dx, dy) || 1;
+    const dir = { x: dx/m, y: dy/m };
+
+    state.enemies.push({
+      x, y, size:20, hp, maxHp:hp, type:'shooter',
+      phase:'move', dir, moved:0, moveDist:rnd(240,360),
+      moveSpeed:120, cd:rnd(0.2,0.8), hitFlash:0, kbx:0, kby:0
+    });
+  } else {
+    // 近接タイプ
+    let hp = 16 + state.difficulty*2.2;
+    if (state.mode.hardcore) hp *= 1.5;
+    if (state.timeSec >= 360) hp *= 2.0;
+
+    const dForSpeed = Math.min(state.difficulty, 16);
+    const sp = 30 + dForSpeed*4.5;
+
+    state.enemies.push({
+      x, y, size:18, hp, maxHp:hp, speed:sp, type:'minion',
+      hitFlash:0, kbx:0, kby:0
+    });
+  }
+}
+
 function spawnMidBoss(){
+  const B = worldBounds();           // ← ズーム反映の表示境界
   const margin = 80;
   const side = Math.floor(Math.random()*4);
   let x,y;
-  if(side===0){ x=rnd(-margin,0); y=rnd(0,H/DPR); }
-  else if(side===1){ x=rnd(W/DPR,W/DPR+margin); y=rnd(0,H/DPR); }
-  else if(side===2){ x=rnd(0,W/DPR); y=rnd(-margin,0); }
-  else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
+
+  // 画面の四辺「外」から湧かせる
+  if (side===0){ // 上
+    x = rnd(B.minX - margin, B.maxX + margin);
+    y = B.minY - margin;
+  } else if (side===1){ // 右
+    x = B.maxX + margin;
+    y = rnd(B.minY - margin, B.maxY + margin);
+  } else if (side===2){ // 下
+    x = rnd(B.minX - margin, B.maxX + margin);
+    y = B.maxY + margin;
+  } else { // 左
+    x = B.minX - margin;
+    y = rnd(B.minY - margin, B.maxY + margin);
+  }
 
   let hp = 420 + state.difficulty*120;
-  if(state.timeSec>=360){ hp *= 1.6; }
-  hp = state.mode.hardcore ? hp * 1.5 : hp;           // ← 追加
+  if (state.timeSec>=360) hp *= 1.6;
+  if (state.mode.hardcore) hp *= 1.5;
+
   const e = {
-  x,y, size:48, hp, maxHp:hp, speed:80, type:'mid', cd:0, hitFlash:0,
-  kbx:0, kby:0
-};
+    x,y, size:48, hp, maxHp:hp, speed:80, type:'mid',
+    cd:0, hitFlash:0, kbx:0, kby:0
+  };
 
   state.enemies.push(e);
   flashBossMsg();
 }
 
 function spawnBigBoss(){
+  const B = worldBounds();           // ← ズーム反映の表示境界
   const margin = 100;
   const side = Math.floor(Math.random()*4);
   let x,y;
-  if(side===0){ x=rnd(-margin,0); y=rnd(0,H/DPR); }
-  else if(side===1){ x=rnd(W/DPR,W/DPR+margin); y=rnd(0,H/DPR); }
-  else if(side===2){ x=rnd(0,W/DPR); y=rnd(-margin,0); }
-  else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
+
+  // 画面の四辺「外」から湧かせる
+  if (side===0){ // 上
+    x = rnd(B.minX - margin, B.maxX + margin);
+    y = B.minY - margin;
+  } else if (side===1){ // 右
+    x = B.maxX + margin;
+    y = rnd(B.minY - margin, B.maxY + margin);
+  } else if (side===2){ // 下
+    x = rnd(B.minX - margin, B.maxX + margin);
+    y = B.maxY + margin;
+  } else { // 左
+    x = B.minX - margin;
+    y = rnd(B.minY - margin, B.maxY + margin);
+  }
 
   let hp = 1000 + state.difficulty*240;
-  if(state.timeSec>=360){ hp *= 1.6; }
-  hp = state.mode.hardcore ? hp * 1.5 : hp;           // ← 追加
+  if (state.timeSec>=360) hp *= 1.6;
+  if (state.mode.hardcore) hp *= 1.5;
+
   const e = {
-  x,y, size:70, hp, maxHp:hp, speed:95, type:'big', cd:0, phase:'shoot',
-  tele:0, dashCD:6, dashDir:{x:0,y:0}, hitFlash:0,
-  kbx:0, kby:0
-};
+    x,y, size:70, hp, maxHp:hp, speed:95, type:'big',
+    cd:0, phase:'shoot', tele:0, dashCD:6, dashDir:{x:0,y:0},
+    hitFlash:0, kbx:0, kby:0
+  };
 
   state.enemies.push(e);
   flashBossMsg();
@@ -935,14 +977,20 @@ function spawnBigBoss(){
 function addEffect(type, data){
   state.effects.push({ type, ...data });
 }
-  // Items
+// Items
 function spawnItemRandom(){
   let chance = 0.03;
-  if (state.mods.doubleItem) chance *= 2;   // ← ここ追加
+  if (state.mods.doubleItem) chance *= 2;   // ← ここはそのまま
+
   if (Math.random() < chance) {
+    const B = worldBounds();        // ← ズーム対応の表示境界
+    const pad = 30;                 // 画面端から少し内側に出す
+    const x = rnd(B.minX + pad, B.maxX - pad);
+    const y = rnd(B.minY + pad, B.maxY - pad);
+
     const roll = Math.random();
     const kind = roll < 0.45 ? 'magnet' : roll < 0.75 ? 'nuke' : 'heal';
-    state.items.push({ kind, x:rnd(30,W/DPR-30), y:rnd(30,H/DPR-30), r:12, t:0 });
+    state.items.push({ kind, x, y, r:12, t:0 });
   }
 }
 
@@ -1291,7 +1339,7 @@ ghost:{
     // 発射トリガ
     if(this.cd <= 0){
       // ▶ 発射間隔：短縮＆レベルでさらに短縮、覚醒で少し早め
-      this.cd = Math.max(0.42, this.baseRate * (1 - 0.18*(this.lv-1))) * (this.awaken ? 0.85 : 1.0) * state.mods.rateMul * 0.8;
+      this.cd = Math.max(0.42, this.baseRate * (1 - 0.18*(this.lv-1))) * (this.awaken ? 0.85 : 1.0) * state.mods.rateMul;
 
       for(let k=0;k<count;k++){
         const a = this.ang + k * (Math.PI*2/count);
@@ -1313,7 +1361,7 @@ ghost:{
             r:6*state.mods.sizeMul,   // ← 少し大きめ
             dmg:(4 + 4*(this.lv-1)) * (this.awaken ? 1.1 : 1.0) * state.mods.dmgMul,
             life:3.0,
-            pierce:3                  // ← 貫通回数3
+            pierce:1                  // ← 貫通回数1
           });
         }
       }
@@ -1720,6 +1768,8 @@ if (state.paused){
 
     state.t += dt; 
     state.timeSec += dt;
+    const B = worldBounds(); // そのフレームで実際に見えているワールド境界
+
     
     // Final Boss spawn
     if (!state.finalSpawned && state.timeSec >= 600) {
@@ -1854,10 +1904,14 @@ for(let i=state.bullets.length-1;i>=0;i--){
 
   // 移動と寿命処理
   b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
-  if(b.x<-60||b.x>W/DPR+60||b.y<-60||b.y>H/DPR+60|| b.life<=0){ 
-    state.bullets.splice(i,1); 
-    continue; 
-  }
+ if (
+  b.x < B.minX - 60 || b.x > B.maxX + 60 ||
+  b.y < B.minY - 60 || b.y > B.maxY + 60 ||
+  b.life <= 0
+){
+  state.bullets.splice(i,1);
+  continue;
+}
 
   // 敵との当たり判定
  // 敵との当たり判定
@@ -1934,43 +1988,56 @@ if (state.weapons.orbit.lv > 0){
 }
 
 
-    // === 敵弾 ===
-    for(let i=state.enemyBullets.length-1;i>=0;i--){
-      const b=state.enemyBullets[i];
-      b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
-      if(b.life<=0 || b.x<-40||b.x>W/DPR+40||b.y<-40||b.y>H/DPR+40){ 
-        state.enemyBullets.splice(i,1); 
-        continue; 
-      }
+// === 敵弾 ===
+for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
+  const b = state.enemyBullets[i];
 
-      // Orbit cancel bullets
-      let canceled = false;
-      if(state.weapons.orbit.lv>0){
-        const count = state.weapons.orbit.awaken ? 8 : (2 + state.weapons.orbit.lv);
-        for(let k=0;k<count && !canceled;k++){
-          const ang = state.weapons.orbit.ang + k*(Math.PI*2/count);
-          const rad = state.weapons.orbit.baseR + 14*(state.weapons.orbit.lv-1) + (state.weapons.orbit.awaken? 12:0);
-          const ox = state.player.x + Math.cos(ang)*rad;
-          const oy = state.player.y + Math.sin(ang)*rad;
-          if(dist2(b.x,b.y,ox,oy) < (b.r + (state.weapons.orbit.awaken ? 18 : 14)*state.mods.sizeMul)**2){
-            state.enemyBullets.splice(i,1);
-            spark(b.x,b.y,8);
-            canceled = true;
-          }
-        }
-        if(canceled) continue;
-      }
+  // 位置更新
+  b.x += b.vx * dt;
+  b.y += b.vy * dt;
+  b.life -= dt;
 
-      if (dist2(b.x,b.y,state.player.x,state.player.y) < (b.r + state.player.r)**2){
-        state.enemyBullets.splice(i,1);
-        playerHit(b.dmg, b.x, b.y);
-        spark(b.x,b.y,6);
-        if (state.player.hp <= 0 && !state.gameover){
-  triggerGameOver();      // ← 一括処理（入力停止・主人公非表示・UI表示）
-  break;                  // 弾ループを抜ける（このフレームの残り処理はスキップ）
-}
+  // 画面外・寿命切れ → 除去
+  if (
+    b.life <= 0 ||
+    b.x < B.minX - 40 || b.x > B.maxX + 40 ||
+    b.y < B.minY - 40 || b.y > B.maxY + 40
+  ) {
+    state.enemyBullets.splice(i, 1);
+    continue;
+  }
+
+  // Orbit が弾を相殺
+  let canceled = false;
+  if (state.weapons.orbit.lv > 0) {
+    const count = state.weapons.orbit.awaken ? 8 : (2 + state.weapons.orbit.lv);
+    for (let k = 0; k < count && !canceled; k++) {
+      const ang = state.weapons.orbit.ang + k * (Math.PI * 2 / count);
+      const rad = state.weapons.orbit.baseR + 14 * (state.weapons.orbit.lv - 1) + (state.weapons.orbit.awaken ? 12 : 0);
+      const ox = state.player.x + Math.cos(ang) * rad;
+      const oy = state.player.y + Math.sin(ang) * rad;
+      const or = (state.weapons.orbit.awaken ? 18 : 14) * state.mods.sizeMul;
+      if (dist2(b.x, b.y, ox, oy) < (b.r + or) ** 2) {
+        state.enemyBullets.splice(i, 1);
+        spark(b.x, b.y, 8);
+        canceled = true;
       }
     }
+    if (canceled) continue;
+  }
+
+  // プレイヤー命中
+  if (dist2(b.x, b.y, state.player.x, state.player.y) < (b.r + state.player.r) ** 2) {
+    state.enemyBullets.splice(i, 1);
+    playerHit(b.dmg, b.x, b.y);
+    spark(b.x, b.y, 6);
+    if (state.player.hp <= 0 && !state.gameover) {
+      triggerGameOver();
+      break; // このフレームの残り弾処理を終了
+    }
+  }
+}
+
 
     // === 敵・ボス ===
     for(let i=state.enemies.length-1;i>=0;i--){
@@ -2190,24 +2257,30 @@ else if(e.phase === 'charge_boom'){
     // 本番：時間差で2本の“波リング”
     e.phase = 'boom';
     // パラメータ（避けやすく、でも2連）
-    const dur  = 5.0;                         // ★ 拡大をゆっくり
+    const dur  = 5.0;   // ★ 拡大をゆっくり
     const r0   = 80;
-    const r1   = Math.hypot(W/DPR, H/DPR) * 0.95;
+
+    // ← ここをズーム対応に：ボス位置から画面内で最も遠い角まで届く半径
+    const B  = worldBounds();                       // {minX,maxX,minY,maxY}
+    const dx = Math.max(e.x - B.minX, B.maxX - e.x);
+    const dy = Math.max(e.y - B.minY, B.maxY - e.y);
+    const r1 = Math.hypot(dx, dy) + 40;             // 余裕分+40
 
     // セグメントリング（大きな隙間）
-    const segCount   = 10;                    // リング分割数（多すぎない）
-    const gapFrac    = 0.50;                  // ★ 1セグメント中の“隙間率”をガッツリ
-    const thickness  = 22;                    // 見た目＆当たり幅
-    const wavAmp     = 10;                    // 波の振幅（px）
-    const wavFreq    = 6;                     // 角度方向の波の山個数
+    const segCount   = 10;      // リング分割数（多すぎない）
+    const gapFrac    = 0.50;    // ★ 1セグメント中の“隙間率”をガッツリ
+    const thickness  = 22;      // 見た目＆当たり幅
+    const wavAmp     = 10;      // 波の振幅（px）
+    const wavFreq    = 6;       // 角度方向の波の山個数
     const rot0       = Math.random()*Math.PI*2;
 
     // 2本用意（timeOffsetで時間差）
     e.boomWaves = [
-  { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0,                       w:thickness, wavAmp, wavFreq, timeOffset:0.0 },
-  { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0 + Math.PI/segCount,    w:thickness, wavAmp, wavFreq, timeOffset:0.90 }
-];
-    e.boomClock = 0; // 描画側の波アニメ位相用
+      { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0,                    w:thickness, wavAmp, wavFreq, timeOffset:0.0 },
+      { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0 + Math.PI/segCount, w:thickness, wavAmp, wavFreq, timeOffset:0.90 }
+    ];
+    
+        e.boomClock = 0; // 描画側の波アニメ位相用
   }
 
 }else if(e.phase === 'boom'){
@@ -3284,29 +3357,45 @@ function gameOver(){
   goEl.style.display='flex';
 }
 
-  // Final Boss spawn
+// Final Boss spawn
 function spawnFinalBoss(){
+  const B = worldBounds();         // ← ズーム反映の表示境界
   const margin = 120;
   const side = Math.floor(Math.random()*4);
-  let x,y;
-  if(side===0){ x=rnd(-margin,0); y=rnd(0,H/DPR); }
-  else if(side===1){ x=rnd(W/DPR,W/DPR+margin); y=rnd(0,H/DPR); }
-  else if(side===2){ x=rnd(0,W/DPR); y=rnd(-margin,0); }
-  else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
+  let x, y;
+
+  // 画面の四辺「外」から出現させる
+  if (side === 0) {        // 上
+    x = rnd(B.minX - margin, B.maxX + margin);
+    y = B.minY - margin;
+  } else if (side === 1) { // 右
+    x = B.maxX + margin;
+    y = rnd(B.minY - margin, B.maxY + margin);
+  } else if (side === 2) { // 下
+    x = rnd(B.minX - margin, B.maxX + margin);
+    y = B.maxY + margin;
+  } else {                 // 左
+    x = B.minX - margin;
+    y = rnd(B.minY - margin, B.maxY + margin);
+  }
 
   const base = 2600 + state.difficulty*300;
-  const hp0 = base * 10;
-  const hp  = state.mode.hardcore ? hp0 * 1.5 : hp0;
-const e = {
-  x,y, size:84*2, hp, maxHp:hp, speed:70, type:'final',
-  phase:'shoot', cd:0, tele:0, dashCD:5.5, dashDir:{x:0,y:0},
-  patternCD:4.5, blastCharge:0, blastR:220, laserAng:0,
-  laserAimT:0, laserDur:0, hitFlash:0,
-  kbx:0, kby:0
-};
+  const hp0  = base * 10;
+  const hp   = state.mode.hardcore ? hp0 * 1.5 : hp0;
+
+  const e = {
+    x, y,
+    size: 84*2, hp, maxHp: hp, speed: 70, type: 'final',
+    phase: 'shoot', cd: 0, tele: 0, dashCD: 5.5, dashDir: {x:0, y:0},
+    patternCD: 4.5, blastCharge: 0, blastR: 220, laserAng: 0,
+    laserAimT: 0, laserDur: 0, hitFlash: 0,
+    kbx: 0, kby: 0
+  };
+
   state.enemies.push(e);
   flashBossMsg();
 }
+
 
 
   requestAnimationFrame(loop);
