@@ -316,7 +316,7 @@ function recomputeViewScale(){
   recomputeViewScale();
 
   // ▼ 変更：スケール込みで描画変換
-  ctx.setTransform(DPR * VIEW_SCALE, 0, 0, DPR * VIEW_SCALE, 0, 0);
+ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
   new ResizeObserver(resize).observe(cv); resize();
   
@@ -381,11 +381,11 @@ function computeCameraZoom(){
 
   let z = 1.0; // デフォ: PC
   if (isTouch){
-    // モバイルは強めに引く（縦:0.74 / 横:0.80）
-    z = isPortrait ? 0.74 : 0.80;
+    // モバイルは強めに引く（縦:0.60 / 横:0.65）
+    z = isPortrait ? 0.60 : 0.65;
     // 超小画面はさらに引く
     const shortSide = Math.min(vw, vh);
-    if (shortSide < 380) z = isPortrait ? 0.70 : 0.76;
+    if (shortSide < 380) z = isPortrait ? 0.50 : 0.56;
   }
   state.cameraZoom = z;
 }
@@ -592,6 +592,24 @@ if (pauseBtn){
   };
 }
 
+// === Game Over 一括処理 ===
+function triggerGameOver(){
+  if (state.gameover) return;
+  state.gameover = true;
+
+  // 入力を止める
+  state.manualPaused = false;
+  if (state.input){ state.input.vx = 0; state.input.vy = 0; }
+
+  // プレイヤー非表示（描画側でも見ない）
+  if (state.player) state.player.visible = false;
+
+  // UI
+  if (goEl) goEl.style.display = 'flex';
+
+  // フローティング・ジョイスティックOFF
+  delete document.body.dataset.fjoy;
+}
 
 
   function resetGame(){
@@ -652,6 +670,8 @@ if (!state.touchJoy) {
       if(k==='orbit'){ w.ang = 0; }
     }
     
+    state.gameover = false;
+if (state.player) state.player.visible = true;
     
     // UI
     levelupEl.style.display='none';
@@ -1608,6 +1628,10 @@ const ALL_UPGRADES = [
 
 // ==== メインループ ====
 function loop(now){
+
+  if (state.player && state.player.hp <= 0 && !state.gameover){
+    triggerGameOver();
+  }
   if (!state.started) { requestAnimationFrame(loop); return; }
 
   // dt はこの1回だけ計算し、state.last もここで1回だけ更新
@@ -1644,21 +1668,35 @@ try {
       draw(); requestAnimationFrame(loop); return;
     }
 
-// 画面オーバーレイに応じた pause 合成（※このブロックは1回だけ） 
-const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
-const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
 
-// pauseの最終値 = 画面停止(オーバーレイ) or 手動停止
-state.paused = !!(lvlOpen || chestOpen || state.manualPaused);
 
+// === GameOverは完全停止（描画だけして抜ける）
+if (state.gameover){
+  draw();
+  requestAnimationFrame(loop);
+  return;
+}
+
+// オーバーレイ/手動いずれかで停止していたらここで抜ける
 if (state.paused){
   draw();
   requestAnimationFrame(loop);
   return;
 }
 
-if(state.paused){ 
-  draw(); requestAnimationFrame(loop); return; 
+
+// === オーバーレイ停止 + 手動停止を合成
+const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
+const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
+state.paused = !!(lvlOpen || chestOpen || state.manualPaused);
+
+// === GameOverは完全停止（描画だけして抜ける）
+if (state.gameover){
+  draw(); requestAnimationFrame(loop); return;
+}
+
+if (state.paused){
+  draw(); requestAnimationFrame(loop); return;
 }
 
     state.t += dt; 
@@ -1902,7 +1940,10 @@ if (state.weapons.orbit.lv > 0){
         state.enemyBullets.splice(i,1);
         playerHit(b.dmg, b.x, b.y);
         spark(b.x,b.y,6);
-        if(state.player.hp<=0){ gameOver(); requestAnimationFrame(loop); return; }
+        if (state.player.hp <= 0 && !state.gameover){
+  triggerGameOver();      // ← 一括処理（入力停止・主人公非表示・UI表示）
+  break;                  // 弾ループを抜ける（このフレームの残り処理はスキップ）
+}
       }
     }
 
@@ -2417,12 +2458,6 @@ ctx.translate(-vw * 0.5, -vh * 0.5);
 
 // ▼▼ ここからプレイヤー／敵／弾／床など“ワールド”の描画（既存） ▼▼
 
-// ▲▲ ワールド描画終わり：HUDの前に縮尺を戻す ▲▲
-ctx.restore();
-
-
-
-
   // items
   for(const it of state.items){
     ctx.save(); ctx.translate(it.x,it.y);
@@ -2550,6 +2585,10 @@ if (state.player.iTime > 0 && ((state.t * 20 | 0) % 2 === 0)) {
   ctx.globalAlpha = 1;
 }
 // player
+
+if (state.player && state.player.visible === false) {
+  // 何も描かない
+} else {
 ctx.fillStyle = '#2ecc71';
 ctx.beginPath(); ctx.arc(state.player.x, state.player.y, state.player.r, 0, Math.PI*2); ctx.fill();
 ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke();
@@ -2558,6 +2597,7 @@ ctx.beginPath(); ctx.arc(state.player.x-5, state.player.y-3, 2, 0, Math.PI*2); c
 ctx.beginPath(); ctx.arc(state.player.x+5, state.player.y-3, 2, 0, Math.PI*2); ctx.fill();
 
 ctx.globalAlpha = 1;  // ← ここまでが既存
+}
 
 /* ===== ここから追記：プレイヤー周囲リング（HP/XP） ===== */
 {
@@ -3103,7 +3143,6 @@ ctx.restore();
 
 // ▼ この下でHUD/UI（等倍）を描く（既存のまま）
 } // ← function draw の閉じカッコ
-
 
 // ===== ここから下はヘルパ =====
 
