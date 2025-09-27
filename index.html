@@ -387,6 +387,27 @@ const timeFloatEl = document.getElementById('timeFloat');
   const startEl = document.getElementById('start');
   const startBtn = document.getElementById('startBtn');
   const goEl = document.getElementById('gameover');
+  // === 大きいスコア表示 用スタイル注入（1回だけ） ===
+(() => {
+  if (document.getElementById('score-style')) return;
+  const st = document.createElement('style'); st.id = 'score-style';
+  st.textContent = `
+  .final-score{
+    font-size: clamp(36px, 9vw, 84px);
+    font-weight: 900;
+    letter-spacing: .02em;
+    line-height: 1.05;
+    margin: .2rem 0 .6rem;
+    text-shadow: 0 4px 20px rgba(0,0,0,.35);
+  }
+  .final-sub{
+    font-size: clamp(12px, 2.8vw, 18px);
+    opacity: .9;
+    margin-bottom: .6rem;
+  }
+  `;
+  document.head.appendChild(st);
+})();
   const retryBtn = document.getElementById('retryBtn');
   const clearEl = document.getElementById('gameclear');
 const replayBtn = document.getElementById('replayBtn');
@@ -573,6 +594,9 @@ async function tryFullscreenAndLandscape(){
 } // ← ← ← 重要：この } が欠けていた
 
 startBtn.onclick = async () => {
+
+ensureEndScoreNodes();
+
   await tryFullscreenAndLandscape();
 
   // ここでは state.mode.hardcore はそのまま使用（Hキーで事前にONにできる）
@@ -586,7 +610,7 @@ document.getElementById('start').style.display = 'none';
   syncPauseButton();
 };
 
-retryBtn.onclick = () => { resetGame(); syncPauseButton(); };
+retryBtn.onclick = () => { ensureEndScoreNodes();resetGame(); syncPauseButton(); };
 
 
 function syncPauseButton(){
@@ -625,10 +649,73 @@ function triggerGameOver(){
 
   // UI
   if (goEl) goEl.style.display = 'flex';
+  
+ensureEndScoreNodes();
+updateEndScore('over');
 
   // フローティング・ジョイスティックOFF
   delete document.body.dataset.fjoy;
 }
+
+// === エンド画面（GO/クリア）に大スコアを差し込む ===
+function ensureEndScoreNodes(){
+  // GameOver
+  if (goEl){
+    let big = goEl.querySelector('.final-score');
+    if (!big){
+      big = document.createElement('div');
+      big.className = 'final-score';
+      goEl.insertBefore(big, goEl.firstChild);
+    }
+    let sub = goEl.querySelector('.final-sub');
+    if (!sub){
+      sub = document.createElement('div');
+      sub.className = 'final-sub';
+      goEl.insertBefore(sub, big.nextSibling);
+    }
+  }
+  // Clear
+  if (clearEl){
+    let big = clearEl.querySelector('.final-score');
+    if (!big){
+      big = document.createElement('div');
+      big.className = 'final-score';
+      clearEl.insertBefore(big, clearEl.firstChild);
+    }
+    let sub = clearEl.querySelector('.final-sub');
+    if (!sub){
+      sub = document.createElement('div');
+      sub.className = 'final-sub';
+      clearEl.insertBefore(sub, big.nextSibling);
+    }
+  }
+}
+
+// 表示時に中身を更新
+function updateEndScore(kind){ // kind: 'over' | 'clear'
+  const n    = Math.max(0, Math.floor(state.score || 0));
+  const kill = Math.max(0, Math.floor(state.killScore || 0));
+  const boss = Math.max(0, Math.floor(state.bossBonus || 0));
+
+  // どのパネルに出すかを決定
+  const root = (kind === 'clear') ? clearEl : goEl;
+  if (!root) return;
+  const big = root.querySelector('.final-score');
+  const sub = root.querySelector('.final-sub');
+
+  // ハイスコア保存（モード別）
+  const key  = (state.mode && state.mode.hardcore) ? 'best_hc' : 'best';
+  let prev = 0;
+  try { prev = +(localStorage.getItem(key) || 0) || 0; } catch(_) {}
+  const best = Math.max(n, prev);
+  try { localStorage.setItem(key, String(best)); } catch(_) {}
+
+  // 表示更新
+  if (big) big.textContent = `SCORE  ${n.toLocaleString()}` + (n > prev ? '  ★NEW!' : '');
+  const detail = `Kill: ${kill.toLocaleString()}  /  Boss: ${boss.toLocaleString()}   Best: ${best.toLocaleString()}`;
+  if (sub) sub.textContent = detail;
+}
+
 
 
   function resetGame(){
@@ -1124,7 +1211,7 @@ function showLevelUp(choices){
 }
   // === Weapons with Awaken ===
   const weapons = {
-    blaster:{ short:'BL', name:'ブラスター', lv:1, awaken:false, cd:0, baseRate:.48, baseDmg:10, baseSpeed:360,
+    blaster:{ short:'BL', name:'ブラスター', lv:1, awaken:false, cd:0, baseRate:.48, baseDmg:12, baseSpeed:360,
       update(dt){
         if(this.lv<=0) return;
         this.cd-=dt; if(this.cd>0) return;
@@ -1159,7 +1246,7 @@ for(const o of positions){
     shotgun:{
   short:'SG', name:'ショットガン',
   lv:0, awaken:false, cd:0,
-  baseRate:1.2, baseDmg:15, baseSpeed:340, // ★ 基礎ダメージUP（12→15）
+  baseRate:1.2, baseDmg:18, baseSpeed:340, // ★ 基礎ダメージUP（12→15）
   update(dt){
     if(this.lv<=0) return;
     this.cd -= dt; if(this.cd>0) return;
@@ -1359,9 +1446,9 @@ ghost:{
             vx:Math.cos(base+off)*360,
             vy:Math.sin(base+off)*360,
             r:6*state.mods.sizeMul,   // ← 少し大きめ
-            dmg:(4 + 4*(this.lv-1)) * (this.awaken ? 1.1 : 1.0) * state.mods.dmgMul,
+            dmg:(3 + 3*(this.lv-1)) * (this.awaken ? 1.1 : 1.0) * state.mods.dmgMul,
             life:3.0,
-            pierce:1                  // ← 貫通回数1
+            pierce:3                  // ← 貫通回数3
           });
         }
       }
@@ -3325,6 +3412,9 @@ function showGameClear(){
 
     el.style.display = 'flex';
     state.paused = true;
+    
+    ensureEndScoreNodes();
+updateEndScore('clear');
 
     // ハードコアボタンを表示
     if (hardcoreBtn){
@@ -3379,7 +3469,7 @@ function spawnFinalBoss(){
     y = rnd(B.minY - margin, B.maxY + margin);
   }
 
-  const base = 2600 + state.difficulty*300;
+  const base = 1500 + state.difficulty*300;
   const hp0  = base * 10;
   const hp   = state.mode.hardcore ? hp0 * 1.5 : hp0;
 
