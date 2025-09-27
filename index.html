@@ -326,6 +326,25 @@ window.addEventListener('resize', resize);
 
   const rnd = (a,b)=>a+Math.random()*(b-a);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  
+  // 追加：ズームに応じた世界境界（左右上下の広がり）を返す
+function worldBounds(radius = 0){
+  const vw = W / DPR, vh = H / DPR;
+  // ズーム取得（state.cameraZoom を最優先。無ければ VIEW_SCALE、どちらも無ければ 1）
+  const z = (state && typeof state.cameraZoom === 'number') ? state.cameraZoom :
+            (typeof VIEW_SCALE !== 'undefined' ? VIEW_SCALE : 1);
+  // ズームで広がった“余白”量（左右/上下それぞれ半分ずつ広がる）
+  const ex = (vw * (1 / z - 1)) * 0.5;
+  const ey = (vh * (1 / z - 1)) * 0.5;
+  return {
+    minX: radius - ex,
+    maxX: vw - radius + ex,
+    minY: radius - ey,
+    maxY: vh - radius + ey
+  };
+}
+  
+  
   const dist2=(x1,y1,x2,y2)=>{const dx=x2-x1, dy=y2-y1; return dx*dx+dy*dy;}
   const pick=(arr)=>arr[(Math.random()*arr.length)|0];
 
@@ -1176,7 +1195,7 @@ homing:{
   }
 },
 
-lightning:{ short:'LT', name:'ライトニング', lv:0, awaken:false, cd:0, baseRate:2.2, baseDmg:20,
+lightning:{ short:'LT', name:'ライトニング', lv:0, awaken:false, cd:0, baseRate:2.2, baseDmg:16,
   update(dt){
     if(this.lv<=0) return;
     this.cd -= dt; if(this.cd>0) return;
@@ -1756,8 +1775,11 @@ if (pm > 0) { vx /= pm; vy /= pm; state.input.lastDir = { x:vx, y:vy }; }
     }
 
     // move player
-    state.player.x = clamp(state.player.x + vx*state.player.speed*dt, 10, W/DPR-10);
-    state.player.y = clamp(state.player.y + vy*state.player.speed*dt, 10, H/DPR-10);
+{
+  const b = worldBounds(state.player.r);
+  state.player.x = clamp(state.player.x + vx*state.player.speed*dt, b.minX, b.maxX);
+  state.player.y = clamp(state.player.y + vy*state.player.speed*dt, b.minY, b.maxY);
+}
 
     // invincible timer
     if (state.player.iTime > 0) {
@@ -1766,8 +1788,11 @@ if (pm > 0) { vx /= pm; vy /= pm; state.input.lastDir = { x:vx, y:vy }; }
 
     // knockback
     if (Math.abs(state.player.kbx) + Math.abs(state.player.kby) > 0.1) {
-      state.player.x = clamp(state.player.x + state.player.kbx * dt, 10, W / DPR - 10);
-      state.player.y = clamp(state.player.y + state.player.kby * dt, 10, H / DPR - 10);
+{
+  const b = worldBounds(state.player.r);
+  state.player.x = clamp(state.player.x + state.player.kbx * dt, b.minX, b.maxX);
+  state.player.y = clamp(state.player.y + state.player.kby * dt, b.minY, b.maxY);
+}
       const drag = 8.0;
       state.player.kbx += -state.player.kbx * drag * dt;
       state.player.kby += -state.player.kby * drag * dt;
