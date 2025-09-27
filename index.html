@@ -362,11 +362,14 @@ function worldBounds(radius = 0){
     pickupLv: 0,
     bossTimer: 9999, bigBossTimer: 9999,
         gather:{ active:false, time:0, dur:0.5, totalXP:0 },
+        gather:{ active:false, time:0, dur:0.5, totalXP:0 },
+magnet:{ active:false, time:0, dur:1.0, speed:1800 },
     winCountdown: 0,
   mode: {
     hardcore: false,          // 現在ハードコアか？
     unlockedHardcore: false,  // ハードコア解放済み？
   }
+  
   };
 
   // UI
@@ -777,6 +780,9 @@ state.pickupLv = 0;
     state.bossTimer = 9999;
     state.bigBossTimer = 9999;
     state.gather.active = false; state.gather.time = 0; state.gather.totalXP = 0;
+    state.gather.active = false; state.gather.time = 0; state.gather.totalXP = 0;
+state.magnet.active = false; state.magnet.time = 0;
+
       state.winCountdown = 0;
     state.score = 0;
 state.killScore = 0;
@@ -1109,17 +1115,31 @@ function spawnItemRandom(){
 
     const roll = Math.random();
     const kind = roll < 0.45 ? 'magnet' : roll < 0.75 ? 'nuke' : 'heal';
-    state.items.push({ kind, x, y, r:12, t:0 });
+    const rByKind =
+  kind==='magnet' ? 10 :
+  kind==='nuke'   ? 10 :
+  kind==='heal'   ? 14 :   // ★ ここを 18（= 12 * 1.5）
+  kind==='chest'  ? 14 : 12;
+state.items.push({ kind, x, y, r:rByKind, t:0 });
   }
 }
 
   function applyItem(it){
-    if(it.kind==='magnet'){
-      let gained = 0; for(const g of state.gems){ gained += g.val*5; }
-      state.gems.length = 0;
-      state.gather.active = true; state.gather.time = 0; state.gather.totalXP = gained;
-      state.paused = true; gatherEl.style.display='flex';
+if(it.kind==='magnet'){
+  // ポーズ無し・全XP高速吸引（必達）
+  state.magnet.active = true;
+  state.magnet.time   = 0;
+  state.magnet.dur    = 1.0;   // 効果時間（秒）
+  state.magnet.speed  = 1800;  // 基準速度（通常220の約5倍）
+
+  // 見た目（任意）：オーラの寿命を効果時間に合わせる
+  addEffect('aura', { x: state.player.x, y: state.player.y, r: 60, life: state.magnet.dur, life0: state.magnet.dur });
 }else if(it.kind==='nuke'){
+  // 演出：白い光の円が素早く広がる
+  const R = Math.hypot(cv.width / DPR, cv.height / DPR) * 0.85;
+  addEffect('whiteCharge', { x: state.player.x, y: state.player.y, r0: 22, r1: 120, life: 0.08 });
+  addEffect('megaNova',    { x: state.player.x, y: state.player.y, r: R, life: 0.35 });
+  addEffect('flash',       { life: 0.03 });
   const NUKE_KILL_SCORE = 5;   // 1体あたりの少額スコア
   const NUKE_SCORE_CAP  = 50;  // 一掃1回あたりの上限
 
@@ -1149,6 +1169,7 @@ function spawnItemRandom(){
       const amount = Math.round(state.player.maxHp * 0.35);
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + amount);
       addEffect('text',{x:state.player.x,y:state.player.y,life:1.2,text:`回復 +${amount}`});
+    addEffect('healSparkles', { x: state.player.x, y: state.player.y, r: 46, life: 0.7, life0: 0.7, count: 14 });
     }else if(it.kind==='chest'){
       openChest(it.picks||2);
     }
@@ -1243,7 +1264,7 @@ function showLevelUp(choices){
 }
   // === Weapons with Awaken ===
   const weapons = {
-    blaster:{ short:'BL', name:'ブラスター', lv:1, awaken:false, cd:0, baseRate:.48, baseDmg:12, baseSpeed:360,
+blaster:{ short:'BL', name:'ブラスター', lv:1, awaken:false, cd:0, baseRate:.48, baseDmg:12, baseSpeed:360, range:500, rangeAwaken:660,
       update(dt){
         if(this.lv<=0) return;
         this.cd-=dt; if(this.cd>0) return;
@@ -1259,6 +1280,8 @@ function showLevelUp(choices){
         else { positions = [0]; }
         // 弾数を考慮して1発あたりの威力を調整
 const shotCount = positions.length;
+const lifeEach = ((this.awaken ? this.rangeAwaken : this.range) / this.baseSpeed);
+
 
 for(const o of positions){
   state.bullets.push({
@@ -1268,9 +1291,9 @@ for(const o of positions){
     vx: Math.cos(ang) * this.baseSpeed,
     vy: Math.sin(ang) * this.baseSpeed,
     r: 5 * state.mods.sizeMul,
-    dmg: (dmg * state.mods.dmgMul) / Math.max(1, shotCount * 0.85), // ★ 調整
-    life: 2
-  });
+    dmg: (dmg * state.mods.dmgMul) / Math.max(1, shotCount * 0.90), // ★ 調整
+    life: lifeEach
+      });
 }
         this.cd = rate * state.mods.rateMul;
       }
@@ -1463,7 +1486,7 @@ ghost:{
 
       for(let k=0;k<count;k++){
         const a = this.ang + k * (Math.PI*2/count);
-        const r = 60 + 10*(this.lv-1);
+        const r = 40 + 6*(this.lv-1);
         const gx = state.player.x + Math.cos(a)*r;
         const gy = state.player.y + Math.sin(a)*r;
 
@@ -2089,7 +2112,7 @@ for(let j=state.enemies.length-1;j>=0;j--){
 // === Orbit contact damage (no knockback) ===
 if (state.weapons.orbit.lv > 0){
   const w = state.weapons.orbit;
-  const count = w.awaken ? 8 : (2 + w.lv);
+  const count = w.awaken ? 8 : (3 + w.lv);
   const ring = w.baseR + 14*(w.lv-1) + (w.awaken? 12:0);
   const orbR = (w.hitRBase + (w.awaken? 4:0)) * state.mods.sizeMul; // 当たり半径
   const dps = (w.dpsBase + 4*(w.lv-1)) * (w.awaken? 1.4:1.0) * state.mods.dmgMul;
@@ -2400,7 +2423,7 @@ else if(e.phase === 'charge_boom'){
     // 2本用意（timeOffsetで時間差）
     e.boomWaves = [
       { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0,                    w:thickness, wavAmp, wavFreq, timeOffset:0.0 },
-      { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0 + Math.PI/segCount, w:thickness, wavAmp, wavFreq, timeOffset:0.90 }
+      { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0 + Math.PI/segCount, w:thickness, wavAmp, wavFreq, timeOffset:1.00 }
     ];
     
         e.boomClock = 0; // 描画側の波アニメ位相用
@@ -2601,9 +2624,20 @@ if (e.type === 'final') {
       if(it.t>20){ state.items.splice(i,1); }
     }
 
+
+    // === Magnet timer ===
+    if (state.magnet?.active) {
+      state.magnet.time += dt;
+      if (state.magnet.time >= (state.magnet.dur || 0.8)) {
+        state.magnet.active = false;
+      }
+    }
     // === ジェム ===
     let pickupR = 70 * (1 + 0.6 * state.pickupLv);
     if (state.pickupLv >= 3) {
+      pickupR = Math.hypot(W / DPR, H / DPR);
+    }
+        if (state.magnet?.active) {
       pickupR = Math.hypot(W / DPR, H / DPR);
     }
     for(let i=state.gems.length-1;i>=0;i--){
@@ -2612,7 +2646,8 @@ if (e.type === 'final') {
       if(d<pickupR){
         const ax = (state.player.x-g.x)/Math.max(1,d);
         const ay = (state.player.y-g.y)/Math.max(1,d);
-        g.x += ax * 220 * dt; g.y += ay * 220 * dt;
+                const sp = state.magnet?.active ? (state.magnet.speed || 900) : 220;
+        g.x += ax * sp * dt; g.y += ay * sp * dt;
       }
       if(dist2(g.x,g.y,state.player.x,state.player.y) < (state.player.r+g.r)**2){
         addXP(g.val*5); state.gems.splice(i,1);
@@ -2650,6 +2685,180 @@ if (e.type === 'final') {
   }
 }
 
+// === item icons (magnet & bomb) ===
+// XP青丸の中心に、上が開いた赤い「U」を余白つきで綺麗に収めて描く
+function drawMagnet(ctx, x, y, r, t){
+  ctx.save(); ctx.translate(x, y);
+
+  // 1) 背景：XPと同じ青丸（単色）
+  const XP = '#3fa9ff';
+  const R  = r * 1.35;                     // バッジ半径（以前より少しだけ小さめ）
+  ctx.fillStyle = XP;
+  ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+
+  // 2) U字の寸法を「円の内側に収める」条件から計算
+  const pad   = Math.max(2, R * 0.14);      // 円の縁からの余白（px）
+  const Uout  = R - pad;                    // Uの外周（円の内側に接する半径）
+  let thick   = Math.max(3, R * 0.32);      // Uの太さ（見た目バランス）
+  thick       = Math.min(thick, Uout * 0.9);// 太さが外半径を食い潰さないように
+  const RU    = Uout - thick / 2;           // Uの“中心半径”（ここにストローク中心が来る）
+  const topY  = -Uout + thick / 2;          // 縦棒の上端：円内側にぴったり収まる高さ
+
+  // 3) U字（左棒 → 下弧 → 右棒）を別パスでストローク
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth   = thick;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  // 左の縦棒
+  ctx.beginPath();
+  ctx.moveTo(-RU, topY);
+  ctx.lineTo(-RU, 0);
+  ctx.stroke();
+
+  // 下半円（Uの底）— 反時計回り true で“下側”を通る
+  ctx.beginPath();
+  ctx.arc(0, 0, RU, Math.PI, 0, true);
+  ctx.stroke();
+
+  // 右の縦棒
+  ctx.beginPath();
+  ctx.moveTo( RU, 0);
+  ctx.lineTo( RU, topY);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+
+
+
+function drawBomb(ctx, x, y, r, t){
+  ctx.save(); ctx.translate(x,y);
+  const R = r*1.25;
+
+  // 本体
+  ctx.fillStyle = '#773333';                                // ほぼ黒（少し赤み）
+  ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.fill();
+
+  // ハイライト
+  ctx.fillStyle = 'rgba(255,255,255,.08)';
+  ctx.beginPath(); ctx.arc(-R*0.35,-R*0.35,R*0.55,0,Math.PI*2); ctx.fill();
+
+  // 導火線
+  ctx.strokeStyle = '#c4b5fd';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(R*0.3,-R*0.2);
+  ctx.quadraticCurveTo(R*0.9,-R*0.9, R*1.15,-R*1.25);
+  ctx.stroke();
+
+  // 火花（アニメ）
+  const a = t*8;
+  const sx = R*1.15, sy = -R*1.25;
+  ctx.translate(sx, sy);
+  ctx.rotate(a);
+  ctx.fillStyle = '#fde68a';
+  for(let i=0;i<6;i++){
+    ctx.rotate(Math.PI/3);
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.lineTo(6,0); ctx.lineTo(0,12); ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// === Heal: 緑丸 + 白十字（軽いグロー & 鼓動）===
+function drawHealIcon(ctx, x, y, r, t){
+  ctx.save();
+  // 鼓動（ほんの少しだけ拡縮）
+  const s = 1 + Math.sin(t*4.0)*0.06;
+  ctx.translate(x, y); ctx.scale(s, s);
+
+  // 下地のグロー
+  ctx.globalAlpha = 0.25;
+  ctx.fillStyle = '#22c55e';
+  ctx.beginPath(); ctx.arc(0,0,r*1.3,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // 本体の緑丸（経験値とは色を明確に分ける）
+  const g = ctx.createRadialGradient(-r*0.3,-r*0.3, r*0.2, 0,0, r);
+  g.addColorStop(0, '#34d399');
+  g.addColorStop(1, '#16a34a');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
+
+  // 白十字
+  ctx.fillStyle = '#fff';
+  const w = r*0.55, th = Math.max(2, r*0.22);
+  ctx.fillRect(-th/2, -w/2, th, w);       // 縦棒
+  ctx.fillRect(-w/2, -th/2, w, th);       // 横棒
+
+  // 輪郭（薄く）
+  ctx.strokeStyle = 'rgba(0,0,0,.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke();
+
+  ctx.restore();
+}
+
+// === Chest: 金の宝箱（蓋・金帯・錠前・軽い上下揺れ）===
+function drawChestIcon(ctx, x, y, r, t){
+  ctx.save();
+  // ちょっとだけ上下にふわふわ
+  y += Math.sin(t*3.2) * Math.min(6, r*0.18);
+  ctx.translate(x, y);
+
+  const W = r*2.0, H = r*1.5;
+  const lidH = H*0.45;
+  const baseH = H - lidH;
+
+  // 影
+  ctx.globalAlpha = .20;
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(0, H*0.65, W*0.6, r*0.45, 0, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // 本体（底）
+  const bodyGrad = ctx.createLinearGradient(0, -H*0.2, 0, baseH);
+  bodyGrad.addColorStop(0, '#d97706');  // 明るい金
+  bodyGrad.addColorStop(1, '#b45309');  // 濃い金
+  ctx.fillStyle = bodyGrad;
+  ctx.fillRect(-W*0.5, 0, W, baseH);
+  // 角Rっぽく見せる線
+  ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.lineWidth=1;
+  ctx.strokeRect(-W*0.5, 0, W, baseH);
+
+  // 蓋
+  const lidGrad = ctx.createLinearGradient(0, -lidH, 0, 0);
+  lidGrad.addColorStop(0, '#f59e0b');
+  lidGrad.addColorStop(1, '#d97706');
+  ctx.fillStyle = lidGrad;
+  ctx.beginPath();
+  ctx.moveTo(-W*0.5, 0);
+  ctx.lineTo(W*0.5, 0);
+  ctx.quadraticCurveTo(W*0.5, -lidH, 0, -lidH);
+  ctx.quadraticCurveTo(-W*0.5, -lidH, -W*0.5, 0);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.stroke();
+
+  // 金属帯（縦2本 + 横1本）
+  ctx.fillStyle = '#facc15';
+  const bandW = Math.max(3, r*0.22);
+  ctx.fillRect(-W*0.25 - bandW/2, -lidH*0.2, bandW, baseH + lidH*0.2);
+  ctx.fillRect( W*0.25 - bandW/2, -lidH*0.2, bandW, baseH + lidH*0.2);
+  ctx.fillRect(-W*0.5, baseH*0.55, W, bandW);
+
+  // 錠前
+  ctx.fillStyle = '#eab308';
+  const lockW = Math.max(8, r*0.6)*0.6, lockH = Math.max(10, r*0.6)*0.75;
+  ctx.fillRect(-lockW/2, baseH*0.25, lockW, lockH);
+  ctx.fillStyle = '#111';
+  ctx.beginPath(); ctx.arc(0, baseH*0.25 + lockH*0.6, Math.max(2, r*0.12), 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
 
 // ==== 描画 ====
 function draw(){
@@ -2679,30 +2888,28 @@ ctx.translate(-vw * 0.5, -vh * 0.5);
 
 // ▼▼ ここからプレイヤー／敵／弾／床など“ワールド”の描画（既存） ▼▼
 
-  // items
-  for(const it of state.items){
-    ctx.save(); ctx.translate(it.x,it.y);
-    if(it.kind==='magnet'){ ctx.fillStyle='#00d2ff'; }
-    else if(it.kind==='nuke'){ ctx.fillStyle='#ff7675'; }
-    else if(it.kind==='heal'){ ctx.fillStyle='#2ecc71'; }
-    else { ctx.fillStyle='#c79a3b'; }
-    ctx.beginPath(); ctx.arc(0,0,it.r,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='#fff'; ctx.lineWidth=2;
-    if(it.kind==='magnet'){
-      ctx.beginPath(); ctx.moveTo(-6,0); ctx.lineTo(6,0); ctx.stroke();
-      ctx.beginPath(); ctx.arc(0,0,9,-.9,.9); ctx.stroke();
-    }else if(it.kind==='nuke'){
-      ctx.beginPath(); ctx.moveTo(-7,-7); ctx.lineTo(7,7);
-      ctx.moveTo(-7,7); ctx.lineTo(7,-7); ctx.stroke();
-    }else if(it.kind==='heal'){
-      ctx.beginPath(); ctx.moveTo(-6,0); ctx.lineTo(6,0);
-      ctx.moveTo(0,-6); ctx.lineTo(0,6); ctx.stroke();
-    }else{ // chest
-      ctx.beginPath(); ctx.rect(-7,-5,14,10); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(-7,0); ctx.lineTo(7,0); ctx.stroke();
-    }
-    ctx.restore();
+// items
+for (const it of state.items){
+  const t = state.t || 0;
+
+  if (it.kind === 'magnet'){
+    drawMagnet(ctx, it.x, it.y, it.r, t);
+
+  } else if (it.kind === 'nuke'){
+    drawBomb(ctx, it.x, it.y, it.r, t);
+
+  } else if (it.kind === 'heal'){
+    drawHealIcon(ctx, it.x, it.y, it.r, t);
+
+  } else if (it.kind === 'chest'){
+    drawChestIcon(ctx, it.x, it.y, it.r * 1.2, t);
+
+  } else {
+    // フォールバック（未定義）
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath(); ctx.arc(it.x, it.y, it.r, 0, Math.PI*2); ctx.fill();
   }
+}
 
   // gems
   for(const g of state.gems){
@@ -2882,7 +3089,7 @@ if(state.weapons.ghost.lv>0){
   ctx.globalAlpha = 0.85;
   for(let k=0;k<count;k++){
     const a = w.ang + k * (Math.PI*2/count);
-    const r = 60 + 10*(w.lv-1);
+    const r = 40 + 6*(w.lv-1);
     const gx = state.player.x + Math.cos(a)*r;
     const gy = state.player.y + Math.sin(a)*r;
 
@@ -2897,11 +3104,13 @@ if(state.weapons.ghost.lv>0){
     ctx.beginPath(); ctx.arc(gx - 3, gy - 2, 1.5, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(gx + 3, gy - 2, 1.5, 0, Math.PI*2); ctx.fill();
 
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(gx, gy + 2, 3, 0, Math.PI); // 半円の口
-    ctx.stroke();
+ctx.strokeStyle = '#000';
+ctx.lineWidth = 1.5;       // 少し太めに
+ctx.lineCap = 'round';     // 端を丸くして自然に
+ctx.beginPath();
+ctx.moveTo(gx - 3, gy + 2);
+ctx.lineTo(gx + 3, gy + 2);
+ctx.stroke();
   }
   ctx.restore();
 }
@@ -3318,7 +3527,29 @@ for (const ef of state.effects) {
     ctx.fillRect(0, 0, cv.width / DPR, cv.height / DPR);
     ctx.restore();
 
-  } else if (ef.type === 'zig') {
+    } else if (ef.type === 'healSparkles') {
+    ctx.save();
+    const a = Math.max(0, (ef.life0 ? (ef.life / ef.life0) : ef.life)); // 0→1
+    const prog = 1 - a;
+    const n = ef.count || 12;
+    for (let i = 0; i < n; i++) {
+      const th = (i / n) * Math.PI * 2;
+      const rr = (ef.r || 40) * (0.3 + 0.8 * prog);
+      const x = ef.x + Math.cos(th) * rr;
+      const y = ef.y + Math.sin(th) * rr;
+
+      // 本体（緑）
+      ctx.globalAlpha = 0.85 * a;
+      ctx.fillStyle = '#34d399';
+      ctx.beginPath(); ctx.arc(x, y, 3.2, 0, Math.PI * 2); ctx.fill();
+
+      // ハイライト（白寄り）
+      ctx.globalAlpha = 0.9 * a;
+      ctx.fillStyle = '#eafff1';
+      ctx.beginPath(); ctx.arc(x - 0.8, y - 0.8, 1.6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+ }else if (ef.type === 'zig') {
   // 稲妻（ライトニング）— 青黒系でやや落ち着いた発光
   const pts = ef.path;
   if (!pts || pts.length < 2) { continue; }
