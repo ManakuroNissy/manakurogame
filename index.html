@@ -366,8 +366,12 @@ const replayBtn = document.getElementById('replayBtn');
 const pauseBtn = document.getElementById('pauseBtn'); 
 
 // === Floating Joystick listeners ===
-const joyBase = document.getElementById('joyBase');
-const joyKnob = document.getElementById('joyKnob');
+let joyBase = document.getElementById('joyBase');
+let joyKnob = document.getElementById('joyKnob');
+// 無ければ動的に作る（HTML追記漏れ対策）
+if (!joyBase) { joyBase = document.createElement('div'); joyBase.id = 'joyBase'; document.body.appendChild(joyBase); }
+if (!joyKnob) { joyKnob = document.createElement('div'); joyKnob.id = 'joyKnob'; document.body.appendChild(joyKnob); }
+
 
 function joyShow(x,y){
   joyBase.style.left = x+'px'; joyBase.style.top = y+'px';
