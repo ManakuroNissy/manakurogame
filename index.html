@@ -345,8 +345,55 @@ window.addEventListener('resize', resize);
 const replayBtn = document.getElementById('replayBtn');
 const pauseBtn = document.getElementById('pauseBtn'); // ← ここに追加
 
+// === Debug hotkeys on Start screen (H/F/N inside IIFE) ===
+document.addEventListener('keydown', (ev)=>{
+  // タイトル表示中のみ有効
+  const s = document.getElementById('start');
+  if (!s || s.style.display === 'none') return;
 
+  const k = ev.key;
+  if (k === 'h' || k === 'H') {
+    state.mode.hardcore = true;
+    state._debugSkipToFinal = false;   // 念のためリセット
+    state._didSkipFinal = false;
+    showStartToast('HARDCORE: ON');
+  } else if (k === 'n' || k === 'N') {
+    state.mode.hardcore = false;       // ← ノーマルへ戻す
+    state._debugSkipToFinal = false;
+    state._didSkipFinal = false;
+    showStartToast('NORMAL: ON');
+  } else if (k === 'f' || k === 'F') {
+    state._debugSkipToFinal = true;    // ループ先頭で timeSec（または elapsed）を進める
+    state._didSkipFinal = false;
+    if (startBtn) startBtn.click();    // そのまま開始
+    showStartToast('Skip to FINAL BOSS');
+  }
+});
 
+// シンプルなトースト表示
+function showStartToast(msg){
+  let el = document.getElementById('startToast');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'startToast';
+    el.style.position = 'fixed';
+    el.style.left = '50%';
+    el.style.top = '12%';
+    el.style.transform = 'translateX(-50%)';
+    el.style.padding = '8px 14px';
+    el.style.background = 'rgba(0,0,0,.6)';
+    el.style.color = '#fff';
+    el.style.fontSize = '14px';
+    el.style.borderRadius = '10px';
+    el.style.pointerEvents = 'none';
+    el.style.zIndex = '9999';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(()=>{ el.style.opacity='0'; }, 900);
+}
 
 // クリックで再スタート
 replayBtn.onclick = () => {
@@ -359,7 +406,7 @@ replayBtn.onclick = () => {
 // resetGame() の最後あたりでクリア画面も隠す
 clearEl.style.display = 'none';
   
-  async function tryFullscreenAndLandscape(){
+async function tryFullscreenAndLandscape(){
   try{
     // フルスクリーン（可能な端末）
     const el = document.documentElement;
@@ -369,19 +416,26 @@ clearEl.style.display = 'none';
     if (screen.orientation && screen.orientation.lock) {
       try { await screen.orientation.lock('landscape'); } catch(e){}
     }
-  }catch(e){ /* iOSなどは失敗するので静かに無視 */ }
-}
+  } catch (e) {
+    // ここは“補助関数”なので、失敗してもログだけ出して抜ける
+    console.error('LOOP_CRASH', e);
+    if (e && e.stack) console.error('STACKTRACE ↓↓↓\n' + e.stack);
+  }
+} // ← ← ← 重要：この } が欠けていた
 
 startBtn.onclick = async () => {
   await tryFullscreenAndLandscape();
-  state.mode.hardcore = false;     // ← 通常スタートは必ずHCオフ
-  state.started = true; 
+
+  // ここでは state.mode.hardcore はそのまま使用（Hキーで事前にONにできる）
+  // Fキー（ラスボス戦デバッグ）はフラグで処理する
+  resetGame(); // 中央配置もここで反映
+
+  state.started = true;
   state.paused = false;
-  startEl.style.display='none'; 
+document.getElementById('start').style.display = 'none';
   state.last = performance.now();
   syncPauseButton();
 };
-  
 
 retryBtn.onclick = () => { resetGame(); syncPauseButton(); };
 
@@ -472,11 +526,11 @@ function updateHUD(){
     .map(([k,w])=> `${w.short}${w.lv}${w.awaken?'★':''}`);
   wepEl.textContent = names.join(', ') || '-';
   
-  const wrap = document.getElementById('wrap');
+const wrapEl = document.getElementById('wrap');
 if (state.mode.hardcore) {
-  wrap.dataset.hc = "1";
+  wrapEl.dataset.hc = "1";
 } else {
-  delete wrap.dataset.hc;
+  delete wrapEl.dataset.hc;
 }
 }
 
@@ -1345,12 +1399,27 @@ const ALL_UPGRADES = [
 
 // ==== メインループ ====
 function loop(now){
+  if (!state.started) { requestAnimationFrame(loop); return; }
 
-  try {
-    const dt = clamp((now - state.last)/1000, 0, 0.033*2);
-    state.last = now;
+  // dt はこの1回だけ計算し、state.last もここで1回だけ更新
+let dt = Math.min((now - state.last) / 1000, 0.05);
+  state.last = now;
+
+  // === デバッグ：Fキーでラスボス戦にワープ ===
+  if (state._debugSkipToFinal && !state._didSkipFinal){
+    if (Array.isArray(state.enemies)) state.enemies.length = 0;
+    if (Array.isArray(state.enemyBullets)) state.enemyBullets.length = 0;
+state.timeSec = Math.max(state.timeSec || 0, 601);
+    state._didSkipFinal = true;
+  }
+
+try {
+    // デバッグ：どの行で落ちるか特定するためのガード
+    // （H→START直後のクラッシュ捕捉用）
+    // ここから先で例外が出たら catch で console.error します
 
     // Magnet animation
+    
     if(state.gather.active){
       state.gather.time += dt;
       const p = Math.min(1, state.gather.time / state.gather.dur);
@@ -1534,7 +1603,7 @@ for(let j=state.enemies.length-1;j>=0;j--){
 }
 // rock でも画面外/寿命では通常通り消える（既存処理のまま）
 
-// === Orbit contact damage & knockback ===
+// === Orbit contact damage (no knockback) ===
 if (state.weapons.orbit.lv > 0){
   const w = state.weapons.orbit;
   const count = w.awaken ? 8 : (2 + w.lv);
@@ -1549,21 +1618,9 @@ if (state.weapons.orbit.lv > 0){
       const oy = state.player.y + Math.sin(ang)*ring;
       const dx = e.x - ox, dy = e.y - oy;
       if (dx*dx + dy*dy <= orbR*orbR){
-        // 接触DPS
+        // 接触DPS（ノックバックなし）
         e.hp -= dps * dt;
         e.hitFlash = Math.max(e.hitFlash, 0.05);
-
-        // ほんのりノックバック（プレイヤー中心から外へ）
-        const ex = e.x - state.player.x, ey = e.y - state.player.y;
-        const m = Math.hypot(ex, ey) || 1;
-        const nx = ex / m, ny = ey / m;
-        const mult = (e.type==='final') ? 0.35
-                    : (e.type==='big') ? 0.5
-                    : (e.type==='mid') ? 0.7
-                    : 1.0;
-        const kb = (w.kbBase || 220) * mult;
-        e.kbx = (e.kbx||0) + nx * kb * dt;  // /秒イメージで加算
-        e.kby = (e.kby||0) + ny * kb * dt;
       }
     }
   }
@@ -1795,21 +1852,27 @@ if(e.phase === 'shoot'){
 
 }else if(e.phase === 'laser'){
   e.laserDur -= dt;
-  const L = Math.max(W, H)/DPR + 200;
+  const L  = Math.max(W, H)/DPR + 200;
   const x2 = e.x + Math.cos(e.laserAng)*L;
   const y2 = e.y + Math.sin(e.laserAng)*L;
-  addEffect('laserBeam', { x1:e.x, y1:e.y, x2, y2, w:56, life:.06 }); // 太め
 
-  // 当たり判定
-  const d = pointLineDist(state.player.x, state.player.y, e.x, e.y, x2, y2);
- const DPS = state.mode.hardcore ? 50 : 30;
-if(d < 26 && state.player.iTime <= 0){
-  playerHit(DPS * dt, e.x, e.y);
+  const beamW = 56; // 描画と合わせる
+  addEffect('laserBeam', { x1:e.x, y1:e.y, x2, y2, w:beamW, life:.06 });
+
+  // 当たり判定：レーザーは連続HIT（無敵時間を無視して削る）
+  const d    = pointLineDist(state.player.x, state.player.y, e.x, e.y, x2, y2);
+  const hitR = beamW * 1.00;                // 
+  const DPS  = state.mode.hardcore ? 75 : 50; // 体感強化
+
+  if (d < hitR){
+    state.player.hp -= DPS * dt;            // 直接HPを削る（ノックバックなし）
+    if (state.player.hp <= 0) { gameOver(); return; }
+  }
+
+  if (e.laserDur <= 0){ e.cd = 1.8; e.phase = 'shoot'; }
 }
 
-  if(e.laserDur <= 0){ e.cd = 1.8; e.phase = 'shoot'; }
-
-}else if(e.phase === 'charge_boom'){
+else if(e.phase === 'charge_boom'){
   // 予備動作：小さめの白パルス（短め）
   e.chargeT -= dt;
   const r0 = 60, r1 = 120;
@@ -1832,9 +1895,9 @@ if(d < 26 && state.player.iTime <= 0){
 
     // 2本用意（timeOffsetで時間差）
     e.boomWaves = [
-      { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0,     w:thickness, wavAmp, wavFreq, timeOffset:0.0 },
-      { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0+0.7, w:thickness, wavAmp, wavFreq, timeOffset:0.55 }
-    ];
+  { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0,                       w:thickness, wavAmp, wavFreq, timeOffset:0.0 },
+  { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0 + Math.PI/segCount,    w:thickness, wavAmp, wavFreq, timeOffset:0.90 }
+];
     e.boomClock = 0; // 描画側の波アニメ位相用
   }
 
@@ -1935,18 +1998,18 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
       }
       
 
-      // ====== ここから追記 ======
-      // プレイヤー接触判定
-      const touchDmg =
-        (e.type === 'big' || e.type === 'final')
-          ? (e.phase === 'dash'
-              ? (e.type === 'final' ? 80 : 60)
-              : (e.type === 'final' ? 40 : 32))
-          : (e.type === 'mid')
-            ? 24
-            : 18;
-            
-            if (state.mode.hardcore) touchDmg *= 1.5;   // ← 追加
+// プレイヤー接触判定
+let touchDmg =
+  (e.type === 'big' || e.type === 'final')
+    ? (e.phase === 'dash'
+        ? (e.type === 'final' ? 80 : 60)
+        : (e.type === 'final' ? 40 : 32))
+    : (e.type === 'mid')
+      ? 24
+      : 18;
+
+if (state.mode.hardcore) touchDmg *= 1.5;
+
 
       if (dist2(e.x, e.y, state.player.x, state.player.y) < (state.player.r + e.size * 0.6) ** 2) {
         if (state.player.iTime <= 0) {
@@ -2864,6 +2927,7 @@ const e = {
 
   requestAnimationFrame(loop);
 })();
+
 
 </script>
 
