@@ -415,20 +415,42 @@ const replayBtn = document.getElementById('replayBtn');
 // === camera zoom resolver (mobileは強めに引く) ===
 function computeCameraZoom(){
   const dpr = (typeof DPR !== 'undefined' ? DPR : (window.devicePixelRatio || 1));
-  const vw = cv.width / dpr, vh = cv.height / dpr;
-  const isTouch    = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-  const isPortrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+  const vw  = cv.width / dpr, vh = cv.height / dpr;
 
-  let z = 1.0; // デフォ: PC
+  const isPortrait =
+    (window.matchMedia && window.matchMedia('(orientation: portrait)').matches) || false;
+
+  // ← これが無かったのがエラー原因
+  const isTouch =
+    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+    ('ontouchstart' in window) ||
+    (navigator.maxTouchPoints > 0);
+
+  // 基準ズーム
+  let z = 1.0;
+
+  // モバイルは引き気味
   if (isTouch){
-    // モバイルは強めに引く（縦:0.60 / 横:0.65）
     z = isPortrait ? 0.60 : 0.65;
-    // 超小画面はさらに引く
     const shortSide = Math.min(vw, vh);
     if (shortSide < 380) z = isPortrait ? 0.50 : 0.56;
   }
+
+  // PC の超大画面は“寄せる”（可視領域の上限）
+  const MAX_VIEW_W = 1600;  // 横の最大可視幅（好みで調整）
+  const MAX_VIEW_H = 840;   // 縦の最大可視高（好みで調整）
+  const MAX_Z_CAP  = 2.2;   // ズームイン上限
+
+  if (!isTouch){
+    const needZ = Math.max(vw / MAX_VIEW_W, vh / MAX_VIEW_H); // >1 でズームイン
+    if (needZ > 1){
+      z = Math.min(Math.max(z, needZ), MAX_Z_CAP);
+    }
+  }
+
   state.cameraZoom = z;
 }
+
 
 
 
@@ -1369,19 +1391,20 @@ rock:{
     const baseDmg  = (28 + 10*(this.lv-1)) * state.mods.dmgMul; // 18+6*(lv-1) → 28+10*(lv-1)
     const bossMul  = 1.25; // mid/big/final には25%増し
 
-    const addRock=(ang)=>{
-      const sz  = sizeBase * (this.awaken ? 2.0 : 1.0);
-      state.bullets.push({
-        type:'rock',
-        x:state.player.x, y:state.player.y,
-        vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
-        r:sz,
-        dmg:baseDmg,
-        life:3.4,                 // 3.2→3.4（少し長く転がる）
-        pierce:true,
-        bossMul                    // 当たり側で参照
-      });
-    };
+const addRock=(ang)=>{
+  const sz  = sizeBase * (this.awaken ? 2.0 : 1.0);
+  state.bullets.push({
+    type:'rock',
+    x:state.player.x, y:state.player.y,
+    vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
+    r:sz,
+    dmg:baseDmg,
+    life:3.4,                 // 3.2→3.4（少し長く転がる）
+    pierce:true,
+    bossMul,                  // 当たり側で参照
+    spin: Math.random()*Math.PI*2   // ★ 初期自転角（0でもOK）
+  });
+};
 
     const base = Math.atan2(dir.y,dir.x);
     if(this.awaken){
@@ -1987,7 +2010,10 @@ for(let i=state.bullets.length-1;i>=0;i--){
     }
   }
 
-  if(b.type==='rock'){ b.spin += 6*dt; }
+if (b.type === 'rock') {
+  const spinRate = 1.4;     // ★ 自転速度(rad/秒)。ゆっくり=0.8〜1.6、速め=3〜6
+  b.spin += spinRate * dt;
+}
 
   // 移動と寿命処理
   b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
