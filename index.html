@@ -371,6 +371,27 @@ const timeFloatEl = document.getElementById('timeFloat');
   const retryBtn = document.getElementById('retryBtn');
   const clearEl = document.getElementById('gameclear');
 const replayBtn = document.getElementById('replayBtn');
+
+// === camera zoom resolver (mobileは強めに引く) ===
+function computeCameraZoom(){
+  const dpr = (typeof DPR !== 'undefined' ? DPR : (window.devicePixelRatio || 1));
+  const vw = cv.width / dpr, vh = cv.height / dpr;
+  const isTouch    = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const isPortrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+
+  let z = 1.0; // デフォ: PC
+  if (isTouch){
+    // モバイルは強めに引く（縦:0.74 / 横:0.80）
+    z = isPortrait ? 0.74 : 0.80;
+    // 超小画面はさらに引く
+    const shortSide = Math.min(vw, vh);
+    if (shortSide < 380) z = isPortrait ? 0.70 : 0.76;
+  }
+  state.cameraZoom = z;
+}
+
+
+
 const pauseBtn = document.getElementById('pauseBtn'); 
 // 固定ジョイスティックのDOMが残っていたら除去（安全策）
 document.querySelectorAll('[data-fixed-joy], .joystick, .stick, .stick-L, .stick-R, #joyLeft, #joyRight')
@@ -446,8 +467,7 @@ cv.addEventListener('touchcancel', ()=>{ joyHide(); }, {passive:true});
 // === resize: 縦横切り替えでズーム更新 ===
 window.addEventListener('resize', ()=>{
   try { if (typeof fitCanvas === 'function') fitCanvas(); } catch(e){}
-  const isPortrait = (window.matchMedia && window.matchMedia('(orientation: portrait)').matches);
-  state.cameraZoom = isPortrait ? 0.85 : 1.0;
+  computeCameraZoom();
 });
 
 
@@ -650,9 +670,9 @@ state.killScore = 0;             // キルのみの加算追跡（任意）
 state.bossBonus = 0;             // ボス撃破ボーナス
 
 // === viewport zoom（縦画面は少し引く）===
-state.cameraZoom = (window.matchMedia && window.matchMedia('(orientation: portrait)').matches)
-  ? 0.85   // 縦画面は縮小（数値はお好みで 0.80〜0.95）
-  : 1.0;   // 横画面は等倍
+computeCameraZoom();
+
+
 state.records = JSON.parse(localStorage.getItem('vs_records') || '[]'); // [{score,timeSec,date,hardcore}]
 
 
