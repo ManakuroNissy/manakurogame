@@ -453,31 +453,28 @@ document.getElementById('start').style.display = 'none';
 
 retryBtn.onclick = () => { resetGame(); syncPauseButton(); };
 
-function syncPauseButton(){
-  if (!pauseBtn) return;
-  const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
-  const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
-
-  // 表示としては「手動停止なら⏵、それ以外は⏸」
-  pauseBtn.textContent = state.manualPaused ? '▶︎' : '⏸';
-
-  // オーバーレイ中は半透明＆押せない風
-  const locked = (lvlOpen || chestOpen);
-  pauseBtn.style.opacity = locked ? '0.6' : '1';
-}
 
 function syncPauseButton(){
   if (!pauseBtn) return;
-  pauseBtn.textContent = state.paused ? '▶' : '⏸';
-  pauseBtn.setAttribute('aria-label', state.paused ? 'Resume' : 'Pause');
+  // 表示は manualPaused を見て決める（▶=停止中／⏸=動作中）
+  const showingPlay = !!state.manualPaused;
+  pauseBtn.textContent = showingPlay ? '▶' : '⏸';
+  pauseBtn.setAttribute('aria-label', showingPlay ? 'Resume' : 'Pause');
 }
+
+
 
 if (pauseBtn){
   pauseBtn.onclick = () => {
-    state.paused = !state.paused;
+    // レベルアップ/宝箱オーバーレイ中は無効化
+    const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
+    const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
+    if (lvlOpen || chestOpen) return;
+
+    state.manualPaused = !state.manualPaused;
     syncPauseButton();
   };
-} // ← ここで必ず閉じる！
+}
 
 
 
@@ -617,10 +614,15 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   });
   document.getElementById('wrap').addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
 window.addEventListener('keydown', e=>{
-  if(e.key==='p'||e.key==='P'){ 
-    state.paused=!state.paused; 
-    syncPauseButton(); // ← これを追加
+if(e.key==='p'||e.key==='P'){ 
+  const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
+  const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
+  if (!(lvlOpen || chestOpen)) {
+    state.manualPaused = !state.manualPaused;
+    syncPauseButton();
   }
+}
+
   state.input.keys[e.key]=true;
 });
   window.addEventListener('keyup', e=>{ state.input.keys[e.key]=false; });
@@ -1499,7 +1501,7 @@ try {
       draw(); requestAnimationFrame(loop); return;
     }
 
-// 画面オーバーレイに応じた pause 合成
+// 画面オーバーレイに応じた pause 合成（※このブロックは1回だけ） 
 const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
 const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
 
@@ -1507,7 +1509,13 @@ const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
 state.paused = !!(lvlOpen || chestOpen || state.manualPaused);
 
 if (state.paused){
-  draw(); requestAnimationFrame(loop); return;
+  draw();
+  requestAnimationFrame(loop);
+  return;
+}
+
+if(state.paused){ 
+  draw(); requestAnimationFrame(loop); return; 
 }
 
     state.t += dt; 
@@ -2237,10 +2245,19 @@ for (let y = 0; y < cv.height / DPR; y += step) {
 }
 ctx.restore();
 
-// === ワールド縮尺（縦画面は少し引いて描く） ===
+// === ワールド縮尺：画面中心基準で「少し引く」 ===
 ctx.save();
-const z = state.cameraZoom || 1.0;
+const z  = state.cameraZoom || 1.0;
+const vw = cv.width / DPR, vh = cv.height / DPR;
+ctx.translate(vw * 0.5, vh * 0.5);
 ctx.scale(z, z);
+ctx.translate(-vw * 0.5, -vh * 0.5);
+
+// ▼▼ ここからプレイヤー／敵／弾／床など“ワールド”の描画（既存） ▼▼
+
+// ▲▲ ワールド描画終わり：HUDの前に縮尺を戻す ▲▲
+ctx.restore();
+
 
 
 
@@ -2919,8 +2936,10 @@ for (const ef of state.effects) {
   
 if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);  
 
+// ▲▲ ワールド描画終わり（HUDを等倍に戻す） ▲▲
 ctx.restore();
 
+// ▼ この下でHUD/UI（等倍）を描く（既存のまま）
 } // ← function draw の閉じカッコ
 
 
