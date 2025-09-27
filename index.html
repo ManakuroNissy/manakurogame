@@ -93,6 +93,7 @@ canvas {
 }
 
 /* 浮遊タイマー：常時表示（PC/スマホ共通） */
+
 .time-float{
   position: fixed;
   top: 8px;
@@ -101,6 +102,13 @@ canvas {
   pointer-events: none;
   display: block;
   font-weight: 700;
+}
+
+/* 固定ジョイスティックは常に非表示にする */
+[data-fixed-joy],
+.joystick, .stick, .stick-L, .stick-R, #joyLeft, #joyRight, #joy {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 /* デスクトップ幅は HUD 右にタイマーぶんの余白を空ける */
@@ -245,7 +253,7 @@ body[data-hc] .hc-badges{ display: flex; }
   <div id="chest"><div id="chestRow"></div></div>
   <div class="chestHUD" id="chestHUD"><span class="badge">宝箱：<b id="pickLeft">2</b>つ選択</span></div>
   <div id="gather"><div class="box"><h3>経験値を集めています</h3><div class="bar xp" style="width:260px;margin:auto;"><i id="gbar"></i></div></div></div>
-  <div id="joy"><i></i></div>
+<div id="joy" data-fixed-joy><i></i></div>
   <div id="hint">Pause: [P]</div>
 </div>
 
@@ -364,6 +372,10 @@ const timeFloatEl = document.getElementById('timeFloat');
   const clearEl = document.getElementById('gameclear');
 const replayBtn = document.getElementById('replayBtn');
 const pauseBtn = document.getElementById('pauseBtn'); 
+// 固定ジョイスティックのDOMが残っていたら除去（安全策）
+document.querySelectorAll('[data-fixed-joy], .joystick, .stick, .stick-L, .stick-R, #joyLeft, #joyRight')
+  .forEach(el => el.parentNode && el.parentNode.removeChild(el));
+
 
 // === Floating Joystick listeners ===
 let joyBase = document.getElementById('joyBase');
@@ -680,11 +692,13 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
 }
 
 
-  // Joystick + keyboard
-  const joy = document.getElementById('joy');
-  const knob = joy.querySelector('i');
-  let joyId = null, joyCenter=null;
-  function setJoy(dx,dy){
+  // Joystick + keyboard（固定ジョイは無くてもOKにする）
+  const joyEl = document.getElementById('joy');
+  const knob  = joyEl ? joyEl.querySelector('i') : null;
+  let joyId = null, joyCenter = null;
+
+  function setJoy(dx, dy){
+    if (!knob) return; // ← 無ければ何もしない
     const mag = Math.hypot(dx,dy);
     const max = 55;
     const nx = (mag>0?dx/mag:0), ny=(mag>0?dy/mag:0);
@@ -694,21 +708,33 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
     state.input.vx = nx; state.input.vy = ny;
     if(mag>6){ state.input.lastDir = {x:nx, y:ny}; }
   }
-  function resetJoy(){ knob.style.left='50%'; knob.style.top='50%'; state.input.vx=0; state.input.vy=0;}
-  joy.addEventListener('touchstart', e=>{
-    const t = e.changedTouches[0]; joyId = t.identifier;
-    const r = joy.getBoundingClientRect();
-    joyCenter = { x:r.left + r.width/2, y:r.top + r.height/2 };
-    setJoy(t.clientX - joyCenter.x, t.clientY - joyCenter.y);
-  }, {passive:false});
-  joy.addEventListener('touchmove', e=>{
-    for(const t of e.changedTouches){
-      if (t.identifier===joyId) { setJoy(t.clientX - joyCenter.x, t.clientY - joyCenter.y); e.preventDefault(); }
-    }
-  }, {passive:false});
-  joy.addEventListener('touchend', e=>{
-    for(const t of e.changedTouches){ if (t.identifier===joyId){ joyId=null; resetJoy(); } }
-  });
+  function resetJoy(){
+    if (!knob) { state.input.vx=0; state.input.vy=0; return; }
+    knob.style.left='50%'; knob.style.top='50%';
+    state.input.vx=0; state.input.vy=0;
+  }
+
+  // 固定ジョイスティック用のリスナーは、要素があるときだけ登録
+  if (joyEl && knob){
+    joyEl.addEventListener('touchstart', e=>{
+      const t = e.changedTouches[0]; joyId = t.identifier;
+      const r = joyEl.getBoundingClientRect();
+      joyCenter = { x:r.left + r.width/2, y:r.top + r.height/2 };
+      setJoy(t.clientX - joyCenter.x, t.clientY - joyCenter.y);
+    }, {passive:false});
+    joyEl.addEventListener('touchmove', e=>{
+      for(const t of e.changedTouches){
+        if (t.identifier===joyId) { setJoy(t.clientX - joyCenter.x, t.clientY - joyCenter.y); e.preventDefault(); }
+      }
+    }, {passive:false});
+    joyEl.addEventListener('touchend', e=>{
+      for(const t of e.changedTouches){ if (t.identifier===joyId){ joyId=null; resetJoy(); } }
+    });
+  }
+
+  
+  
+  
   document.getElementById('wrap').addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
 window.addEventListener('keydown', e=>{
 if(e.key==='p'||e.key==='P'){ 
@@ -1640,31 +1666,29 @@ if(state.paused){
       }
     }
 
-// === movement input（タッチ中はフローティングジョイスティック優先） ===
+// === movement input（浮遊スティック最優先 → なければキーボード/既存入力） ===
 let vx = 0, vy = 0;
 
 if (state.touchJoy && state.touchJoy.active) {
-  // フローティング・ジョイスティックの相対ベクトル
+  // フローティング・ジョイスティック
   vx = state.touchJoy.dx;
   vy = state.touchJoy.dy;
 } else {
-  // 既存の固定ジョイスティック or キーボード入力
-  if (typeof state.input.vx === 'number' && typeof state.input.vy === 'number') {
-    vx = state.input.vx; 
-    vy = state.input.vy;
+  // 既存の入力ベクトル（固定ジョイスティックが無くても0扱い）
+  if (state.input) {
+    if (typeof state.input.vx === 'number') vx += state.input.vx;
+    if (typeof state.input.vy === 'number') vy += state.input.vy;
   }
-  if (!joyId) {
-    const kv = keyboardVec();
-    vx = kv.x; vy = kv.y;
+  // キーボード
+  if (typeof keyboardVec === 'function') {
+    const kv = keyboardVec(); vx += kv.x; vy += kv.y;
   }
 }
 
-// 正規化 & 最終的な向きの記憶
+// 正規化 & 最終向き
 const pm = Math.hypot(vx, vy) || 0;
-if (pm > 0) { 
-  vx /= pm; vy /= pm; 
-  state.input.lastDir = { x: vx, y: vy };
-}
+if (pm > 0) { vx /= pm; vy /= pm; state.input.lastDir = { x:vx, y:vy }; }
+
 
 
     // regen
@@ -3216,6 +3240,10 @@ const e = {
 <!-- Floating Joystick -->
 <div id="joyBase"></div>
 <div id="joyKnob"></div>
+
+<!-- hidden stub for legacy fixed joystick -->
+<div id="joy" style="display:none"><i></i></div>
+
 </body>
 
 </html>
