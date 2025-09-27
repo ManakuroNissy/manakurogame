@@ -179,6 +179,24 @@ body[data-hc] .hc-badges{ display: flex; }
   .hc-badges           { right: 64px; top: 76px; }
 }
 
+/* === Floating Joystick === */
+#joyBase, #joyKnob{
+  position:fixed; left:0; top:0; transform:translate(-50%,-50%);
+  pointer-events:none; display:none; z-index: 10001; /* ⌛やPauseより前面 */
+}
+#joyBase{
+  width:120px; height:120px; border-radius:50%;
+  background: radial-gradient(closest-side, rgba(99,102,241,.25), rgba(99,102,241,.08));
+  border:1px solid rgba(99,102,241,.45);
+  backdrop-filter: blur(2px);
+}
+#joyKnob{
+  width:64px; height:64px; border-radius:50%;
+  background: radial-gradient(circle at 35% 35%, #fff, #c7d2fe);
+  border:1px solid rgba(99,102,241,.6);
+  box-shadow:0 6px 18px rgba(99,102,241,.25);
+}
+
 </style>
 </head>
 <body>
@@ -347,6 +365,68 @@ const timeFloatEl = document.getElementById('timeFloat');
 const replayBtn = document.getElementById('replayBtn');
 const pauseBtn = document.getElementById('pauseBtn'); 
 
+// === Floating Joystick listeners ===
+const joyBase = document.getElementById('joyBase');
+const joyKnob = document.getElementById('joyKnob');
+
+function joyShow(x,y){
+  joyBase.style.left = x+'px'; joyBase.style.top = y+'px';
+  joyKnob.style.left = x+'px'; joyKnob.style.top = y+'px';
+  joyBase.style.display = 'block'; joyKnob.style.display = 'block';
+}
+function joyMove(x,y){
+  const r = state.touchJoy.radius;
+  let dx = x - state.touchJoy.x0, dy = y - state.touchJoy.y0;
+  const len = Math.hypot(dx,dy) || 1;
+  const clamp = Math.min(1, len / r);
+  dx = dx / len * clamp; dy = dy / len * clamp;
+  state.touchJoy.dx = dx; state.touchJoy.dy = dy;
+  joyKnob.style.left = (state.touchJoy.x0 + dx * r) + 'px';
+  joyKnob.style.top  = (state.touchJoy.y0 + dy * r) + 'px';
+}
+function joyHide(){
+  joyBase.style.display = 'none'; joyKnob.style.display = 'none';
+  state.touchJoy.active = false; state.touchJoy.id = null;
+  state.touchJoy.dx = 0; state.touchJoy.dy = 0;
+}
+
+// どこを押してもジョイスティック出現（PCは無視される）
+cv.addEventListener('touchstart', (ev)=>{
+  const t = ev.changedTouches[0];
+  if (!t) return;
+  // 既に他の指でジョイスティック使用中なら何もしない（必要なら2本目は攻撃などに拡張可能）
+  if (state.touchJoy.active) return;
+
+  state.touchJoy.active = true;
+  state.touchJoy.id = t.identifier;
+  state.touchJoy.x0 = t.clientX; state.touchJoy.y0 = t.clientY;
+  joyShow(state.touchJoy.x0, state.touchJoy.y0);
+  joyMove(t.clientX, t.clientY);
+  ev.preventDefault();
+}, {passive:false});
+
+cv.addEventListener('touchmove', (ev)=>{
+  if (!state.touchJoy.active) return;
+  for (const t of ev.changedTouches){
+    if (t.identifier === state.touchJoy.id){
+      joyMove(t.clientX, t.clientY);
+      ev.preventDefault(); break;
+    }
+  }
+}, {passive:false});
+
+cv.addEventListener('touchend', (ev)=>{
+  if (!state.touchJoy.active) return;
+  for (const t of ev.changedTouches){
+    if (t.identifier === state.touchJoy.id){
+      joyHide(); ev.preventDefault(); break;
+    }
+  }
+}, {passive:false});
+
+cv.addEventListener('touchcancel', ()=>{ joyHide(); }, {passive:true});
+
+
 // === resize: 縦横切り替えでズーム更新 ===
 window.addEventListener('resize', ()=>{
   try { if (typeof fitCanvas === 'function') fitCanvas(); } catch(e){}
@@ -511,6 +591,18 @@ state.killScore = 0;
 state.bossBonus = 0;
 
 
+// === touch joystick state ===
+// 既にあれば使い回し、無ければ作成
+if (!state.touchJoy) {
+  state.touchJoy = { active:false, id:null, x0:0, y0:0, x:0, y:0, dx:0, dy:0, radius:56 };
+} else {
+  state.touchJoy.active = false;
+  state.touchJoy.id = null;
+  state.touchJoy.x0 = 0; state.touchJoy.y0 = 0;
+  state.touchJoy.x = 0;  state.touchJoy.y = 0;
+  state.touchJoy.dx = 0; state.touchJoy.dy = 0;
+  state.touchJoy.radius = 56; // 操作感はここで調整
+}
 
     // Reset upgrades
     state.upgradesTaken = new Set();
@@ -523,6 +615,7 @@ state.bossBonus = 0;
       if('cd' in w) w.cd = 0;
       if(k==='orbit'){ w.ang = 0; }
     }
+    
     
     // UI
     levelupEl.style.display='none';
@@ -1543,11 +1636,32 @@ if(state.paused){
       }
     }
 
-    // input
-    let vx=state.input.vx, vy=state.input.vy;
-    if(!joyId){ const kv = keyboardVec(); vx=kv.x; vy=kv.y; }
-    const pm = Math.hypot(vx,vy)||0; 
-    if(pm>0){ vx/=pm; vy/=pm; state.input.lastDir={x:vx,y:vy}; }
+// === movement input（タッチ中はフローティングジョイスティック優先） ===
+let vx = 0, vy = 0;
+
+if (state.touchJoy && state.touchJoy.active) {
+  // フローティング・ジョイスティックの相対ベクトル
+  vx = state.touchJoy.dx;
+  vy = state.touchJoy.dy;
+} else {
+  // 既存の固定ジョイスティック or キーボード入力
+  if (typeof state.input.vx === 'number' && typeof state.input.vy === 'number') {
+    vx = state.input.vx; 
+    vy = state.input.vy;
+  }
+  if (!joyId) {
+    const kv = keyboardVec();
+    vx = kv.x; vy = kv.y;
+  }
+}
+
+// 正規化 & 最終的な向きの記憶
+const pm = Math.hypot(vx, vy) || 0;
+if (pm > 0) { 
+  vx /= pm; vy /= pm; 
+  state.input.lastDir = { x: vx, y: vy };
+}
+
 
     // regen
     if (state.upgradesTaken.has('regen')) {
@@ -3095,5 +3209,9 @@ const e = {
 
 </div>
 
+<!-- Floating Joystick -->
+<div id="joyBase"></div>
+<div id="joyKnob"></div>
 </body>
+
 </html>
