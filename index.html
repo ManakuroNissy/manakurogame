@@ -119,6 +119,65 @@ canvas {
   opacity: 0.85;
 }
 
+.hud-btn{
+  position:absolute;
+  right: calc(.5rem + env(safe-area-inset-right));
+  /* HUD の下にずらす：以前は .5rem → 2.8rem へ */
+  top:   calc(2.8rem + env(safe-area-inset-top));
+  z-index: 30;
+  pointer-events: auto;
+  background:#1f6feb;
+  color:#fff;
+  border:none;
+  border-radius:.5rem;
+  font-weight:700;
+  padding:.5rem .7rem;
+  box-shadow:0 4px 14px rgba(31,111,235,.35);
+}
+.hud-btn:active{ transform: translateY(1px); }
+
+/* HUD を非表示にしている超狭画面では、ボタンを上に戻す */
+@media (max-width:480px){
+  .hud{ display:none; }
+  .hud-btn{
+    top: calc(.5rem + env(safe-area-inset-top));
+  }
+}
+
+.hc-badges{
+  position:absolute;
+  right: calc(.5rem + env(safe-area-inset-right));
+  top:   calc(4.2rem + env(safe-area-inset-top)); /* 「HARDCORE」の少し下 */
+  z-index: 16;
+  display: none;                 /* 通常は非表示 */
+  gap: .35rem;
+}
+#wrap[data-hc] .hc-badges{       /* Hardcore中のみ表示 */
+  display: flex;
+}
+.hc-badges .badge{
+  background:#231a3a;            /* 既存のHC配色に寄せる紫トーン */
+  border-color:#5b2a8a;
+  font-weight:700;
+  letter-spacing:.01em;
+}
+@media (max-width:480px){
+  .hc-badges { top: calc(3.8rem + env(safe-area-inset-top)); }
+}
+
+
+
+#wrap[data-hc]::after{
+  content:"HARDCORE";
+  position:absolute;
+  right: calc(.5rem + env(safe-area-inset-right));
+  top:   calc(3.2rem + env(safe-area-inset-top));
+  background:#8b5cf6; color:#fff; font-weight:700;
+  padding:.2rem .5rem; border-radius:.4rem; opacity:.95;
+  z-index: 16;
+  box-shadow:0 4px 12px rgba(139,92,246,.35);
+  font-size:.85rem;
+}
 
 </style>
 </head>
@@ -133,11 +192,19 @@ canvas {
     <h2>ゲームオーバー</h2>
     <div class="sub">もう一度挑戦しよう！</div>
     <button id="retryBtn" class="btn">やり直す</button>
-  </div>
-    <div id="gameclear" style="display:none;">
-    <h2 style="font-size:clamp(28px,6vw,64px); margin:0 0 .75rem;">GAME CLEAR</h2>
+    </div> <!-- ← ここで閉じる -->
+<!-- クリア画面 -->
+<div id="gameclear" style="display:none;">
+  <h2 style="font-size:clamp(28px,6vw,64px); margin:0 0 .75rem;">GAME CLEAR</h2>
+  <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center;">
     <button id="replayBtn" class="btn">もう一度遊ぶ</button>
+    <button id="hardcoreBtn" class="btn" style="display:none;background:#8b5cf6;">Hardcoreで再挑戦</button>
   </div>
+</div>
+  
+  <div class="time-float">⌛ <b id="tm2">0:00</b></div>
+
+  
   <canvas id="cv"></canvas>
   <div class="hud">
     <span class="badge">Lv <b id="lv">1</b></span>
@@ -147,6 +214,8 @@ canvas {
     <span class="badge">⌛ <b id="tm">0:00</b></span>
     <span class="badge">武器: <b id="wep">-</b></span>
   </div>
+  <!-- ⏸/▶ ボタン（.hud の外！） -->
+  <button id="pauseBtn" class="hud-btn" aria-label="Pause">⏸</button>
   <div id="bossmsg">!! BOSS APPROACHING !!</div>
   <div id="levelup"><div id="cardRow"></div></div>
   <div id="chest"><div id="chestRow"></div></div>
@@ -156,8 +225,13 @@ canvas {
   <div id="hint">Pause: [P]</div>
 </div>
 
-<script>
+<div id="hcBadges" class="hc-badges">
+  <span class="badge">XP 75%</span>
+  <span class="badge">敵 自動回復</span>
+</div>
+</div>
 
+<script>
 // ===== 画面エラー表示ユーティリティ =====
 function showErrorBanner(msg){
   let el = document.getElementById('errBanner');
@@ -240,6 +314,10 @@ window.addEventListener('resize', resize);
     bossTimer: 9999, bigBossTimer: 9999,
         gather:{ active:false, time:0, dur:0.5, totalXP:0 },
     winCountdown: 0,
+  mode: {
+    hardcore: false,          // 現在ハードコアか？
+    unlockedHardcore: false,  // ハードコア解放済み？
+  }
   };
 
   // UI
@@ -248,7 +326,7 @@ window.addEventListener('resize', resize);
   const hpValEl = document.getElementById('hpval'); // ← 追加
   const xpw = document.getElementById('xpw');
   const tmEl = document.getElementById('tm');
-  const tm2El = document.getElementById('tm2'); // ← 追加
+  const tm2El = document.getElementById('tm2');  // ← これを追加
   const levelupEl = document.getElementById('levelup');
   const cardRow = document.getElementById('cardRow');
   const wepEl = document.getElementById('wep');
@@ -265,9 +343,18 @@ window.addEventListener('resize', resize);
   const retryBtn = document.getElementById('retryBtn');
   const clearEl = document.getElementById('gameclear');
 const replayBtn = document.getElementById('replayBtn');
+const pauseBtn = document.getElementById('pauseBtn'); // ← ここに追加
+
+
+
 
 // クリックで再スタート
-replayBtn.onclick = () => { clearEl.style.display='none'; resetGame(); };
+replayBtn.onclick = () => {
+  state.mode.hardcore = false;      // ← ノーマルで再挑戦
+  clearEl.style.display='none';
+  resetGame();
+  syncPauseButton();
+};
 
 // resetGame() の最後あたりでクリア画面も隠す
 clearEl.style.display = 'none';
@@ -286,14 +373,30 @@ clearEl.style.display = 'none';
 }
 
 startBtn.onclick = async () => {
-  await tryFullscreenAndLandscape();  // ← 追加
-  state.started = true; state.paused = false;
-  startEl.style.display='none'; state.last = performance.now();
+  await tryFullscreenAndLandscape();
+  state.mode.hardcore = false;     // ← 通常スタートは必ずHCオフ
+  state.started = true; 
+  state.paused = false;
+  startEl.style.display='none'; 
+  state.last = performance.now();
+  syncPauseButton();
 };
   
 
-  retryBtn.onclick = () => { resetGame(); };
+retryBtn.onclick = () => { resetGame(); syncPauseButton(); };
 
+function syncPauseButton(){
+  if (!pauseBtn) return;
+  pauseBtn.textContent = state.paused ? '▶' : '⏸';
+  pauseBtn.setAttribute('aria-label', state.paused ? 'Resume' : 'Pause');
+}
+
+if (pauseBtn){
+  pauseBtn.onclick = () => {
+    state.paused = !state.paused;
+    syncPauseButton();
+  };
+}
 
 
   function resetGame(){
@@ -368,6 +471,13 @@ function updateHUD(){
     .filter(([k,w])=>w.lv>0)
     .map(([k,w])=> `${w.short}${w.lv}${w.awaken?'★':''}`);
   wepEl.textContent = names.join(', ') || '-';
+  
+  const wrap = document.getElementById('wrap');
+if (state.mode.hardcore) {
+  wrap.dataset.hc = "1";
+} else {
+  delete wrap.dataset.hc;
+}
 }
 
 
@@ -401,7 +511,13 @@ function updateHUD(){
     for(const t of e.changedTouches){ if (t.identifier===joyId){ joyId=null; resetJoy(); } }
   });
   document.getElementById('wrap').addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
-  window.addEventListener('keydown', e=>{ if(e.key==='p'||e.key==='P'){ state.paused=!state.paused; } state.input.keys[e.key]=true; });
+window.addEventListener('keydown', e=>{
+  if(e.key==='p'||e.key==='P'){ 
+    state.paused=!state.paused; 
+    syncPauseButton(); // ← これを追加
+  }
+  state.input.keys[e.key]=true;
+});
   window.addEventListener('keyup', e=>{ state.input.keys[e.key]=false; });
   function keyboardVec(){
     const k = state.input.keys; let x=0,y=0;
@@ -419,22 +535,33 @@ function updateHUD(){
     else if(side===1){ x=rnd(W/DPR,W/DPR+margin); y=rnd(0,H/DPR); }
     else if(side===2){ x=rnd(0,W/DPR); y=rnd(-margin,0); }
     else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
-    const shooterProb = state.timeSec>120 ? 0.05 : 0.0;
+    const shooterProb = state.timeSec > 150 ? 0.04 : 0.0; // 120→150s、0.05→0.04
     if(Math.random()<shooterProb){
       const hp = (20 + state.difficulty*2.5) * 1.5;
+      const hcHp = state.mode.hardcore ? hp * 1.5 : hp;   // ← 追加
       const cx = (W/DPR)/2, cy = (H/DPR)/2;
       const dx = cx - x, dy = cy - y; const m = Math.hypot(dx,dy)||1;
       const dir = {x:dx/m, y:dy/m};
-      state.enemies.push({ x,y, size:20, hp, maxHp:hp, type:'shooter', phase:'move', dir, moved:0, moveDist: rnd(240, 360), moveSpeed: 120, cd: rnd(0.2,0.8), hitFlash:0 });
+      state.enemies.push({
+  x,y, size:20, hp:hcHp, maxHp:hcHp, type:'shooter',
+  phase:'move', dir, moved:0, moveDist: rnd(240, 360),
+  moveSpeed: 120, cd: rnd(0.2,0.8), hitFlash:0,
+  kbx:0, kby:0
+});
 }else{
   let hp = 16 + state.difficulty*2.2;
+  hp = state.mode.hardcore ? hp * 1.5 : hp;    
   if(state.timeSec>=360){ hp *= 2.0; }
 
   // ★ 速度成長の上限を導入
   const dForSpeed = Math.min(state.difficulty, 16); // ← 上限（例：16）
   const sp = 30 + dForSpeed*4.5;                   // ← 伸び率も少し抑える
 
-  state.enemies.push({ x,y, size:18, hp, maxHp:hp, speed:sp, type:'minion', hitFlash:0 });
+  state.enemies.push({
+  x,y, size:18, hp, maxHp:hp, speed:sp, type:'minion',
+  hitFlash:0, kbx:0, kby:0
+});
+
 }
   }
 
@@ -449,7 +576,12 @@ function spawnMidBoss(){
 
   let hp = 420 + state.difficulty*120;
   if(state.timeSec>=360){ hp *= 1.6; }
-  const e = { x,y, size:48, hp, maxHp:hp, speed:80, type:'mid', cd:0, hitFlash:0 };
+  hp = state.mode.hardcore ? hp * 1.5 : hp;           // ← 追加
+  const e = {
+  x,y, size:48, hp, maxHp:hp, speed:80, type:'mid', cd:0, hitFlash:0,
+  kbx:0, kby:0
+};
+
   state.enemies.push(e);
   flashBossMsg();
 }
@@ -463,10 +595,15 @@ function spawnBigBoss(){
   else if(side===2){ x=rnd(0,W/DPR); y=rnd(-margin,0); }
   else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
 
-  let hp = 900 + state.difficulty*240;
+  let hp = 1000 + state.difficulty*240;
   if(state.timeSec>=360){ hp *= 1.6; }
-  const e = { x,y, size:70, hp, maxHp:hp, speed:95, type:'big', cd:0, phase:'shoot',
-              tele:0, dashCD:6, dashDir:{x:0,y:0}, hitFlash:0 };
+  hp = state.mode.hardcore ? hp * 1.5 : hp;           // ← 追加
+  const e = {
+  x,y, size:70, hp, maxHp:hp, speed:95, type:'big', cd:0, phase:'shoot',
+  tele:0, dashCD:6, dashDir:{x:0,y:0}, hitFlash:0,
+  kbx:0, kby:0
+};
+
   state.enemies.push(e);
   flashBossMsg();
 }
@@ -510,14 +647,16 @@ function addEffect(type, data){
   state.effects.push({ type, ...data });
 }
   // Items
-  function spawnItemRandom(){
-    const chance = 0.03;
-    if(Math.random()<chance){
-      const roll = Math.random();
-      const kind = roll < 0.45 ? 'magnet' : roll < 0.75 ? 'nuke' : 'heal';
-      state.items.push({ kind, x:rnd(30,W/DPR-30), y:rnd(30,H/DPR-30), r:12, t:0 });
-    }
+function spawnItemRandom(){
+  let chance = 0.03;
+  if (state.mods.doubleItem) chance *= 2;   // ← ここ追加
+  if (Math.random() < chance) {
+    const roll = Math.random();
+    const kind = roll < 0.45 ? 'magnet' : roll < 0.75 ? 'nuke' : 'heal';
+    state.items.push({ kind, x:rnd(30,W/DPR-30), y:rnd(30,H/DPR-30), r:12, t:0 });
   }
+}
+
   function applyItem(it){
     if(it.kind==='magnet'){
       let gained = 0; for(const g of state.gems){ gained += g.val*5; }
@@ -577,19 +716,22 @@ function addEffect(type, data){
   }
 
 function addXP(v){
-  v = Math.round(v * xpMulByTime()); // ★ 係数適用
+  // 時間倍率
+  v = Math.round(v * xpMulByTime());
+  // Hardcore補正（例：取得 -25%）
+  if (state.mode.hardcore) v = Math.round(v * 0.75);
+
   state.player.xp += v;
-  while(state.player.xp >= state.player.nextXp(state.player.level)){
+  while (state.player.xp >= state.player.nextXp(state.player.level)) {
     state.player.xp -= state.player.nextXp(state.player.level);
     state.player.level++;
-    if(state.player.level===3){
+    if (state.player.level === 3) {
       state.bossTimer = 60 + Math.random()*20;
       state.bigBossTimer = 140 + Math.random()*30;
     }
     offerUpgrades();
   }
 }
-
 
   // ==== 修正版 offerUpgrades ====
   function offerUpgrades(){
@@ -646,56 +788,111 @@ function showLevelUp(choices){
         if(this.lv>=3){ positions = [0, -off, off]; }
         else if(this.lv>=2){ positions = [-off, off]; }
         else { positions = [0]; }
-        for(const o of positions){
-          state.bullets.push({ type:'bullet', x:state.player.x + nx*o, y:state.player.y + ny*o,
-            vx:Math.cos(ang)*this.baseSpeed, vy:Math.sin(ang)*this.baseSpeed,
-            r:5*state.mods.sizeMul, dmg: dmg*state.mods.dmgMul, life:2 });
-        }
+        // 弾数を考慮して1発あたりの威力を調整
+const shotCount = positions.length;
+
+for(const o of positions){
+  state.bullets.push({
+    type:'bullet',
+    x: state.player.x + nx*o,
+    y: state.player.y + ny*o,
+    vx: Math.cos(ang) * this.baseSpeed,
+    vy: Math.sin(ang) * this.baseSpeed,
+    r: 5 * state.mods.sizeMul,
+    dmg: (dmg * state.mods.dmgMul) / Math.max(1, shotCount * 0.85), // ★ 調整
+    life: 2
+  });
+}
         this.cd = rate * state.mods.rateMul;
       }
     },
-    shotgun:{ short:'SG', name:'ショットガン', lv:0, awaken:false, cd:0, baseRate:1.2, baseDmg:10, baseSpeed:340,
-      update(dt){
-        if(this.lv<=0) return;
-        this.cd-=dt; if(this.cd>0) return;
-        const target = nearestEnemy(state.player.x,state.player.y); if(!target) return;
-        const count = 4 + (this.lv-1)*2;
-        const spread = 0.6 - 0.1*(this.lv-1);
-        for(let i=0;i<count;i++){
-          const ang = Math.atan2(target.y-state.player.y, target.x-state.player.x) + rnd(-spread,spread);
-          state.bullets.push({ type:'bullet', x:state.player.x, y:state.player.y,
-            vx:Math.cos(ang)*this.baseSpeed, vy:Math.sin(ang)*this.baseSpeed,
-            r:4*state.mods.sizeMul, dmg:(this.baseDmg + 2*(this.lv-1)) * state.mods.dmgMul, life:1.2 });
-        }
-        if(this.awaken){
-          const n = 24;
-          for(let k=0;k<n;k++){
-            const ang = (Math.PI*2*k)/n;
-            state.bullets.push({ type:'bullet', x:state.player.x, y:state.player.y,
-              vx:Math.cos(ang)*this.baseSpeed*0.9, vy:Math.sin(ang)*this.baseSpeed*0.9,
-              r:4*state.mods.sizeMul, dmg:this.baseDmg*state.mods.dmgMul, life:0.8 });
-          }
-        }
-        this.cd = Math.max(.45, this.baseRate * (1 - 0.15*(this.lv-1))) * (this.awaken? 0.8:1) * state.mods.rateMul;
+    shotgun:{
+  short:'SG', name:'ショットガン',
+  lv:0, awaken:false, cd:0,
+  baseRate:1.2, baseDmg:15, baseSpeed:340, // ★ 基礎ダメージUP（12→15）
+  update(dt){
+    if(this.lv<=0) return;
+    this.cd -= dt; if(this.cd>0) return;
+
+    const target = nearestEnemy(state.player.x, state.player.y);
+    if(!target) return;
+
+    const count = 4 + (this.lv-1)*2;                // 弾数は今のまま
+    const spread = 0.6 - 0.1*(this.lv-1);           // 拡散も今のまま
+    const dmg = (this.baseDmg + 3*(this.lv-1))      // ★ 伸び率を+3に強化（+2→+3）
+                 * state.mods.dmgMul;
+
+    for(let i=0;i<count;i++){
+      const ang = Math.atan2(target.y-state.player.y, target.x-state.player.x) + rnd(-spread,spread);
+      state.bullets.push({
+        type:'bullet',
+        x: state.player.x, y: state.player.y,
+        vx: Math.cos(ang)*this.baseSpeed,
+        vy: Math.sin(ang)*this.baseSpeed,
+        r: 4*state.mods.sizeMul,
+        dmg,
+        life: 1.0  // ★ 寿命を少し短縮（1.2→1.0）で「近距離専用感」
+      });
+    }
+
+    if(this.awaken){
+      const n = 24;
+      for(let k=0;k<n;k++){
+        const ang = (Math.PI*2*k)/n;
+        state.bullets.push({
+          type:'bullet',
+          x: state.player.x, y: state.player.y,
+          vx: Math.cos(ang)*this.baseSpeed*0.9,
+          vy: Math.sin(ang)*this.baseSpeed*0.9,
+          r: 4*state.mods.sizeMul,
+          dmg: this.baseDmg * 0.85 * state.mods.dmgMul, // ★ 覚醒時は1発少し弱め
+          life: 0.8
+        });
       }
-    },
-    homing:{ short:'HM', name:'ホーミング', lv:0, awaken:false, cd:0, baseRate:2.4, baseDmg:16,
-      update(dt){
-        if(this.lv<=0) return;
-        this.cd-=dt; if(this.cd>0) return;
-        const count = (2 + (this.lv-1)) * (this.awaken? 1.5:1);
-        for(let i=0;i<Math.ceil(count);i++){
-          const ang = Math.random()*Math.PI*2;
-          const power = this.baseDmg * (this.awaken? 1.4:1);
-          const life = this.awaken ? 6.0 : 8.0;
-          state.bullets.push({ type:'homing', x:state.player.x, y:state.player.y,
-            vx:Math.cos(ang)*170, vy:Math.sin(ang)*170,
-            r:6*state.mods.sizeMul, dmg:power*state.mods.dmgMul, life:life,
-            seek:400, turn:7.2, bigBoom:this.awaken });
-        }
-        this.cd = Math.max(1.2, this.baseRate * (1 - 0.2*(this.lv-1))) * (this.awaken? 0.85:1) * state.mods.rateMul;
-      }
-    },
+    }
+
+    this.cd = Math.max(.45, this.baseRate * (1 - 0.15*(this.lv-1)))
+              * (this.awaken? 0.8:1)
+              * state.mods.rateMul;
+  }
+},
+
+homing:{
+  short:'HM', name:'ホーミング',
+  lv:0, awaken:false, cd:0,
+  baseRate:2.4, baseDmg:16,
+  update(dt){
+    if(this.lv<=0) return;
+    this.cd -= dt; if(this.cd>0) return;
+
+    const count = (2 + (this.lv-1)) * (this.awaken? 1.5:1);
+    for(let i=0;i<Math.ceil(count);i++){
+      const ang = Math.random()*Math.PI*2;
+      const power = this.baseDmg * (this.awaken? 1.4:1);
+      const life = this.awaken ? 6.0 : 8.0;
+
+      state.bullets.push({
+        type:'homing',
+        x: state.player.x, y: state.player.y,
+        vx: Math.cos(ang)*170,
+        vy: Math.sin(ang)*170,
+        r: 6*state.mods.sizeMul,
+        dmg: power * state.mods.dmgMul,
+        life: life,
+        seek: 400,
+        turn: 7.2,
+        bigBoom: this.awaken,           // 爆発ON
+        boomR: this.awaken ? 120 : 60,  // ★ 爆発半径（通常60 → 覚醒110）
+        boomMul: this.awaken ? 1.0 : 0.7 // ★ 覚醒は等倍、通常はちょい減衰
+      });
+    }
+
+    this.cd = Math.max(1.2, this.baseRate * (1 - 0.2*(this.lv-1)))
+              * (this.awaken? 0.85:1)
+              * state.mods.rateMul;
+  }
+},
+
 lightning:{ short:'LT', name:'ライトニング', lv:0, awaken:false, cd:0, baseRate:2.2, baseDmg:30,
   update(dt){
     if(this.lv<=0) return;
@@ -714,36 +911,67 @@ lightning:{ short:'LT', name:'ライトニング', lv:0, awaken:false, cd:0, bas
   }
 },
 
-    rock:{ short:'RK', name:'ロック', lv:0, awaken:false, cd:0, baseRate:1.0,
-      update(dt){
-        if(this.lv<=0) return;
-        this.cd -= dt; if(this.cd>0) return;
-        const activeRocks = state.bullets.filter(b=>b.type==='rock').length;
-        if(activeRocks>0) return;
-        let dir = state.input.lastDir;
-        if(Math.hypot(dir.x,dir.y) < 0.1){
-          const t = nearestEnemy(state.player.x,state.player.y);
-          if(t){ const a = Math.atan2(t.y-state.player.y, t.x-state.player.x); dir = {x:Math.cos(a), y:Math.sin(a)}; } else { dir={x:1,y:0}; }
-        }
-        const sizeBase = (22 + (this.lv-1)*8) * state.mods.sizeMul; // ← 少し大きめに
-        const speed = 150;
-        const dmg = (18 + 6*(this.lv-1)) * state.mods.dmgMul;
-const addRock=(ang)=>{
-  const sz = sizeBase * (this.awaken ? 2.0 : 1.0); // ← 覚醒で2倍
-  state.bullets.push({ type:'rock', x:state.player.x, y:state.player.y,
-    vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed, r:sz, dmg, life:3.2, pierce:true, spin:0 });
-};
-        const base = Math.atan2(dir.y,dir.x);
-        if(this.awaken){
-          const spread = Math.PI * 2 / 3;
-          addRock(base); addRock(base + spread); addRock(base - spread);
-        }else{ addRock(base); }
-        this.cd = Math.max(0.9, this.baseRate * (1 - 0.10*(this.lv-1))) * (this.awaken? 1.25:1);
-      }
-    },
-    orbit:{ short:'OR', name:'オービット', lv:0, awaken:false, count:0, baseR:72, dmg:7, ang:0,
-      update(dt){ if(this.lv<=0) return; this.ang += dt*(this.awaken? 3.4:1.6); }
-    },
+rock:{
+  short:'RK', name:'ロック', lv:0, awaken:false, cd:0, baseRate:1.0,
+  update(dt){
+    if(this.lv<=0) return;
+    this.cd -= dt; if(this.cd>0) return;
+
+    const activeRocks = state.bullets.filter(b=>b.type==='rock').length;
+    if(activeRocks>0) return;
+
+    let dir = state.input.lastDir;
+    if(Math.hypot(dir.x,dir.y) < 0.1){
+      const t = nearestEnemy(state.player.x,state.player.y);
+      if(t){ const a = Math.atan2(t.y-state.player.y, t.x-state.player.x); dir = {x:Math.cos(a), y:Math.sin(a)}; }
+      else { dir={x:1,y:0}; }
+    }
+
+    const sizeBase = (24 + (this.lv-1)*9) * state.mods.sizeMul; // 少しだけ大きめ
+    const speed    = 170;                                      // 150→170
+    const baseDmg  = (28 + 10*(this.lv-1)) * state.mods.dmgMul; // 18+6*(lv-1) → 28+10*(lv-1)
+    const bossMul  = 1.25; // mid/big/final には25%増し
+
+    const addRock=(ang)=>{
+      const sz  = sizeBase * (this.awaken ? 2.0 : 1.0);
+      state.bullets.push({
+        type:'rock',
+        x:state.player.x, y:state.player.y,
+        vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed,
+        r:sz,
+        dmg:baseDmg,
+        life:3.4,                 // 3.2→3.4（少し長く転がる）
+        pierce:true,
+        bossMul                    // 当たり側で参照
+      });
+    };
+
+    const base = Math.atan2(dir.y,dir.x);
+    if(this.awaken){
+      const spread = Math.PI * 2 / 3;
+      addRock(base); addRock(base + spread); addRock(base - spread);
+    }else{
+      addRock(base);
+    }
+    this.cd = Math.max(0.9, this.baseRate * (1 - 0.10*(this.lv-1))) * (this.awaken? 1.25:1);
+  }
+},
+
+orbit:{
+  short:'OR', name:'オービット',
+  lv:0, awaken:false, count:0,
+  baseR:84,          // 72 → 84（序盤でも届きやすく）
+  dmg:9,             // 7 → 9（接触DPSの元）
+  ang:0,
+  // 追加パラメータ
+  hitRBase:14,       // 玉の当たり半径の基準（描画もこれに合わせる）
+  dpsBase:10,        // 接触DPSの基準（レベルで伸ばす）
+  kbBase:220,        // ノックバック基準（/秒）
+  update(dt){
+    if(this.lv<=0) return;
+    this.ang += dt*(this.awaken? 3.6:1.8); // 回転ちょい速め
+  }
+},
     
 ghost:{
   short:'GH', name:'ゴースト', lv:0, awaken:false,
@@ -761,7 +989,7 @@ ghost:{
     // 発射トリガ
     if(this.cd <= 0){
       // ▶ 発射間隔：短縮＆レベルでさらに短縮、覚醒で少し早め
-      this.cd = Math.max(0.42, this.baseRate * (1 - 0.18*(this.lv-1))) * (this.awaken ? 0.85 : 1.0) * state.mods.rateMul;
+      this.cd = Math.max(0.42, this.baseRate * (1 - 0.18*(this.lv-1))) * (this.awaken ? 0.85 : 1.0) * state.mods.rateMul * 0.8;
 
       for(let k=0;k<count;k++){
         const a = this.ang + k * (Math.PI*2/count);
@@ -773,7 +1001,7 @@ ghost:{
         if(!t) continue;
 
         const base = Math.atan2(t.y-gy, t.x-gx);
-        const spread = 0.18; // 3発の拡散
+        const spread = 0.14; // 3発の拡散
         for(const off of [0, -spread, spread]){
           state.bullets.push({
             type:'ghost',             // ← 区別できるよう変更
@@ -781,14 +1009,54 @@ ghost:{
             vx:Math.cos(base+off)*360,
             vy:Math.sin(base+off)*360,
             r:6*state.mods.sizeMul,   // ← 少し大きめ
-            dmg:(10 + 4*(this.lv-1)) * (this.awaken ? 1.2 : 1.0) * state.mods.dmgMul,
-            life:1.5,
+            dmg:(4 + 4*(this.lv-1)) * (this.awaken ? 1.1 : 1.0) * state.mods.dmgMul,
+            life:3.0,
             pierce:3                  // ← 貫通回数3
           });
         }
       }
     }
     // ゴーストの見た目は draw() 側でOK（半透明の霊体など）
+  }
+},
+
+poison:{
+  short:'毒', name:'ポイズンフィールド',
+  lv:0, awaken:false, cd:0,
+  baseCd:2.0, baseR:80, dps:14, lifeSec:5,
+  update(dt){
+    if(this.lv<=0) return;
+
+    this.cd -= dt;
+    if(this.cd<=0){
+      // 通常：足元に1枚、5秒維持
+      state.effects.push({
+        type:'poisonField',
+        x: state.player.x, y: state.player.y,
+        r: (this.baseR + (this.lv-1)*24) * state.mods.sizeMul,
+        dps: this.dps * state.mods.dmgMul,
+        life: this.lifeSec, life0: this.lifeSec
+      });
+
+      // 覚醒：自分の周囲に3枚を同時展開（固定）
+      if(this.awaken){
+        const baseR = (this.baseR + (this.lv-1)*24) * 0.9 * state.mods.sizeMul;
+        const orbit = 110;
+        for(let k=0;k<3;k++){
+          const a = state.t + k * (Math.PI*2/3);
+          state.effects.push({
+            type:'poisonField',
+            x: state.player.x + Math.cos(a)*orbit,
+            y: state.player.y + Math.sin(a)*orbit,
+            r: baseR,
+            dps: this.dps * 0.9 * state.mods.dmgMul,
+            life: this.lifeSec, life0: this.lifeSec
+          });
+        }
+      }
+
+      this.cd = this.baseCd * state.mods.rateMul;
+    }
   }
 },
 
@@ -800,13 +1068,36 @@ ghost:{
         if(this.lv<=0) return;
         this.cd -= dt; if(this.cd<=0){
           const R = (this.baseR + 18*(this.lv-1)) * state.mods.sizeMul;
-          const dmg = (this.baseDmg + 6*(this.lv-1)) * state.mods.dmgMul;
+          const dmg = (this.baseDmg + 8*(this.lv-1)) * state.mods.dmgMul;
           addEffect('nova',{x:state.player.x,y:state.player.y,r:R, life:.25});
           for(const e of state.enemies){
             const d = Math.hypot(e.x-state.player.x, e.y-state.player.y);
-            if(d<R) { e.hp -= dmg; e.hitFlash = Math.max(e.hitFlash, 0.12); }
+            if(d<R) { e.hp -= dmg; e.hitFlash = Math.max(e.hitFlash, 0.12);
+
+                // === ノヴァ・ノックバック付与（ここが今回の追加） ===
+    const dx = e.x - state.player.x, dy = e.y - state.player.y;
+    const m = Math.hypot(dx, dy) || 1;
+    const nx = dx / m, ny = dy / m;
+    const baseKB =
+      (e.type === 'final') ? 260 :
+      (e.type === 'big')   ? 340 :
+      (e.type === 'mid')   ? 420 :
+                             520 ;
+    const edge = Math.min(1, Math.max(0, d / R));
+    const falloff = 0.55 + 0.45*(1 - edge);
+    const kb = baseKB * falloff;
+    e.kbx = (e.kbx || 0) + nx * kb;
+    e.kby = (e.kby || 0) + ny * kb;
+    
+      // === ここにスタン効果を追加 ===
+  const base = 0.12; // 秒
+  const resist = (e.type==='final') ? 0.35 : 
+                 (e.type==='big'||e.type==='mid') ? 0.6 : 
+                 1.0;
+  e.stun = Math.max(e.stun||0, base * resist);
+             }
           }
-          this.cd = Math.max(1.6, this.baseRate * (1 - 0.18*(this.lv-1))) * 0.4;
+          this.cd = Math.max(1.3, this.baseRate * (1 - 0.22*(this.lv-1))) * 0.32;
                   }
         if(this.awaken){
           this.auraT += dt;
@@ -823,13 +1114,58 @@ ghost:{
   state.weapons = weapons;
 
 
-  function strikeLightning(e, mult){
-    e.hp -= weapons.lightning.baseDmg*mult*state.mods.dmgMul;
-    e.hitFlash = Math.max(e.hitFlash, 0.18);
-    const path = buildZigPath(e.x, e.y, 8);
-    addEffect('zig',{path, life:.22, thick: 6 * state.mods.sizeMul});
-    addEffect('flash',{life:.04}); spark(e.x,e.y,18);
+function strikeLightning(hit, mult){
+  // ダメージ
+  hit.hp -= weapons.lightning.baseDmg * mult * state.mods.dmgMul;
+  hit.hitFlash = Math.max(hit.hitFlash, 0.18);
+
+  // 見た目（ヒット地点へ落雷）
+  const path = buildZigPath(hit.x, hit.y, 8);
+  addEffect('zig', { path, life:.22, thick: 6 * state.mods.sizeMul });
+  addEffect('flash', { life:.02 }); 
+  spark(hit.x, hit.y, 18);
+
+  // ▼ チェーン
+  const CHAIN_MAX     = 3;      // 追加ヒット数（元ヒット＋最大3回）
+  const CHAIN_RADIUS  = 180;    // 次の跳躍の探索半径
+  const FALLOFF       = 0.7;    // ダメージ減衰（70%ずつ）
+  const SEEN = new Set();       // 同一敵に多重ヒットしない
+
+  SEEN.add(hit);
+
+  let cur = hit;
+  let power = mult * FALLOFF;
+
+  for (let i = 0; i < CHAIN_MAX; i++){
+    // 候補を探す
+    let next = null;
+    let bestD2 = CHAIN_RADIUS * CHAIN_RADIUS;
+    for (const e of state.enemies){
+      if (e === cur || SEEN.has(e) || e.hp <= 0) continue;
+      const d2 = dist2(cur.x, cur.y, e.x, e.y);
+      if (d2 < bestD2){ bestD2 = d2; next = e; }
+    }
+    if (!next) break;
+
+    // ダメージ（減衰）
+    next.hp -= weapons.lightning.baseDmg * power * state.mods.dmgMul;
+    next.hitFlash = Math.max(next.hitFlash, 0.16);
+
+    // 見た目（カーブした稲妻）
+    const path2 = [
+      [cur.x, cur.y],
+      [ (cur.x + next.x)/2 + rnd(-22,22), (cur.y + next.y)/2 + rnd(-22,22) ],
+      [next.x, next.y]
+    ];
+    addEffect('zig', { path: path2, life:.18, thick: 5 * state.mods.sizeMul });
+
+    SEEN.add(next);
+    cur = next;
+    power *= FALLOFF;  // さらに減衰
+    if (power < 0.25) break; // さすがに弱くなりすぎたら終了
   }
+}
+
 
   function nearestEnemy(x,y){
     let best=null, bestD=1e9;
@@ -927,7 +1263,7 @@ const U = {
   regen: {
     id: 'regen',
     name: '自然回復',
-    desc: '毎秒 最大HPの0.8% 回復（1回きり）',
+    desc: '毎秒 最大HPの0.8% 回復',
     can: () => !state.upgradesTaken.has('regen'),
     apply: () => {
       state.upgradesTaken.add('regen');
@@ -983,6 +1319,14 @@ const U = {
       }
     }
   },
+  
+  doubleItem: {
+  id:'doubleItem',
+  name:'アイテム出現率２倍',
+  desc:'回復/核/磁石/宝箱などの出現率が２倍になる',
+  can: ()=> !state.mods.doubleItem,
+  apply: ()=> { state.mods.doubleItem = true; }
+},
 };
 
 // ===== ここから選択肢リスト =====
@@ -994,8 +1338,9 @@ const ALL_UPGRADES = [
   U.weaponAdd('rock'),      U.weaponUp('rock'),      U.weaponAwaken('rock'),
   U.weaponAdd('homing'),    U.weaponUp('homing'),    U.weaponAwaken('homing'),
   U.weaponAdd('ghost'),     U.weaponUp('ghost'),     U.weaponAwaken('ghost'),
+  U.weaponAdd('poison'), U.weaponUp('poison'), U.weaponAwaken('poison'),
   U.weaponUp('blaster'),    U.weaponAwaken('blaster'), // 既存武器の強化/覚醒
-  U.speed, U.maxhp, U.regen, U.pickup, U.atkRate, U.atkDmg, U.sizeUp
+  U.speed, U.maxhp, U.regen, U.pickup, U.atkRate, U.atkDmg, U.sizeUp ,U.doubleItem
 ];
 
 // ==== メインループ ====
@@ -1080,16 +1425,32 @@ function loop(now){
       state.player.kbx = state.player.kby = 0;
     }
 
-    // spawn enemies
-    state.spawnTimer -= dt;
-    let spawnRate = Math.max(0.34, 1.0 - state.timeSec*0.0085);
-    if(state.timeSec>=360){ spawnRate *= 0.75; }
-    if(state.spawnTimer<=0){
-      const batch = 1 + Math.min(3, Math.floor(state.timeSec/150));
-      for(let n=0;n<batch;n++){ spawnEnemy(); }
-      state.spawnTimer = spawnRate;
-      spawnItemRandom();
-    }
+// spawn enemies
+state.spawnTimer -= dt;
+
+// 序盤はゆっくり、だんだん短く。下限は0.38s
+let spawnRate = Math.max(0.38, 1.20 - state.timeSec * 0.004);
+// 後半(6分〜)は少し加速
+if (state.timeSec >= 360) spawnRate = Math.max(0.34, spawnRate * 0.85);
+
+if (state.spawnTimer <= 0) {
+  // いまの雑魚数と上限
+  const cap   = currentTrashCap(state.timeSec);
+  const alive = countTrash();
+  const room  = Math.max(0, cap - alive);
+
+  if (room > 0) {
+    // バッチ数は緩やかに増える（最大3体/サイクル）
+    // 0〜220s: 1体, 220〜440s: 2体, 440s〜: 3体
+    const batchBase = 1 + Math.min(2, Math.floor(state.timeSec / 220));
+    const batch = Math.min(batchBase, room); // 上限までに抑える
+
+    for (let n = 0; n < batch; n++) spawnEnemy();
+  }
+
+  state.spawnTimer = spawnRate;
+  spawnItemRandom();
+}
 
     // weapons update
     for(const k in state.weapons){ state.weapons[k].update(dt); }
@@ -1124,42 +1485,86 @@ for(let i=state.bullets.length-1;i>=0;i--){
   }
 
   // 敵との当たり判定
-  for(let j=state.enemies.length-1;j>=0;j--){
-    const e=state.enemies[j];
-    const r = (e.type==='big'? e.size*0.55 : e.type==='mid'? e.size*0.6 : e.type==='minion'? e.size*0.7 : e.size*0.7);
-    
-    if(dist2(b.x,b.y,e.x,e.y) < (b.r + r)**2){
-      // --- ヒット ---
-      e.hp -= b.dmg; 
-      e.hitFlash = Math.max(e.hitFlash, 0.12);
-      spark(b.x,b.y, b.type==='rock'? 3 : 4);
+ // 敵との当たり判定
+let rockHitThisFrame = false; // rock は複数体に当てるためのフラグ
+for(let j=state.enemies.length-1;j>=0;j--){
+  const e=state.enemies[j];
+  const r = (e.type==='big'? e.size*0.55
+           : e.type==='mid'? e.size*0.6
+           : e.type==='minion'? e.size*0.7
+           : e.size*0.7);
 
-      if(b.type==='homing'){
-        // ホーミングは爆発して消える
-        const R = (b.bigBoom ? 90 : 46) * state.mods.sizeMul;
-        addEffect('nova',{x:b.x,y:b.y,r:R, life:.26});
-        for(const e2 of state.enemies){
-          const d = Math.hypot(e2.x-b.x, e2.y-b.y);
-          if(d<R) { e2.hp -= b.dmg * (b.bigBoom? 1.2:1); e2.hitFlash = Math.max(e2.hitFlash, 0.12); }
-        }
-        state.bullets.splice(i,1);
-
-      }else if(b.type==='bullet'){
-        // 通常弾は1体に当たったら消える
-        state.bullets.splice(i,1);
-
-      }else if(b.type==='ghost'){
-        // 👻 ゴースト弾：貫通3回まで
-        if(b.pierce > 0){
-          b.pierce--;   // 残りカウントを減らして弾は残す
-        }else{
-          state.bullets.splice(i,1); // もう残弾数ないので消える
-        }
-
+  if(dist2(b.x,b.y,e.x,e.y) < (b.r + r)**2){
+    // --- ヒット ---
+    let dmg = b.dmg;
+    if(b.type === 'rock'){
+      // ボス種へボーナス
+      if (e.type==='mid' || e.type==='big' || e.type==='final') {
+        dmg *= (b.bossMul || 1.0);
       }
-      // rock は既存通り消さない（残る）
+    }
+    e.hp -= dmg;
+    e.hitFlash = Math.max(e.hitFlash, 0.12);
+    spark(b.x,b.y, b.type==='rock'? 5 : 4);
 
-      break; // 1体に当たったらこの弾の処理は終わり
+    if(b.type==='homing'){
+      const R = (b.bigBoom ? 90 : 46) * state.mods.sizeMul;
+      addEffect('nova',{x:b.x,y:b.y,r:R, life:.26});
+      for(const e2 of state.enemies){
+        const d = Math.hypot(e2.x-b.x, e2.y-b.y);
+        if(d<R) { e2.hp -= b.dmg * (b.bigBoom? 1.2:1); e2.hitFlash = Math.max(e2.hitFlash, 0.12); }
+      }
+      state.bullets.splice(i,1);
+      break; // homing は消滅
+
+    } else if(b.type==='bullet'){
+      state.bullets.splice(i,1);
+      break; // 通常弾は1体で終了
+
+    } else if(b.type==='ghost'){
+      if(b.pierce > 0){ b.pierce--; } else { state.bullets.splice(i,1); }
+      break; // ゴーストも1体で次フレームへ
+
+    } else if(b.type==='rock'){
+      // rock は消さずに次の敵判定も続行（同フレームで複数体に当たる）
+      rockHitThisFrame = true;
+      // break しない
+    }
+  }
+}
+// rock でも画面外/寿命では通常通り消える（既存処理のまま）
+
+// === Orbit contact damage & knockback ===
+if (state.weapons.orbit.lv > 0){
+  const w = state.weapons.orbit;
+  const count = w.awaken ? 8 : (2 + w.lv);
+  const ring = w.baseR + 14*(w.lv-1) + (w.awaken? 12:0);
+  const orbR = (w.hitRBase + (w.awaken? 4:0)) * state.mods.sizeMul; // 当たり半径
+  const dps = (w.dpsBase + 4*(w.lv-1)) * (w.awaken? 1.4:1.0) * state.mods.dmgMul;
+
+  for (const e of state.enemies){
+    for (let k=0; k<count; k++){
+      const ang = w.ang + k*(Math.PI*2/count);
+      const ox = state.player.x + Math.cos(ang)*ring;
+      const oy = state.player.y + Math.sin(ang)*ring;
+      const dx = e.x - ox, dy = e.y - oy;
+      if (dx*dx + dy*dy <= orbR*orbR){
+        // 接触DPS
+        e.hp -= dps * dt;
+        e.hitFlash = Math.max(e.hitFlash, 0.05);
+
+        // ほんのりノックバック（プレイヤー中心から外へ）
+        const ex = e.x - state.player.x, ey = e.y - state.player.y;
+        const m = Math.hypot(ex, ey) || 1;
+        const nx = ex / m, ny = ey / m;
+        const mult = (e.type==='final') ? 0.35
+                    : (e.type==='big') ? 0.5
+                    : (e.type==='mid') ? 0.7
+                    : 1.0;
+        const kb = (w.kbBase || 220) * mult;
+        e.kbx = (e.kbx||0) + nx * kb * dt;  // /秒イメージで加算
+        e.kby = (e.kby||0) + ny * kb * dt;
+      }
     }
   }
 }
@@ -1183,7 +1588,7 @@ for(let i=state.bullets.length-1;i>=0;i--){
           const rad = state.weapons.orbit.baseR + 14*(state.weapons.orbit.lv-1) + (state.weapons.orbit.awaken? 12:0);
           const ox = state.player.x + Math.cos(ang)*rad;
           const oy = state.player.y + Math.sin(ang)*rad;
-          if(dist2(b.x,b.y,ox,oy) < (b.r + (state.weapons.orbit.awaken ? 15 : 10)*state.mods.sizeMul)**2){
+          if(dist2(b.x,b.y,ox,oy) < (b.r + (state.weapons.orbit.awaken ? 18 : 14)*state.mods.sizeMul)**2){
             state.enemyBullets.splice(i,1);
             spark(b.x,b.y,8);
             canceled = true;
@@ -1204,36 +1609,100 @@ for(let i=state.bullets.length-1;i>=0;i--){
     for(let i=state.enemies.length-1;i>=0;i--){
       const e=state.enemies[i];
       e.hitFlash = Math.max(0, e.hitFlash - dt*2.5);
+      
+      // 敵ノックバック速度の適用（減衰つき）
+if (e.kbx || e.kby){
+  e.x += e.kbx * dt;
+  e.y += e.kby * dt;
+  const drag = 6.0;
+  e.kbx += -e.kbx * drag * dt;
+  e.kby += -e.kby * drag * dt;
+  if (Math.abs(e.kbx) + Math.abs(e.kby) < 1){
+    e.kbx = 0; e.kby = 0;
+  }
+}
+      
+// --- スタン減衰 ---
+e.stun = Math.max(0, (e.stun||0) - dt);
+
+// --- ポイズン減速の取得（その敵が“今”毒に触れているなら遅くする）---
+let slowMul = 1;                 // 1=等速（遅くするほど小さく）
+const SLOW_IN_FIELD = 0.55;      // フィールド中の移動倍率（=45%低下）
+for(const ef of state.effects){
+  if(ef.type !== 'poisonField') continue;
+  const dx = e.x - ef.x, dy = e.y - ef.y;
+  if(dx*dx + dy*dy <= ef.r*ef.r){
+    slowMul = Math.min(slowMul, SLOW_IN_FIELD);
+    break; // 1枚見つけたら十分（2枚でも“移動”は最大減速のみにする）
+  }
+}
+
+// --- まとめて移動倍率（スタン中はさらに重く）---
+const stunMul = (e.stun > 0) ? 0.18 : 1.0;  // スタン中は18%の速度だけ動ける＝実質ほぼ停止
+const moveMul = slowMul * stunMul;
+
+// --- ノックバック（kbx/kby）を位置に反映＆減衰 ---
+e.kbx = e.kbx || 0;
+e.kby = e.kby || 0;
+if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
+  e.x += e.kbx * dt;
+  e.y += e.kby * dt;
+  const drag = 7.5;              // ノックバックの減衰
+  e.kbx += -e.kbx * drag * dt;
+  e.kby += -e.kby * drag * dt;
+} else {
+  e.kbx = e.kby = 0;
+}
+
+      
+
+  // ★ここにハードコア回復を追加
+  if (state.mode.hardcore) {
+    if (e.hitFlash < 0.03 && e.hp > 0 && e.hp < e.maxHp) {
+      const ramp = Math.min(0.006, state.timeSec * 0.00020);
+      const base = 0.0035;
+      const byType = (e.type === 'minion') ? 0.6
+                   : (e.type === 'shooter') ? 0.8
+                   : (e.type === 'mid')    ? 1.0
+                   : (e.type === 'big')    ? 1.25
+                   : (e.type === 'final')  ? 1.45
+                   : 1.0;
+
+      const rate = (base + ramp) * byType;
+      e.hp = Math.min(e.maxHp, e.hp + e.maxHp * rate * dt);
+    }
+  }
+
 
       if(e.type==='minion'){
         const a = Math.atan2(state.player.y-e.y, state.player.x-e.x);
-        e.x += Math.cos(a)*e.speed*dt; 
-        e.y += Math.sin(a)*e.speed*dt;
+        e.x += Math.cos(a)*e.speed*dt*moveMul; 
+e.y += Math.sin(a)*e.speed*dt*moveMul;
 
       }else if(e.type==='shooter'){
         if(e.phase==='move'){
-          const step = e.moveSpeed * dt;
-          e.x += e.dir.x * step; e.y += e.dir.y * step; e.moved += step;
+          const step = e.moveSpeed * dt * moveMul;
+e.x += e.dir.x * step; e.y += e.dir.y * step; e.moved += step;
           if(e.moved >= e.moveDist){ e.phase='stop'; }
         }else{
           e.cd -= dt;
           if(e.cd<=0){
             const angS = Math.atan2(state.player.y-e.y, state.player.x-e.x);
-            state.enemyBullets.push({ x:e.x, y:e.y, vx:Math.cos(angS)*200, vy:Math.sin(angS)*200, r:4, dmg:10, life:60 });
+            state.enemyBullets.push({ x:e.x, y:e.y, vx:Math.cos(angS)*200, vy:Math.sin(angS)*200, r:4, dmg: (state.mode.hardcore ? 10*1.5 : 10), life:60 });
             e.cd = rnd(1.9, 2.1);
           }
         }
 
       }else if(e.type==='mid'){
         const a = Math.atan2(state.player.y-e.y, state.player.x-e.x);
-        e.x += Math.cos(a)*e.speed*dt*0.9; 
-        e.y += Math.sin(a)*e.speed*dt*0.9;
+        e.x += Math.cos(a)*e.speed*dt*0.9*moveMul; 
+e.y += Math.sin(a)*e.speed*dt*0.9*moveMul;
         e.cd -= dt;
         if(e.cd<=0){
           const n = 8;
           for(let k=0;k<n;k++){
             const ang = (Math.PI*2*k)/n;
-            state.enemyBullets.push({ x:e.x,y:e.y, vx:Math.cos(ang)*120, vy:Math.sin(ang)*120, r:4, dmg:12, life:3 });
+            state.enemyBullets.push({ x:e.x,y:e.y, vx:Math.cos(ang)*120, vy:Math.sin(ang)*120, r:4, dmg:(state.mode.hardcore ? 12*1.5 : 12), life:3 });
           }
           e.cd = 7.0;
         }
@@ -1245,8 +1714,8 @@ for(let i=state.bullets.length-1;i>=0;i--){
 
         if(e.type === 'final'){
         // --- 共通：ゆるく追尾 ---
-e.x += Math.cos(ang) * e.speed * dt * 0.45;
-e.y += Math.sin(ang) * e.speed * dt * 0.45;
+e.x += Math.cos(ang) * e.speed * dt * 0.45 * moveMul;
+e.y += Math.sin(ang) * e.speed * dt * 0.45 * moveMul;
 
 // 初期化保護
 if(e.shootCD === undefined) e.shootCD = 0;
@@ -1261,7 +1730,7 @@ if(e.phase === 'shoot'){
       state.enemyBullets.push({
         x:e.x, y:e.y,
         vx:Math.cos(a2)*180, vy:Math.sin(a2)*180, // 少し速く
-        r:4, dmg:18, life:3.8
+        r:4, dmg: (state.mode.hardcore ? 18*1.5 : 18), life:3.8
       });
     }
     e.shootCD = 1.8; // ★ 2.6→1.8
@@ -1332,7 +1801,10 @@ if(e.phase === 'shoot'){
 
   // 当たり判定
   const d = pointLineDist(state.player.x, state.player.y, e.x, e.y, x2, y2);
-  if(d < 26 && state.player.iTime <= 0){ playerHit(38, e.x, e.y); }
+ const DPS = state.mode.hardcore ? 50 : 30;
+if(d < 26 && state.player.iTime <= 0){
+  playerHit(DPS * dt, e.x, e.y);
+}
 
   if(e.laserDur <= 0){ e.cd = 1.8; e.phase = 'shoot'; }
 
@@ -1340,45 +1812,84 @@ if(e.phase === 'shoot'){
   // 予備動作：小さめの白パルス（短め）
   e.chargeT -= dt;
   const r0 = 60, r1 = 120;
-  addEffect('whitePulse', { x:e.x, y:e.y, r0, r1, life:.06 }); // ← 新しい軽い予備表示
+  addEffect('whitePulse', { x:e.x, y:e.y, r0, r1, life:.06 });
   if(e.chargeT <= 0){
-    // 本番：拡大波の初期化
+    // 本番：時間差で2本の“波リング”
     e.phase = 'boom';
-    e.boomDur = 1.8;             // ★ 拡大にかける時間（避け猶予）
-    e.boomT   = e.boomDur;
-    e.boomR0  = 80;               // ★ 開始半径（小さく始める）
-    e.boomR1  = Math.hypot(W/DPR, H/DPR) * 0.9; // 画面対角の9割まで
-    e.didBoomDamage = false;
+    // パラメータ（避けやすく、でも2連）
+    const dur  = 5.0;                         // ★ 拡大をゆっくり
+    const r0   = 80;
+    const r1   = Math.hypot(W/DPR, H/DPR) * 0.95;
+
+    // セグメントリング（大きな隙間）
+    const segCount   = 10;                    // リング分割数（多すぎない）
+    const gapFrac    = 0.50;                  // ★ 1セグメント中の“隙間率”をガッツリ
+    const thickness  = 22;                    // 見た目＆当たり幅
+    const wavAmp     = 10;                    // 波の振幅（px）
+    const wavFreq    = 6;                     // 角度方向の波の山個数
+    const rot0       = Math.random()*Math.PI*2;
+
+    // 2本用意（timeOffsetで時間差）
+    e.boomWaves = [
+      { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0,     w:thickness, wavAmp, wavFreq, timeOffset:0.0 },
+      { t: dur, dur, r0, r1, did:false, segCount, gapFrac, rot:rot0+0.7, w:thickness, wavAmp, wavFreq, timeOffset:0.55 }
+    ];
+    e.boomClock = 0; // 描画側の波アニメ位相用
   }
 
 }else if(e.phase === 'boom'){
-  // 進行度（0→1）と現在半径
-  e.boomT -= dt;
-  const life0 = e.boomDur;
-  const p = 1 - Math.max(0, e.boomT) / life0; // 0..1
-  const R = e.boomR0 + (e.boomR1 - e.boomR0) * p;
+  e.boomClock += dt;
 
-  addEffect('boomWave', { x:e.x, y:e.y, r:R, w:28, life:.06, life0:.06 });
+  // 2本のリングを更新
+  let allDone = true;
+  for(const wv of e.boomWaves){
+    // 時間差スタート
+    if (wv.timeOffset > 0){
+      wv.timeOffset -= dt;
+      allDone = false;
+      continue;
+    }
 
-  const d = Math.hypot(state.player.x - e.x, state.player.y - e.y);
-  if (!e.didBoomDamage && d <= R) {
-    if (state.player.iTime <= 0) playerHit(40, e.x, e.y);
-    e.didBoomDamage = true;
+    wv.t -= dt;
+    const p = 1 - Math.max(0, wv.t) / wv.dur; // 0..1
+    const R = wv.r0 + (wv.r1 - wv.r0) * p;
+
+    // 見た目：セグメント＋波形のリング
+    addEffect('boomWaveSeg', {
+      x:e.x, y:e.y, r:R, w:wv.w, life:.06,
+      segCount: wv.segCount, gapFrac: wv.gapFrac,
+      rot: wv.rot, wavAmp: wv.wavAmp, wavFreq: wv.wavFreq,
+      phase: e.boomClock        // 波アニメ位相
+    });
+
+    // 当たり判定：厚み付きリング＆隙間免除
+    const dx = state.player.x - e.x, dy = state.player.y - e.y;
+    const d  = Math.hypot(dx, dy);
+    const th = wv.w * 0.5;              // 当たりの半厚
+    if (!wv.did && d >= R - th && d <= R + th){
+      // 角度から“隙間”かどうかを判定
+      const ang = Math.atan2(dy, dx);   // -PI..PI
+      if (!angleInGap(ang, wv)){        // 隙間でなければヒット
+        if (state.player.iTime <= 0) playerHit(60, e.x, e.y);
+        wv.did = true;
+      }
+    }
+
+    if (wv.t > 0) allDone = false;
   }
 
-  if(e.boomT <= 0){
+  if(allDone){
     e.cd = 2.4;
     e.phase = 'shoot';
   }
-  }
-  }
-  
-else {
+ }
+ } 
+ else {
   // === 既存 big の処理 ===
   
             if(e.phase==='shoot'){
-            e.x += Math.cos(ang)*e.speed*dt*0.6;
-            e.y += Math.sin(ang)*e.speed*dt*0.6;
+            e.x += Math.cos(ang)*e.speed*dt*0.6*moveMul;
+e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
             if(e.cd<=0)
             {
               for(let k=-3;k<=3;k++){
@@ -1386,7 +1897,7 @@ else {
                 state.enemyBullets.push({
                   x:e.x, y:e.y,
                   vx:Math.cos(a2)*160, vy:Math.sin(a2)*160,
-                  r:4, dmg:14, life:3.5
+                  r:4, dmg:(state.mode.hardcore ? 14*1.5 : 14), life:3.5
                 });
               }
               e.cd = 3.0;
@@ -1433,6 +1944,8 @@ else {
           : (e.type === 'mid')
             ? 24
             : 18;
+            
+            if (state.mode.hardcore) touchDmg *= 1.5;   // ← 追加
 
       if (dist2(e.x, e.y, state.player.x, state.player.y) < (state.player.r + e.size * 0.6) ** 2) {
         if (state.player.iTime <= 0) {
@@ -1444,7 +1957,22 @@ else {
           }
         }
       }
-
+// --- 毒フィールド（最大2枚までスタック） ---
+let top1 = 0, top2 = 0;  // 上位2つのDPS
+for (const ef of state.effects) {
+  if (ef.type !== 'poisonField') continue;
+  const dx = e.x - ef.x, dy = e.y - ef.y;
+  if (dx*dx + dy*dy <= ef.r * ef.r) {
+    const dps = ef.dps || 20;
+    if (dps > top1) { top2 = top1; top1 = dps; }
+    else if (dps > top2) { top2 = dps; }
+  }
+}
+const poisonDps = top1 + top2; // ← 最大2枚ぶん
+if (poisonDps > 0) {
+  e.hp -= poisonDps * dt;
+  e.hitFlash = Math.max(e.hitFlash, 0.06);
+}
       // 敵死亡処理
       if (e.hp <= 0) {
 if (e.type === 'final') {
@@ -1539,16 +2067,18 @@ if (e.type === 'final') {
 function draw(){
   try {
   ctx.clearRect(0,0,cv.width,cv.height);
-  // grid
-  ctx.save(); ctx.globalAlpha=.08; ctx.strokeStyle='#888';
-  const step=40;
-  for(let x=((state.player.x*0.4)%step); x< cv.width/DPR; x+=step){
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,cv.height/DPR); ctx.stroke();
-  }
-  for(let y=((state.player.y*0.4)%step); y< cv.height/DPR; y+=step){
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(cv.width/DPR,y); ctx.stroke();
-  }
-  ctx.restore();
+// grid（置き換え）
+ctx.save();
+ctx.globalAlpha = .06;           // 少し薄め
+ctx.strokeStyle = '#666';        // ほんのり暗く
+const step = 44;                 // 目も疲れにくい少し広め
+for (let x = 0; x < cv.width / DPR; x += step) {
+  ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cv.height / DPR); ctx.stroke();
+}
+for (let y = 0; y < cv.height / DPR; y += step) {
+  ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cv.width / DPR, y); ctx.stroke();
+}
+ctx.restore();
 
   // items
   for(const it of state.items){
@@ -1738,18 +2268,21 @@ if(state.weapons.ghost.lv>0){
   ctx.restore();
 }
 
-  // orbitals
-  if(state.weapons.orbit.lv>0){
-    ctx.fillStyle='#9b59b6';
-    const count = state.weapons.orbit.awaken ? 8 : (2 + state.weapons.orbit.lv);
-    for(let k=0;k<count;k++){
-      const ang = state.weapons.orbit.ang + k*(Math.PI*2/count);
-      const rad = state.weapons.orbit.baseR + 14*(state.weapons.orbit.lv-1) + (state.weapons.orbit.awaken? 12:0);
-      const ox = state.player.x + Math.cos(ang)*rad;
-      const oy = state.player.y + Math.sin(ang)*rad;
-      ctx.beginPath(); ctx.arc(ox,oy,(state.weapons.orbit.awaken ? 15 : 10)*state.mods.sizeMul,0,Math.PI*2); ctx.fill();
-    }
+// orbitals
+if(state.weapons.orbit.lv>0){
+  const w = state.weapons.orbit;
+  const count = w.awaken ? 8 : (2 + w.lv);
+  const rad = w.baseR + 14*(w.lv-1) + (w.awaken? 12:0);
+  const orbR = (w.hitRBase + (w.awaken? 4:0)) * state.mods.sizeMul;
+
+  ctx.fillStyle = '#9b59b6';
+  for(let k=0;k<count;k++){
+    const ang = w.ang + k*(Math.PI*2/count);
+    const ox = state.player.x + Math.cos(ang)*rad;
+    const oy = state.player.y + Math.sin(ang)*rad;
+    ctx.beginPath(); ctx.arc(ox, oy, orbR, 0, Math.PI*2); ctx.fill();
   }
+}
 
   // enemies with HP bars
   for(const e of state.enemies){
@@ -1814,6 +2347,21 @@ for (const ef of state.effects) {
     ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+
+} else if (ef.type === 'poisonField') {
+  ctx.save();
+  const a = Math.max(0, ef.life / (ef.life0 || 5));
+  // 外グロー
+  ctx.globalAlpha = 0.22 * a;
+  ctx.fillStyle = '#7eff7e';
+  ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.fill();
+  // 内ゆらぎ
+  ctx.globalAlpha = 0.10 * a;
+  ctx.beginPath();
+  ctx.arc(ef.x, ef.y, ef.r*0.7 + Math.sin(state.t*2.2)*6, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
 
   } else if (ef.type === 'aim') {
     // 汎用の赤系予告線（ボスdashなど）
@@ -1972,12 +2520,12 @@ for (const ef of state.effects) {
   ctx.restore();
 
 } else if (ef.type === 'boomWave') {
-  // 本番：半透明の“拡大リング”
+  // 半透明の“拡大リング” + 破線で隙間を作る
   ctx.save();
-  const a = Math.max(0, ef.life / (ef.life0 || 0.06)); // フレームのフェード
+  const a = Math.max(0, ef.life / (ef.life0 || 0.06));
   const w = ef.w || 24;
 
-  // 外側ハロ（薄いオレンジ系）
+  // 外側ハロ（そのまま）
   ctx.globalAlpha = 0.28 * a;
   ctx.strokeStyle = '#ffd27a';
   ctx.lineWidth = w * 1.6;
@@ -1985,18 +2533,115 @@ for (const ef of state.effects) {
   ctx.shadowColor = '#ffe4ad';
   ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.stroke();
 
-  // 主リング
+  // ★ 主リングを破線にする（ダッシュ間隔は好みで調整）
   ctx.shadowBlur = 0;
   ctx.globalAlpha = 0.9 * a;
   ctx.strokeStyle = '#fff4c1';
   ctx.lineWidth = w;
+
+  // 破線（例：描18px / 空16px）。回転させて“波”っぽく
+  const dash = 18, gap = 16;
+  ctx.setLineDash([dash, gap]);
+  ctx.lineDashOffset = -state.t * 120; // 時間で流れる
+
   ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.stroke();
 
-  // 内ハイライト
+  // 内ハイライト（こちらは細破線にしてもOK／無地でもOK）
   ctx.globalAlpha = 0.85 * a;
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = Math.max(4, w - 6);
+  ctx.setLineDash([12, 14]);
+  ctx.lineDashOffset = -state.t * 160;
+
   ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.stroke();
+
+  // 後始末
+  ctx.setLineDash([]);
+  ctx.restore();
+
+} else if (ef.type === 'boomWaveSeg') {
+  // 角度方向に大きな“穴”を開けた、波打つリング
+  ctx.save();
+  const life0 = 0.06;
+  const alpha = Math.max(0, ef.life / life0);
+  const segCount = Math.max(3, ef.segCount|0);
+  const gapFrac  = Math.max(0, Math.min(0.9, ef.gapFrac||0.35));
+  const rot      = ef.rot || 0;
+  const w        = ef.w || 20;
+  const amp      = ef.wavAmp || 8;
+  const freq     = Math.max(1, ef.wavFreq|0);
+  const phase    = (ef.phase || 0) * 2.2; // 波アニメ
+
+  const cx = ef.x, cy = ef.y;
+  const segSpan = (Math.PI*2)/segCount;
+  const gapSpan = segSpan*gapFrac;
+  const drawSpan= segSpan-gapSpan;
+
+  // 外ハロ
+  ctx.globalAlpha = 0.26 * alpha;
+  ctx.strokeStyle = '#ffd27a';
+  ctx.lineWidth   = w * 1.5;
+  ctx.shadowBlur  = 22;
+  ctx.shadowColor = '#ffe4ad';
+
+  for(let s=0;s<segCount;s++){
+    const a0 = rot + s*segSpan + gapSpan;      // 穴の後ろから描き始め
+    const a1 = a0 + drawSpan;
+
+    // ポリラインで“波”半径を与える
+    ctx.beginPath();
+    const steps = 28;                           // なめらかさ
+    for(let i=0;i<=steps;i++){
+      const t = i/steps;
+      const a = a0 + (a1-a0)*t;
+      const r = ef.r + Math.sin(a*freq + phase)*amp; // 半径を波打たせる
+      const x = cx + Math.cos(a)*r;
+      const y = cy + Math.sin(a)*r;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  // 主リング
+  ctx.shadowBlur  = 0;
+  ctx.globalAlpha = 0.9 * alpha;
+  ctx.strokeStyle = '#fff4c1';
+  ctx.lineWidth   = w;
+  for(let s=0;s<segCount;s++){
+    const a0 = rot + s*segSpan + gapSpan;
+    const a1 = a0 + drawSpan;
+    ctx.beginPath();
+    const steps = 28;
+    for(let i=0;i<=steps;i++){
+      const t = i/steps;
+      const a = a0 + (a1-a0)*t;
+      const r = ef.r + Math.sin(a*freq + phase)*amp;
+      const x = cx + Math.cos(a)*r;
+      const y = cy + Math.sin(a)*r;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  // 内ハイライト
+  ctx.globalAlpha = 0.85 * alpha;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth   = Math.max(4, w-6);
+  for(let s=0;s<segCount;s++){
+    const a0 = rot + s*segSpan + gapSpan;
+    const a1 = a0 + drawSpan;
+    ctx.beginPath();
+    const steps = 28;
+    for(let i=0;i<=steps;i++){
+      const t = i/steps;
+      const a = a0 + (a1-a0)*t;
+      const r = ef.r + Math.sin(a*freq + phase)*amp;
+      const x = cx + Math.cos(a)*r;
+      const y = cy + Math.sin(a)*r;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
 
   ctx.restore();
 
@@ -2036,39 +2681,39 @@ for (const ef of state.effects) {
     ctx.restore();
 
   } else if (ef.type === 'zig') {
-    // 稲妻（ライトニング）
-    const pts = ef.path;
-    if (!pts || pts.length < 2) {
-      continue; // 安全ガード
-    }
-    ctx.save();
-    const a = Math.max(0, ef.life / 0.22);
-    ctx.globalAlpha = 0.85 * a;
+  // 稲妻（ライトニング）— 青黒系でやや落ち着いた発光
+  const pts = ef.path;
+  if (!pts || pts.length < 2) { continue; }
 
-    // 外側の太い稲妻
-    ctx.strokeStyle = '#aee9ff';
-    ctx.lineWidth = ef.thick;
-    ctx.lineJoin = 'round';
-    ctx.shadowBlur = 14;
-    ctx.shadowColor = '#9adfff';
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-    ctx.stroke();
+  ctx.save();
+  const a = Math.max(0, ef.life / 0.22);
 
-    // 内側ハイライト
-    ctx.shadowBlur = 0;
-    ctx.lineWidth = Math.max(2, ef.thick - 2);
-    ctx.globalAlpha = 0.9 * a;
-    ctx.strokeStyle = '#e7fbff';
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-    ctx.stroke();
+  // 少し抑えめの全体アルファ
+  ctx.globalAlpha = 0.78 * a;
 
-    ctx.restore();
-   }
-  } // ← for(const ef of state.effects) の閉じカッコ
+  // 外側（本体）：くすんだ青、弱めのグロー
+  ctx.strokeStyle = '#6a93c2';   // 青黒寄り
+  ctx.lineWidth   = ef.thick;
+  ctx.lineJoin    = 'round';
+  ctx.shadowBlur  = 10;          // 14 → 10（まぶしさ軽減）
+  ctx.shadowColor = '#3c5b86';   // 暗い青の光
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+
+  // 内側ハイライト：白ではなく淡い青で目に優しく
+  ctx.shadowBlur  = 0;
+  ctx.lineWidth   = Math.max(2, ef.thick - 2);
+  ctx.globalAlpha = 0.72 * a;    // 0.9 → 0.72
+  ctx.strokeStyle = '#b7cbea';   // 淡い青
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.stroke();
+
+  ctx.restore();
+}   }
   } catch (err) {
     showErrorBanner(err.stack || err.message || String(err));
     throw err; // loop 側でも拾えるように
@@ -2077,6 +2722,45 @@ for (const ef of state.effects) {
 
 
 // ===== ここから下はヘルパ =====
+
+// === 雑魚（minion/shooter）だけを数える現在数 ===
+function countTrash() {
+  let n = 0;
+  for (const e of state.enemies) {
+    if (e.type === 'minion' || e.type === 'shooter') n++;
+  }
+  return n;
+}
+
+// === 時間に応じた同時出現の上限（序盤は低い） ===
+function currentTrashCap(tSec) {
+  // 0–60s: 10体, 60–120s: 14, 120–180s: 18, 180–240s: 24
+  // 240–360s: 30, 360s以降: 徐々に48まで
+  if (tSec < 60)   return 10;
+  if (tSec < 120)  return 18;
+  if (tSec < 180)  return 25;
+  if (tSec < 240)  return 40;
+  if (tSec < 360)  return 60;
+  // 6分以降は少しずつ上限↑（最大150）
+  return Math.min(150, 30 + Math.floor((tSec - 360) / 20));
+}
+
+function normAngle(a){
+  // 0..2PI に正規化
+  const PI2 = Math.PI*2;
+  return ((a % PI2) + PI2) % PI2;
+}
+
+// リングのセグメント“隙間”内に角度が入っているか？
+function angleInGap(angle, wv){
+  // segCount で 0..2PI を等分し、各セグメントの先頭側 gapFrac を“穴”とみなす
+  const A = normAngle(angle - (wv.rot||0));
+  const segSpan = (Math.PI*2) / wv.segCount;
+  const idx = Math.floor(A / segSpan);
+  const local = A - idx*segSpan;          // 0..segSpan
+  const gapSpan = segSpan * wv.gapFrac;   // ★ 隙間の角度幅
+  return local < gapSpan;                  // 先頭側に“穴”
+}
 
 
 function pointLineDist(px, py, x1, y1, x2, y2) {
@@ -2112,13 +2796,29 @@ function triggerFinalExplosion(x, y) {
 
 
 function showGameClear(){
-  const el = document.getElementById('gameclear'); // ← ここを gameclear に
+  const el = document.getElementById('gameclear');
+  const hardcoreBtn = document.getElementById('hardcoreBtn');
   if (el){
+    // クリアで解放
+    state.mode.unlockedHardcore = true;
+
     el.style.display = 'flex';
     state.paused = true;
+
+    // ハードコアボタンを表示
+    if (hardcoreBtn){
+      hardcoreBtn.style.display = 'inline-block';
+      hardcoreBtn.onclick = () => {
+        state.mode.hardcore = true;  // 次の周回をハードコアに
+        el.style.display = 'none';
+        resetGame();
+        syncPauseButton();
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.4, text: 'HARDCORE START' });
+      };
+    }
   }else{
     state.paused = true;
-    alert('GAME CLEAR'); // フォールバック
+    alert('GAME CLEAR');
   }
 }
 
@@ -2147,21 +2847,23 @@ function spawnFinalBoss(){
   else { x=rnd(0,W/DPR); y=rnd(H/DPR,H/DPR+margin); }
 
   const base = 2600 + state.difficulty*300;
-  const hp = base * 10;
-  const e = {
-    x,y, size:84*2, hp, maxHp:hp, speed:70, type:'final',
-    phase:'shoot', cd:0, tele:0, dashCD:5.5, dashDir:{x:0,y:0},
-    patternCD:4.5, blastCharge:0, blastR:220, laserAng:0,
-    laserAimT:0, laserDur:0, hitFlash:0
-  };
+  const hp0 = base * 10;
+  const hp  = state.mode.hardcore ? hp0 * 1.5 : hp0;
+const e = {
+  x,y, size:84*2, hp, maxHp:hp, speed:70, type:'final',
+  phase:'shoot', cd:0, tele:0, dashCD:5.5, dashDir:{x:0,y:0},
+  patternCD:4.5, blastCharge:0, blastR:220, laserAng:0,
+  laserAimT:0, laserDur:0, hitFlash:0,
+  kbx:0, kby:0
+};
   state.enemies.push(e);
   flashBossMsg();
 }
 
 
-
   requestAnimationFrame(loop);
 })();
+
 </script>
 
 
