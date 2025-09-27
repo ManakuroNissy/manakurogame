@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
-<title>VSV-like+ Boss/Items (v4_35)</title>
+<title>10min's Survivor</title>
 <style>
   html,body { margin:0; height:100%; background:#0e0e0f; color:#eee; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif; }
 #wrap {
@@ -212,7 +212,8 @@ body[data-hc] .hc-badges{ display: flex; }
 
 <div id="wrap">
   <div id="start" style="display:flex;">
-    <h1>10分生き延びろ！</h1>
+  <h1>10min's Survivor</h1><br>
+    <h2>10分生き延びろ！</h2>
     <p>レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
     <button id="startBtn" class="btn">スタート</button>
   </div>
@@ -600,20 +601,29 @@ clearEl.style.display = 'none';
   
 async function tryFullscreenAndLandscape(){
   try{
+    // タッチ端末判定
+    const isTouch =
+      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+      ('ontouchstart' in window) ||
+      (navigator.maxTouchPoints > 0);
+
+    // PCや file: ではフルスクリーンを行わない（ESCガイド抑止）
+    if (!isTouch || location.protocol === 'file:') return;
+
     // フルスクリーン（可能な端末）
     const el = document.documentElement;
     if (el.requestFullscreen) await el.requestFullscreen();
 
-    // 画面回転ロック（Fullscreen後は成功率が上がる）
+    // 画面回転ロック（Fullscreen後は成功率UP）
     if (screen.orientation && screen.orientation.lock) {
       try { await screen.orientation.lock('landscape'); } catch(e){}
     }
   } catch (e) {
-    // ここは“補助関数”なので、失敗してもログだけ出して抜ける
     console.error('LOOP_CRASH', e);
     if (e && e.stack) console.error('STACKTRACE ↓↓↓\n' + e.stack);
   }
-} // ← ← ← 重要：この } が欠けていた
+}
+
 
 startBtn.onclick = async () => {
 
@@ -1420,7 +1430,7 @@ const addRock=(ang)=>{
 orbit:{
   short:'OR', name:'オービット',
   lv:0, awaken:false, count:0,
-  baseR:84,          // 72 → 84（序盤でも届きやすく）
+  baseR:72,          // 72 → 84（序盤でも届きやすく）
   dmg:9,             // 7 → 9（接触DPSの元）
   ang:0,
   // 追加パラメータ
@@ -2123,7 +2133,7 @@ for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
   // Orbit が弾を相殺
   let canceled = false;
   if (state.weapons.orbit.lv > 0) {
-    const count = state.weapons.orbit.awaken ? 8 : (2 + state.weapons.orbit.lv);
+    const count = state.weapons.orbit.awaken ? 8 : (3 + state.weapons.orbit.lv);
     for (let k = 0; k < count && !canceled; k++) {
       const ang = state.weapons.orbit.ang + k * (Math.PI * 2 / count);
       const rad = state.weapons.orbit.baseR + 14 * (state.weapons.orbit.lv - 1) + (state.weapons.orbit.awaken ? 12 : 0);
