@@ -20,6 +20,7 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+
 @supports not (height: 100dvh) {
   #wrap { height:100svh; }
 }
@@ -45,7 +46,25 @@ canvas {
   .bar { flex:1; height:.6rem; background:#1a1a1a; border:1px solid #333; border-radius:.4rem; overflow:hidden; }
   .bar > i { display:block; height:100%; width:0%; background:linear-gradient(90deg,#2ecc71,#27ae60); }
   .xp > i { background:linear-gradient(90deg,#3498db,#2980b9); }
-  #levelup, #chest { position:absolute; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:10;}
+  #levelup, #chest { position:absolute; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:12;}
+/* === Game Over / Clear overlay (centered & stacked) === */
+#gameover, #gameclear{
+  position: fixed;
+  inset: 0;
+  display: none;             /* JSで flex に切替 */
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;    /* ← 縦に並べる（改行と同義） */
+  gap: 14px;                 /* 行間 */
+  text-align: center;        /* 中央寄せ */
+  z-index: 13040;
+  background: rgba(0,0,0,.65);
+  pointer-events: auto;
+}
+#gameover > *, #gameclear > *{
+  pointer-events: auto;
+}
+
   #cardRow, #chestRow { display:grid; grid-template-columns:1fr; gap:1rem; width:min(900px,92vw); }
   @media (min-width:720px){ #cardRow, #chestRow{ grid-template-columns:repeat(3,1fr);} }
   @media (min-width:1000px){ #chestRow{ grid-template-columns:repeat(5,1fr);} }
@@ -53,22 +72,45 @@ canvas {
   .card h3 { margin:.2rem 0 .4rem; font-size:1.08rem; color:#fff; }
   .card p { margin:0; color:#e5e5e5; line-height:1.38; font-size:.94rem; }
   .card:hover, .card.sel { outline:2px solid #4aa3ff; }
-  .chestHUD { position:absolute; top:2.8rem; left:50%; transform:translateX(-50%); z-index:11; display:none; gap:.5rem; align-items:center; }
-  .chestHUD .badge { pointer-events:auto; }
-  #hint { position:absolute; right:.5rem; bottom:.5rem; font-size:.8rem; opacity:.7; }
-  #joy { position:absolute; left:1rem; bottom:1rem; width:140px; height:140px; border-radius:50%; background:rgba(255,255,255,.04); border:1px solid #333;}
-  #joy i { position:absolute; left:50%; top:50%; translate:-50% -50%; width:60px; height:60px; border-radius:50%; background:rgba(255,255,255,.08); border:1px solid #444; }
-  #bossmsg { position:absolute; top:40px; left:50%; transform:translateX(-50%); background:#2a1741; border:1px solid #5b2a8a; padding:.3rem .6rem; border-radius:.4rem; display:none; color:#fff; }
-  #gather { position:absolute; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.5); z-index:9; }
-  #gather .box { background:#151515; border:1px solid #333; border-radius:.8rem; padding:1rem 1.2rem; text-align:center; }
-  #gather h3 { margin:.2rem 0 .4rem; }
-  /* Start & GameOver overlays */
-  #start, #gameover, #gameclear {
-  position:absolute; inset:0;
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  background:rgba(0,0,0,.7); z-index:20;
+.chestHUD {
+  position: fixed;                 /* 固定配置にして重なり順を安定させる */
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 13000;                  /* 半透明オーバーレイ(#chest)より前に */
+  display: none;
+  gap: .75rem;
+  align-items: center;
+  pointer-events: none;            /* 親は透過（カードクリックを妨げない） */
 }
+
+.chestHUD .badge,
+.chestHUD .pickMode {
+  pointer-events: auto;            /* 必要なら子はクリック可 */
+}
+
+.chestHUD .pickMode{
+  font-weight: 800;
+  letter-spacing: .04em;
+  font-size: clamp(20px, 3.6vw, 40px);
+  line-height: 1.1;
+  padding: .35rem .9rem;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(18,27,37,.92), rgba(6,11,18,.92));
+  color: #E6FF7A;
+  text-shadow: 0 1px 0 #000, 0 0 12px rgba(230,255,122,.35);
+  outline: 2px solid rgba(230,255,122,.35);
+  box-shadow: 0 8px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08);
+  backdrop-filter: blur(6px);
+}
+
+/* 選択済みカードの視覚強調（任意: ついでに見やすく） */
+#chest .card.selected {
+  outline: 4px solid #ffd400;
+  box-shadow: 0 0 0 3px rgba(0,0,0,.5), 0 8px 20px rgba(0,0,0,.35);
+  transform: translateY(-2px);
+}
+
   #start h1 { font-size: clamp(28px, 6vw, 64px); margin:0 0 .5rem; color:#fff; letter-spacing:.02em; }
   #start p { font-size: clamp(14px, 3vw, 22px); margin:0 0 1rem; opacity:.9;}
   .btn { background:#1f6feb; color:#fff; border:none; padding:.7rem 1.1rem; border-radius:.6rem; font-weight:700; cursor:pointer; box-shadow:0 6px 20px rgba(31,111,235,.35); }
@@ -112,30 +154,29 @@ canvas {
   gap: .35rem;
 }
 
-/* ハードコアのラベル＆条件バッジ（本体=bodyにフラグ） */
+/* === Hardcore badge（ボタンに追従：CSS変数で位置制御） === */
 body[data-hc]::after{
   content:"HARDCORE";
   position: fixed;
-  right: 12px;
-  top:   44px;        /* ← 浮遊タイマーの少し下 */
+  right: var(--hc-right);
+  top:   var(--hc-top);
   background:#8b5cf6; color:#fff; font-weight:700;
   padding:.2rem .5rem; border-radius:.4rem; opacity:.95;
-  z-index: 10000;
   box-shadow:0 4px 12px rgba(139,92,246,.35);
   font-size:.85rem;
+  z-index: 12005; /* ← ボタン(12010)より下。クリックを邪魔しない */
 }
 
-/* 条件バッジはその下に固定表示。HC時のみ表示 */
+/* 追加の条件バッジを出す場合は、その「さらに下」に固定 */
 .hc-badges{
   position: fixed;
-  right: 12px;
-  top:   76px;        /* ← ラベルのさらに下 */
-  z-index: 10000;
+  right: var(--hc-right);
+  top:   calc(var(--hc-top) + 32px); /* ラベルの下へ */
+  z-index: 12005;
   display: none;
   gap: .35rem;
 }
 body[data-hc] .hc-badges{ display: flex; }
-
 .hc-badges .badge{
   background:#231a3a;
   border:1px solid #5b2a8a;
@@ -145,12 +186,6 @@ body[data-hc] .hc-badges{ display: flex; }
   font-weight:700;
   letter-spacing:.01em;
   font-size:.8rem;
-}
-
-/* 縦画面では少し内側に＆Pauseと重ならないように調整 */
-@media (orientation: portrait) {
-  body[data-hc]::after { right: 64px; top: 44px; }
-  .hc-badges           { right: 64px; top: 76px; }
 }
 
 /* === Floating Joystick === */
@@ -212,6 +247,9 @@ padding-left:  var(--hud-lpad);
 }
 
 :root{
+  --hc-top:   calc(44px + 8px + env(safe-area-inset-top, 0px)); /* デフォルトは Pause の下あたり */
+  --hc-right: calc(12px + env(safe-area-inset-right, 0px));
+
   --hud-lpad: calc(env(safe-area-inset-left, 0px) + 12px);  /* 左余白（初期） */
   --hud-rpad: calc(env(safe-area-inset-right,0px) + 12px);  /* 右余白（初期） */
   --hud-tpad: 0px;                                          /* 上マージン（初期） */
@@ -377,14 +415,15 @@ padding-left:  var(--hud-lpad);
 </head>
 <body>
 
-
 <div id="wrap">
-  <div id="start" style="display:flex;">
-  <h1>10min's Survivor</h1><br>
-    <h2>10分生き延びろ！</h2>
-    <p>レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
-    <button id="startBtn" class="btn">スタート</button>
-  </div>
+<div id="start" style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:.5rem;">
+  <h1>10min's Survivor</h1>
+  <h2>10分間生き延びろ！</h2>
+  <p>レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
+  <button id="startBtn" class="btn">スタート</button>
+</div>
+</div>
+  
   <div id="gameover" style="display:none;">
     <h2>ゲームオーバー</h2>
     <div class="sub">もう一度挑戦しよう！</div>
@@ -420,12 +459,15 @@ padding-left:  var(--hud-lpad);
   </div>
   <!-- ⏸/▶ ボタン（.hud の外！） -->
   <button id="btnPause" class="hud-btn" aria-label="Pause">⏸</button>
-  <div id="bossmsg">!! BOSS APPROACHING !!</div>
   <div id="levelup"><div id="cardRow"></div></div>
   <div id="chest"><div id="chestRow"></div></div>
   <div class="chestHUD" id="chestHUD"><span class="badge">宝箱：<b id="pickLeft">2</b>つ選択</span></div>
-  <div id="gather"><div class="box"><h3>経験値を集めています</h3><div class="bar xp" style="width:260px;margin:auto;"><i id="gbar"></i></div></div></div>
+  </div>
 
+<!-- removed: duplicate boss approaching -->
+<!-- <div id="bossmsg">!! BOSS APPROACHING !!</div> -->
+<!-- removed: legacy gather HUD -->
+<!-- <div id="gather"><div class="box"><h3>経験値を集めています</h3><div class="bar xp" style="width:260px;margin:auto;"><i id="gbar"></i></div></div></div> -->
 
 
 </div>
@@ -706,6 +748,7 @@ function layoutTopRightUI(){
     sound.style.right = pause.style.right;
     sound.style.left  = 'auto';
   }
+  
 
   // タイマーが右上にある場合の避け幅（任意）：SOUNDの幅をCSS変数へ
   const sndWidth = Math.ceil(sound.getBoundingClientRect().width || 56) + 12;
@@ -728,8 +771,18 @@ function layoutTopRightUI(){
     document.documentElement.style.setProperty('--hud-tpad', '0px');
   }
   
-}
+    // === Hardcoreバッジ位置を Pause / SOUND に追従させる ===
+  // Pauseの「下」に配置（縦向き）／SOUNDの「さらに下」に配置（横向き）
+  let hcTopPx = topPx + BTN + GAP;       // Pauseの下
+  if (!isPortrait) hcTopPx += BTN + GAP; // 横向きはSoundの下まで下げる
 
+  document.documentElement.style.setProperty('--hc-top',
+    `calc(${hcTopPx}px + env(safe-area-inset-top, 0px))`);
+  document.documentElement.style.setProperty('--hc-right',
+    `calc(12px + env(safe-area-inset-right, 0px))`);
+
+  
+}
 
 
 
@@ -1168,61 +1221,6 @@ warnBoss(){
 })();
 
 
-// === Debug: SFX hotkeys (1..0 + L/W/U/B + M) ===============================
-(function(){
-  function play(name){ initAudioOnce(); if (window.sfx && sfx[name]) sfx[name](); }
-
-  document.addEventListener('keydown', (ev)=>{
-    const k = ev.key;
-
-    // SFX テスト
-    if      (k === '1') play('shot');
-    else if (k === '2') play('enemyDown');
-    else if (k === '3') play('pickup');
-    else if (k === '4') play('levelUp');
-    else if (k === '5') play('lightning');
-    else if (k === '6') play('rockRoll');
-    else if (k === '7') play('nova');
-    else if (k === '8') play('poison');
-    else if (k === '9') play('warnLevelUp');
-    else if (k === '0') play('bossExplode');
-
-    // レーザー／波状／警告
-    else if (k === 'l' || k === 'L'){ // レーザーOn/Off切替
-      initAudioOnce();
-      if (sfx.bossLaserIsOn && sfx.bossLaserIsOn()) sfx.bossLaserStop();
-      else if (sfx.bossLaserStart) sfx.bossLaserStart();
-    }
-    else if (k === 'w' || k === 'W'){ play('bossWave'); }
-    else if (k === 'u' || k === 'U'){ play('warnLevelUp'); }
-    else if (k === 'b' || k === 'B'){ play('warnBoss'); }
-
-    // 追加：ミュート切替（保存＆アイコン更新）
-    else if (k === 'm' || k === 'M'){
-      initAudioOnce();
-      const next = !window.AUDIO_MUTED;
-
-      if (typeof window.setAudioMuted === 'function'){
-        setAudioMuted(next);
-      }else{
-        // 万一 setAudioMuted が無い版へのフォールバック
-        window.AUDIO_MUTED = next;
-        const AC = window.AC;
-        if (window.bus && bus.master && AC){
-          const t = AC.currentTime;
-          bus.master.gain.setTargetAtTime(next ? 0.0001 : 1.0, t, 0.03);
-        }
-      }
-
-      if (typeof saveMute === 'function') saveMute(next);
-      if (typeof refreshSoundIcon === 'function') refreshSoundIcon();
-    }
-
-  }, {passive:true});
-})();
-
-
-
 // === 固定アスペクトのプレイ領域（4:3 / 3:4） ===
 const ASPECT_L = 4/3;
 const ASPECT_P = 3/4;
@@ -1495,6 +1493,8 @@ magnet:{ active:false, time:0, dur:1.0, speed:1800 },
   }
   
   };
+  
+  window.state = state; // ← これを必ず追加（参照を単一化）
 
   // UI
   const lvEl = document.getElementById('lv');
@@ -1505,7 +1505,13 @@ const timeFloatEl = document.getElementById('timeFloat');
   const levelupEl = document.getElementById('levelup');
   const cardRow = document.getElementById('cardRow');
   const wepEl = document.getElementById('wep');
-  const bossMsg = document.getElementById('bossmsg');
+// #bossmsg を削除していても落ちないようにダミーを当てる
+const bossMsg = document.getElementById('bossmsg') || {
+  style: {},
+  classList: { add(){}, remove(){}, toggle(){}, contains(){ return false; } },
+  remove(){},
+  set textContent(_){}, get textContent(){ return ''; }
+};
   const gatherEl = document.getElementById('gather');
   const gbar = document.getElementById('gbar');
   const chestEl = document.getElementById('chest');
@@ -1513,8 +1519,9 @@ const timeFloatEl = document.getElementById('timeFloat');
   const chestHUD = document.getElementById('chestHUD');
   const pickLeftEl = document.getElementById('pickLeft');
   const startEl = document.getElementById('start');
-  const startBtn = document.getElementById('startBtn');
-  
+if (!startBtn) {
+  console.warn('[init] start button not found');
+}  
 // Start押下でBGMを読み込み＆再生（1回だけ）
 (function(){
   const btn = document.getElementById('startBtn');
@@ -1679,22 +1686,15 @@ const scoreVal = document.getElementById('scoreVal');
 
 
 
-// === Debug hotkeys on Start screen (H / N / F) =========================
+// === Start画面: H/N/F デバッグキー（タイトル表示中のみ有効） ===
 (function(){
-  if (window._debugKeysInstalled) return;
-  window._debugKeysInstalled = true;
-
   function showStartToast(msg){
-    let t = document.getElementById('startToast');
     const host = document.getElementById('start') || document.body;
+    let t = host.querySelector?.('#startToast');
     if (!t){
       t = document.createElement('div');
       t.id = 'startToast';
-      t.style.cssText = 'position:fixed;left:50%;top:12%;transform:translateX(-50%);' +
-                        'padding:8px 12px;background:rgba(0,0,0,.8);color:#fff;' +
-                        'border:1px solid rgba(255,255,255,.12);border-radius:10px;' +
-                        'font-weight:700;letter-spacing:.02em;z-index:9999;pointer-events:none;' +
-                        'opacity:0;transition:opacity .12s ease';
+      t.style.cssText = 'position:absolute;left:50%;transform:translateX(-50%);top:14%;padding:.4em .8em;background:rgba(0,0,0,.6);color:#fff;border-radius:8px;font-weight:600;opacity:0;transition:opacity .12s ease;pointer-events:none;z-index:9999';
       host.appendChild(t);
     }
     t.textContent = msg;
@@ -1706,7 +1706,7 @@ const scoreVal = document.getElementById('scoreVal');
     // タイトル表示中のみ有効
     const s = document.getElementById('start');
     if (!s || s.style.display === 'none') return;
-    if (!window.state) return;
+    window.state = window.state || {};
     state.mode = state.mode || {};
 
     const k = ev.key;
@@ -1771,22 +1771,28 @@ async function tryFullscreenAndLandscape(){
 }
 
 
-startBtn.onclick = async () => {
+// === Start ボタン：単一の完成版ハンドラ（重複禁止） ===
+if (typeof window.__START_BOUND === 'undefined') window.__START_BOUND = false;
 
-ensureEndScoreNodes();
+if (!window.__START_BOUND) {
+  const startBtn = document.getElementById('startBtn') || document.querySelector('#start .btn');
+  if (startBtn) {
+    window.__START_BOUND = true;
+    startBtn.onclick = async () => {
+      ensureEndScoreNodes();
+      await tryFullscreenAndLandscape();
+      resetGame();                     // ゲーム初期化
+      state.started = true;
+      state.paused  = false;
+      document.getElementById('start').style.display = 'none';
+      state.last = performance.now();
+      syncPauseButton();
+    };
+  } else {
+    console.warn('[init] start button not found');
+  }
+}
 
-  await tryFullscreenAndLandscape();
-
-  // ここでは state.mode.hardcore はそのまま使用（Hキーで事前にONにできる）
-  // Fキー（ラスボス戦デバッグ）はフラグで処理する
-  resetGame(); // 中央配置もここで反映
-
-  state.started = true;
-  state.paused = false;
-document.getElementById('start').style.display = 'none';
-  state.last = performance.now();
-  syncPauseButton();
-};
 
 retryBtn.onclick = () => { ensureEndScoreNodes();resetGame(); syncPauseButton(); };
 
@@ -1869,30 +1875,27 @@ function ensureEndScoreNodes(){
   }
 }
 
-// 表示時に中身を更新
 function updateEndScore(kind){ // kind: 'over' | 'clear'
-  const n    = Math.max(0, Math.floor(state.score || 0));
   const kill = Math.max(0, Math.floor(state.killScore || 0));
   const boss = Math.max(0, Math.floor(state.bossBonus || 0));
+  const n    = kill + boss;  // Kill + Boss の合計
 
-  // どのパネルに出すかを決定
   const root = (kind === 'clear') ? clearEl : goEl;
   if (!root) return;
   const big = root.querySelector('.final-score');
   const sub = root.querySelector('.final-sub');
 
-  // ハイスコア保存（モード別）
   const key  = (state.mode && state.mode.hardcore) ? 'best_hc' : 'best';
   let prev = 0;
   try { prev = +(localStorage.getItem(key) || 0) || 0; } catch(_) {}
   const best = Math.max(n, prev);
   try { localStorage.setItem(key, String(best)); } catch(_) {}
 
-  // 表示更新
   if (big) big.textContent = `SCORE  ${n.toLocaleString()}` + (n > prev ? '  ★NEW!' : '');
-  const detail = `Kill: ${kill.toLocaleString()}  /  Boss: ${boss.toLocaleString()}   Best: ${best.toLocaleString()}`;
+  const detail = `Kill: ${kill.toLocaleString()}  /  BOSS TIME BONUS ${boss.toLocaleString()}   Best: ${best.toLocaleString()}`;
   if (sub) sub.textContent = detail;
 }
+
 
 
 
@@ -1900,6 +1903,9 @@ function updateEndScore(kind){ // kind: 'over' | 'clear'
     // Clear arrays
     state.enemies.length=0; state.bullets.length=0; state.enemyBullets.length=0;
     state.gems.length=0; state.sparks.length=0; state.effects.length=0; state.items.length=0;
+
+
+
 // Reset player
 state.player.x = WORLD.w * 0.5;
 state.player.y = WORLD.h * 0.5;
@@ -1932,6 +1938,8 @@ state.magnet.active = false; state.magnet.time = 0;
     state.score = 0;
 state.killScore = 0;
 state.bossBonus = 0;
+state.kills = 0;
+state.bossKills = 0;
 
 
 // === touch joystick state ===
@@ -1966,7 +1974,7 @@ if (state.player) state.player.visible = true;
     levelupEl.style.display='none';
     chestEl.style.display='none';
     chestHUD.style.display='none';
-    gatherEl.style.display='none';
+if (gatherEl) gatherEl.style.display = 'none';
     goEl.style.display='none';
     state.started = true;
     state.paused = false;
@@ -2001,7 +2009,7 @@ function updateHUD(){
   hpw.style.width = (100*state.player.hp/state.player.maxHp)+'%';
     // ★ HP数値の更新
   if (hpValEl) {
-    hpValEl.textContent = `${Math.max(0, Math.floor(state.player.hp))} / ${state.player.maxHp}`;
+hpValEl.textContent = `${Math.max(0, Math.floor(state.player.hp))} / ${Math.floor(state.player.maxHp)}`;
   }
   
   xpw.style.width = (100*state.player.xp/state.player.nextXp(state.player.level))+'%';
@@ -2098,7 +2106,16 @@ if (pcTimer){
   
   
   
-  document.getElementById('wrap').addEventListener('touchmove', e=>e.preventDefault(), {passive:false});
+// 安全に #wrap を取得してからリスナー登録
+{
+  const wrapEl = document.getElementById('wrap');
+  if (wrapEl) {
+    wrapEl.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  } else {
+    console.warn('[init] #wrap element not found (skipped touchmove preventDefault)');
+  }
+}
+
 window.addEventListener('keydown', e=>{
 if(e.key==='p'||e.key==='P'){ 
   const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
@@ -2108,6 +2125,33 @@ if(e.key==='p'||e.key==='P'){
     syncPauseButton();
   }
 }
+
+// L：ラスボスにデバッグダメージ（Shift+L で即死級）
+if (e.key === 'l' || e.key === 'L') {
+  const finals = (state?.enemies || []).filter(en => en?.type === 'final');
+  if (finals.length === 0) {
+    console.warn('[debug] final boss not found');
+  } else {
+    const dmg = e.shiftKey ? 99999 : 5000;
+    for (const b of finals) {
+      if (!Number.isFinite(b.hp)) continue;
+      const before = b.hp;
+      b.hp = Math.max(0, b.hp - dmg);
+      b.hitFlash = 0.2;
+
+      if (typeof addEffect === 'function') {
+        addEffect('text', { text: `-${Math.min(dmg, before).toFixed(0)}`, x: b.x, y: b.y - 22, life: 0.6, color: '#ff7a7a' });
+      }
+      // ★HPが0になったら確実に撃破処理へ
+      if (b.hp <= 0 && typeof safeKillEnemy === 'function') {
+        safeKillEnemy(b);
+      }
+    }
+  }
+}
+if (e.key === 'j' || e.key === 'J') state.player.hp = Math.max(0, state.player.hp - 25);
+if (e.key === 'k' || e.key === 'K') state.player.hp = Math.min(state.player.maxHp, state.player.hp + 25);
+
 
   state.input.keys[e.key]=true;
 });
@@ -2243,8 +2287,11 @@ function spawnBigBoss(){
   flashBossMsg();
 }
 
-  function flashBossMsg(){ bossMsg.style.display='block'; setTimeout(()=>bossMsg.style.display='none',1500); }
-
+// 旧：#bossmsg DOM を直接いじる実装 → 削除後にエラー化
+// 新：ボス告知は別UIで出すため、ここは無害化しておく
+function flashBossMsg(ms = 2000, text = '!! BOSS APPROACHING !!') {
+  // no-op（何もしない）
+}
   // XP & particles
   function dropGem(x,y,val=1){ state.gems.push({x,y,r:5+val, val}); }
   function spark(x,y,cnt=8){
@@ -2353,36 +2400,92 @@ if(it.kind==='magnet'){
       openChest(it.picks||2);
     }
   }
+function openChest(pickCount = 2) {
+  state.paused = true;
 
-  // ==== 修正版 openChest ====
-  function openChest(pickCount=2){
-    state.paused = true;
-    chestEl.style.display='flex'; chestHUD.style.display='flex';
-    let picksLeft = pickCount; pickLeftEl.textContent = picksLeft;
-    chestRow.innerHTML='';
-    const pool = ALL_UPGRADES.filter(u=>u.can());
-    const choices=[];
-    while(choices.length<5 && pool.length){
-      const i=(Math.random()*pool.length)|0; choices.push(pool.splice(i,1)[0]);
-    }
-    const chosen = new Set();
-    for(const u of choices){
-      const c = document.createElement('button'); c.className='card';
-      c.innerHTML = `<h3>${u.name}</h3><p>${u.desc||''}</p>`;
-      c.onclick = () => {
-        if(picksLeft<=0 || chosen.has(u)) return;
-        chosen.add(u); c.classList.add('sel'); u.apply();
-        picksLeft--; pickLeftEl.textContent = picksLeft;
-        if(picksLeft===0){
-          state.paused = false;
-          chestEl.style.display='none'; chestHUD.style.display='none';
-          chestRow.innerHTML='';
-        }
-      };
-      chestRow.appendChild(c);
-    }
-    const first = chestRow.querySelector('.card'); if(first) first.focus();
+  // オーバーレイ表示
+  chestEl.style.display = 'flex';
+  chestHUD.style.display = 'flex';
+
+  // 見出し「1つ選択／2つ選択」を動的に用意
+  let pickModeEl = document.getElementById('pickMode');
+  if (!pickModeEl) {
+    pickModeEl = document.createElement('div');
+    pickModeEl.id = 'pickMode';
+    pickModeEl.className = 'pickMode';
+    // HUDの先頭に配置（残りバッジの左側）
+    chestHUD.prepend(pickModeEl);
   }
+
+  // 枚数表示（既存要素があれば更新）
+  let picksLeft = pickCount;
+  const updatePickHUD = () => {
+    // 例：「2つ選択（残り1/2）」または「1つ選択」
+    const modeText = (pickCount === 1) ? '1つ選択' : `${pickCount}つ選択`;
+    pickModeEl.textContent = (pickCount > 1) ? `${modeText}（残り${picksLeft}/${pickCount}）` : modeText;
+    if (typeof pickLeftEl !== 'undefined' && pickLeftEl) {
+      pickLeftEl.textContent = picksLeft;
+    }
+  };
+
+  // カード行の初期化
+  chestRow.innerHTML = '';
+
+  // 候補を抽選（can() を満たすものから最大5つ）
+  const pool = ALL_UPGRADES.filter(u => u.can());
+  const choices = [];
+  while (choices.length < 5 && pool.length) {
+    const i = (Math.random() * pool.length) | 0;
+    choices.push(pool.splice(i, 1)[0]);
+  }
+
+  // 既定の“選択済み”状態は無し（クリックして初めて選択）
+  const chosen = new Set();
+
+  // カード生成
+  for (const u of choices) {
+    const c = document.createElement('button');
+    c.className = 'card';
+    c.innerHTML = `<h3>${u.name}</h3><p>${u.desc || ''}</p>`;
+
+    c.onclick = () => {
+      if (picksLeft <= 0 || chosen.has(u)) return;
+      try {
+        // 先に適用（失敗したら確定しない）
+        const ret = (typeof u.apply === 'function') ? u.apply() : true;
+        if (ret === false) return;
+
+        chosen.add(u);
+        c.classList.add('selected');
+        picksLeft--;
+        updatePickHUD();
+
+        if (picksLeft <= 0) {
+          // 少し演出を見せてから閉じる
+          setTimeout(() => {
+            chestEl.style.display = 'none';
+            chestHUD.style.display = 'none';
+            state.paused = false;
+          }, 150);
+        }
+      } catch (err) {
+        console.error('Chest upgrade apply failed:', u && u.name, err);
+      }
+    };
+
+    chestRow.appendChild(c);
+  }
+
+  // 初期表示を更新
+  updatePickHUD();
+  
+  // 選択数が2枚以上のときは、見出しを一瞬だけ軽く拡大（アクセシビリティ向上）
+if (pickCount > 1) {
+  pickModeEl.animate([{ transform: 'translateY(-2px) scale(1.0)' }, { transform: 'translateY(-2px) scale(1.06)' }, { transform: 'translateY(-2px) scale(1.0)' }], { duration: 380, easing: 'ease-out' });
+}
+
+}
+
 
 function addXP(v){
   // 時間倍率
@@ -2651,8 +2754,8 @@ rock:{
       else { dir={x:1,y:0}; }
     }
 
-    const sizeBase = (24 + (this.lv-1)*9) * state.mods.sizeMul; // 少しだけ大きめ
-    const speed    = 170;                                      // 150→170
+    const sizeBase = (24 + (this.lv-1)*7) * state.mods.sizeMul; // 少しだけ大きめ
+    const speed    = 190;                                      // 150→170
     const baseDmg  = (25 + 10*(this.lv-1)) * state.mods.dmgMul; // 18+6*(lv-1) → 28+10*(lv-1)
     const bossMul  = 1.1; // mid/big/final には25%増し
 
@@ -2874,12 +2977,18 @@ poison:{
       update(dt){
         if(this.lv<=0) return;
         this.cd -= dt; if(this.cd<=0){
-          const R = (this.baseR + 22*(this.lv-1)) * state.mods.sizeMul;
+          // 既存の距離式に倍率で上乗せ（覚醒でさらに広く）
+const lv = Math.max(1,this.lv);
+const baseR = (this.baseR + 22*(lv-1)) * state.mods.sizeMul;
+const R = baseR * (1.35 + 0.12*(lv-1)) * (this.awaken ? 1.20 : 1.00);
           const dmg = (this.baseDmg + 10*(this.lv-1)) * state.mods.dmgMul;
           addEffect('nova',{x:state.player.x,y:state.player.y,r:R, life:.25});
+          let hits = 0;
           for(const e of state.enemies){
             const d = Math.hypot(e.x-state.player.x, e.y-state.player.y);
             if(d<R) { e.hp -= dmg; e.hitFlash = Math.max(e.hitFlash, 0.12);
+            hits++;
+
 
                 // === ノヴァ・ノックバック付与（ここが今回の追加） ===
     const dx = e.x - state.player.x, dy = e.y - state.player.y;
@@ -2904,17 +3013,65 @@ poison:{
   e.stun = Math.max(e.stun||0, base * resist);
              }
           }
+          
+          
+// ★敵ループの“直後”に 3% 回復（1回のノヴァにつき一度）
+if (hits > 0){
+  const gained = healPlayerPercent(3); // 3% 固定
+  if (gained > 0){
+    addEffect('text', {
+      text: `+${gained.toFixed(gained < 1 ? 1 : 0)}`,
+      x: state.player.x,
+      y: state.player.y - 18,
+      life: 0.8,
+      color: '#7CFF7C'
+    });
+    addEffect('healSparkles', { x: state.player.x, y: state.player.y, r: 46, life: 0.7, life0: 0.7, count: 14 });
+  }
+}
+
+
+
+
+          
+          
+          
           this.cd = Math.max(1.3, this.baseRate * (1 - 0.22*(this.lv-1))) * 0.32;
                   }
         if(this.awaken){
-          this.auraT += dt;
-          const R2 = (110 + 20*(this.lv-1)) * state.mods.sizeMul;
-          addEffect('aura',{x:state.player.x,y:state.player.y,r:R2, life:.06});
-          for(const e of state.enemies){
-            const d = Math.hypot(e.x-state.player.x, e.y-state.player.y);
-            if(d<R2){ e.hp -= (14 + 3*(this.lv-1)) * state.mods.dmgMul * dt; e.hitFlash = Math.max(e.hitFlash, 0.05); }
-          }
-        }
+  this.auraT += dt;
+  const R2 = (110 + 20*(this.lv-1)) * state.mods.sizeMul;
+  addEffect('aura',{x:state.player.x,y:state.player.y,r:R2, life:.06});
+
+  let auraHits = 0;
+for (const e of state.enemies){
+  const d = Math.hypot(e.x - state.player.x, e.y - state.player.y);
+  if (d < R2){
+    e.hp -= (14 + 3*(this.lv-1)) * state.mods.dmgMul * dt;
+    e.hitFlash = Math.max(e.hitFlash, 0.05);
+    auraHits++;
+  }
+}
+
+
+// ★覚醒オーラ：命中1件ごとに 0.1% 回復（仕様）
+if (auraHits > 0){
+  const gained = healPlayerPercent(0.1 * auraHits);
+  if (gained > 0){
+    addEffect('text', {
+      text: `+${gained.toFixed(1)}`,
+      x: state.player.x,
+      y: state.player.y - 18,
+      life: 0.6,
+      color: '#7CFF7C'
+    });
+    addEffect('healSparkles', { x: state.player.x, y: state.player.y, r: 40, life: 0.6, life0: 0.6, count: 10 });
+  }
+}
+
+
+
+}
       }
     }
   };
@@ -2982,6 +3139,7 @@ function strikeLightning(hit, mult){
     }
     return best;
   }
+  
   function pickMultiple(arr, n){
     const copy = arr.slice(); const out=[];
     for(let i=0;i<n && copy.length;i++){ out.push(copy.splice((Math.random()*copy.length)|0,1)[0]); }
@@ -3174,7 +3332,33 @@ const ALL_UPGRADES = [
   U.speed, U.maxhp, U.regen, U.pickup, U.atkRate, U.atkDmg, U.sizeUp ,U.doubleItem
 ];
 
+// --- tiny per-frame scheduler (global & safe) ---
+if (typeof window.schedule !== 'function') {
+  window.schedule = function(fn, delaySec) {
+    (state._q || (state._q = [])).push({ fn, t: Math.max(0, delaySec || 0) });
+  };
+}
+
 // ==== メインループ ====
+
+// 安全に表示/非表示を切る小ヘルパ
+function hideById(id){ const el=document.getElementById(id); if(el) el.style.display='none'; }
+function showById(id, display='block'){ const el=document.getElementById(id); if(el) el.style.display=display; }
+
+
+// --- remove legacy HUDs & stub old notifiers ---
+{
+  const kill = id => { const el = document.getElementById(id); if (el) el.remove(); };
+  kill('bossmsg');
+  kill('gather');
+
+  // もし古い関数がどこかで呼ばれても無害化しておく
+  window.flashBossMessage ??= function(){};
+  window.showStartToast   ??= function(){};
+  window.showToast        ??= function(){};
+  window.notify           ??= function(){};
+}
+
 function loop(now){
 
   if (state.player && state.player.hp <= 0 && !state.gameover){
@@ -3195,49 +3379,36 @@ for (let i = state._q.length - 1; i >= 0; i--) {
 }
 
 
-  // === デバッグ：Fキーでラスボス戦にワープ ===
-  if (state._debugSkipToFinal && !state._didSkipFinal){
-    if (Array.isArray(state.enemies)) state.enemies.length = 0;
-    if (Array.isArray(state.enemyBullets)) state.enemyBullets.length = 0;
-state.timeSec = Math.max(state.timeSec || 0, 601);
-    state._didSkipFinal = true;
-  }
 
 try {
-    // デバッグ：どの行で落ちるか特定するためのガード
-    // （H→START直後のクラッシュ捕捉用）
-    // ここから先で例外が出たら catch で console.error します
-
-    // Magnet animation
-    
-    if(state.gather.active){
-      state.gather.time += dt;
-      const p = Math.min(1, state.gather.time / state.gather.dur);
-      gbar.style.width = (p*100)+'%';
-      if(p>=1){
-        state.gather.active=false; 
-        gatherEl.style.display='none';
-        addXP(state.gather.totalXP);
-        const lvlOpen = (levelupEl.style.display === 'flex');
-        const chestOpen = (chestEl.style.display === 'flex');
-        state.paused = (lvlOpen || chestOpen) ? true : false;
-      }
-      draw(); requestAnimationFrame(loop); return;
-    }
-
-// --- Debug: Skip to FINAL BOSS once ------------------------------------
+// === Debug: Skip to FINAL BOSS (once, unified) ===
 if (state._debugSkipToFinal && !state._didSkipFinal){
-  // あなたのゲームが 10分(=600秒)でボス出現なら、9:58 にワープ
+  // いったん掃除
+  if (Array.isArray(state.enemies))      state.enemies.length = 0;
+  if (Array.isArray(state.enemyBullets)) state.enemyBullets.length = 0;
+  if (Array.isArray(state.items))        state.items.length = 0;
+
+  // 9:58 に寄せる（10:00出現前提）
   const target = 600 - 2;
   const tNow = Math.max(0, Math.floor(state.timeSec || 0));
   if (tNow < target){
     state.timeSec = target;
-    // 併用している時間系があれば合わせる
     if (typeof state.elapsedMs === 'number') state.elapsedMs = target * 1000;
     if (typeof state.elapsed   === 'number') state.elapsed   = target * 1000;
   }
+
+  // タイムボーナス用の初期化
+  state.bossBonus = 0;
+  state._finalBonusAwarded = false;
+  state.finalSpawnAt = state.timeSec || 0;
+
+  // ★最終ボスは正規のスポーン関数で出す
+  if (typeof spawnFinalBoss === 'function') spawnFinalBoss();
+
+  state.paused = false;
   state._didSkipFinal = true;
 }
+
 
 
 // === GameOverは完全停止（描画だけして抜ける）
@@ -3453,7 +3624,7 @@ if (e.hp <= 0) {
     // ラスボスは従来の処理に任せる（演出や遷移があるため）
   } else if (e.type === 'mid' || e.type === 'big') {
     // 中/大型ボスは宝箱ドロップ
-    state.items.push({ kind:'chest', x:e.x, y:e.y, r:14, t:0 });
+state.items.push({ kind:'chest', picks:1, x:e.x, y:e.y, r:14, t:0 }); // ← 中ボスは1つ選択
     if (typeof addEffect === 'function') addEffect('pop', {x:e.x, y:e.y});
     state.killScore = (state.killScore||0) + 1;
     state.enemies.splice(j, 1);
@@ -3659,9 +3830,9 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
       const base = 0.0035;
       const byType = (e.type === 'minion') ? 0.6
                    : (e.type === 'shooter') ? 0.8
-                   : (e.type === 'mid')    ? 1.0
-                   : (e.type === 'big')    ? 1.25
-                   : (e.type === 'final')  ? 1.45
+                   : (e.type === 'mid')    ? 1.5
+                   : (e.type === 'big')    ? 1.75
+                   : (e.type === 'final')  ? 2.00
                    : 1.0;
 
       const rate = (base + ramp) * byType;
@@ -4014,7 +4185,9 @@ if (e.type === 'final') {
 
 
   // クリア遷移（少し見せてから）
-  state.winCountdown = 1.2; // 1.2秒後に showGameClear() が呼ばれる想定
+state.winCountdown = 1.2;
+state._winLast = performance.now();   // ← カウントの基準時刻を初期化
+state.paused = false;                 // ← ポーズ中でも tick が効くが、ここで一旦解除しておくと確実
 } else if (e.type === 'mid' || e.type === 'big') {
           const picks = (e.type === 'big') ? 2 : 1;
           state.items.push({ kind: 'chest', x: e.x, y: e.y, r: 14, t: 0, picks });
@@ -4084,6 +4257,7 @@ if (e.vy) e.y += e.vy * dt;
       e.life-=dt; 
       if(e.life<=0){ state.effects.splice(i,1); }
     }
+
 
     // === クリア遷移カウントダウン ===
     if (state.winCountdown > 0){
@@ -4223,6 +4397,11 @@ function drawHealIcon(ctx, x, y, r, t){
 
 // === Chest: 金の宝箱（蓋・金帯・錠前・軽い上下揺れ）===
 function drawChestIcon(ctx, x, y, r, t){
+  // ★保険：非数を回避
+  r = Math.max(8, Number(r) || 14);
+  x = Number.isFinite(x) ? x : 0;
+  y = Number.isFinite(y) ? y : 0;
+
   ctx.save();
   // ちょっとだけ上下にふわふわ
   y += Math.sin(t*3.2) * Math.min(6, r*0.18);
@@ -4360,10 +4539,12 @@ for (const it of state.items){
   } else if (it.kind === 'heal'){
     drawHealIcon(ctx, it.x, it.y, it.r, t);
 
-  } else if (it.kind === 'chest'){
-    drawChestIcon(ctx, it.x, it.y, it.r * 1.2, t);
-
-  } else {
+} else if (it.kind === 'chest'){
+  const rr = Number.isFinite(it.r) ? it.r : 14;   // rが無い/NaNなら14に
+  const xx = Number.isFinite(it.x) ? it.x : 0;    // 念のため
+  const yy = Number.isFinite(it.y) ? it.y : 0;
+  drawChestIcon(ctx, xx, yy, rr * 1.2, t);
+} else {
     // フォールバック（未定義）
     ctx.fillStyle = '#94a3b8';
     ctx.beginPath(); ctx.arc(it.x, it.y, it.r, 0, Math.PI*2); ctx.fill();
@@ -4662,6 +4843,26 @@ for (const ef of state.effects) {
     ctx.stroke();
     ctx.restore();
 
+} else if (ef.type === 'healText') {
+  const a = Math.max(0, ef.life / (ef.life0 || 0.8)); // 残存率
+  const t = 1 - a;                                    // 経過率 0→1
+  // カメラオフセットは "nova" の直前のブロックと同じ変数を流用してください
+  const ox = (state.cam && state.cam.x) || (state.viewX || 0);
+  const oy = (state.cam && state.cam.y) || (state.viewY || 0);
+  const sx = (ef.x - ox);
+  const sy = (ef.y - oy) - (18 + 14 * t); // 上にふわっと
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.font = '700 16px system-ui, -apple-system, Segoe UI, Roboto';
+  const txt = '+' + (ef.val % 1 === 0 ? ef.val.toFixed(0) : ef.val.toFixed(1));
+  // 縁取り→塗り（視認性UP）
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0,0,0,.55)';
+  ctx.strokeText(txt, sx, sy);
+  ctx.fillStyle = '#6ef08a'; // 明るい緑
+  ctx.fillText(txt, sx, sy);
+  ctx.restore();
+
   } else if (ef.type === 'aura') {
     ctx.save();
     ctx.globalAlpha = 0.12;
@@ -4756,7 +4957,7 @@ for (const ef of state.effects) {
   } else if (ef.type === 'text') {
     ctx.save();
     ctx.globalAlpha = Math.max(0, ef.life);
-    ctx.fillStyle = '#fff';
+ctx.fillStyle = (ef.color || '#fff');
     ctx.font = 'bold 16px system-ui';
     ctx.fillText(ef.text, ef.x, ef.y - (1 - ef.life) * 20);
     ctx.restore();
@@ -5185,7 +5386,9 @@ function triggerFinalExplosion(x, y) {
   }
 
   // 一定時間“見せる”→ クリア画面
-  state.winCountdown = 1.2; // 1.2秒後にクリア表示
+state.winCountdown = 1.2;
+state._winLast = performance.now();   // ← カウントの基準時刻を初期化
+state.paused = false;                 // ← ポーズ中でも tick が効くが、ここで一旦解除しておくと確実
 }
 
 
@@ -5219,19 +5422,40 @@ updateEndScore('clear');
   }
 }
 
-// === Compatibility shim: safeKillEnemy ===
+// === safeKillEnemy: 最終版（finalでCLEARへ） ===
 function safeKillEnemy(idxOrEnemy){
-  // idx(数値)でもオブジェクトでもOKにする
-  let e = (typeof idxOrEnemy === 'number') ? (state.enemies && state.enemies[idxOrEnemy]) : idxOrEnemy;
+  const e = (typeof idxOrEnemy === 'number') ? (state.enemies && state.enemies[idxOrEnemy]) : idxOrEnemy;
   if (!e || e.dead) return;
 
-  try { if (typeof addEffect === 'function') addEffect('pop', {x:e.x, y:e.y}); } catch(_){}
+  try { if (typeof addEffect === 'function') addEffect('pop', { x:e.x, y:e.y }); } catch(_){}
 
-  // XPドロップ（dropGem が無ければフェイルセーフ）
-  try {
-    if (typeof dropGem === 'function') dropGem(e.x, e.y, 1);
-    else if (Array.isArray(state.gems)) state.gems.push({x:e.x, y:e.y, v:1});
-  } catch(_){}
+// ---- 統一キルカウント（重複防止）----
+if (!e._counted) {
+  const isBoss = (e.type === 'mid' || e.type === 'big' || e.type === 'final');
+  if (isBoss) {
+    state.bossKills = (state.bossKills|0) + 1;
+  } else {
+    state.kills = (state.kills|0) + 1;
+  }
+  e._counted = true; // 弾・即死・多経路でも二重加算を防ぐ
+}
+
+  if (e.type === 'final') {
+    try { finalExplosionAndClear(e.x, e.y); } catch(_){}
+    try {
+      state.enemies.length = 0;
+      if (state.enemyBullets) state.enemyBullets.length = 0;
+      if (state.items) state.items.length = 0;
+      state.spawnTimer = 9999;
+    } catch(_){}
+  } else if (e.type === 'big') {
+    state.items.push({ kind:'chest', x:e.x, y:e.y, r:16, t:0, picks:2 });
+    try { addEffect('text', { x:e.x, y:e.y, life:1.2, text:'宝箱×2！' }); } catch(_){}
+  } else if (e.type === 'mid') {
+    state.items.push({ kind:'chest', x:e.x, y:e.y, r:14, t:0, picks:1 });
+  } else {
+    try { dropGem(e.x, e.y, 1); } catch(_){}
+  }
 
   e.dead = true; e.hp = 0;
   try {
@@ -5240,8 +5464,83 @@ function safeKillEnemy(idxOrEnemy){
   } catch(_){}
 }
 
-function schedule(fn, delaySec){ (state._q || (state._q=[])).push({fn, t: Math.max(0, delaySec||0)}); }
 
+// ---- Heal helpers (robust, single source of truth) ----
+function _getPlayer() {
+  // どちらかから確実に取る（今後のリファクタでも壊れにくく）
+  const ws = (typeof window !== 'undefined' ? window.state : null);
+  if (ws && ws.player) return ws.player;
+  if (typeof state !== 'undefined' && state && state.player) return state.player;
+  return null;
+}
+
+// 実数回復（増えた“実量”を返す：0 のときは満タン）
+function healPlayer(v){
+  const p = _getPlayer();
+  if (!p) return 0;
+  const maxHp = p.maxHp ?? p.hpMax ?? p.hp_max ?? p.maxHP ?? 100;
+  const before = Number.isFinite(p.hp) ? p.hp : maxHp;
+  const add    = Math.max(0, Number(v) || 0);
+  if (add <= 0) return 0;
+  const after  = Math.min(maxHp, before + add);
+  p.hp = after;
+  const gained = after - before;
+  return (Number.isFinite(gained) && gained > 0) ? gained : 0;
+}
+
+// 最大HPに対する % 回復（増えた“実量”を返す）
+function healPlayerPercent(percent){
+  const p = _getPlayer();
+  if (!p) return 0;
+  const maxHp = p.maxHp ?? p.hpMax ?? p.hp_max ?? p.maxHP ?? 100;
+  const pct = Math.max(0, Number(percent) || 0) / 100;
+  if (!(pct > 0)) return 0;
+  return healPlayer(maxHp * pct);
+}
+
+
+
+// === Unified final explosion & clear ===
+function finalExplosionAndClear(x, y){
+  try { addEffect('flash', { life: .06 }); } catch(_){}
+  try {
+    const W = cv.width, H = cv.height, DPR = window.devicePixelRatio||1;
+    addEffect('megaNova', { x, y, r: Math.hypot(W/DPR, H/DPR)*0.85, life: 0.9 });
+    for (let k = 0; k < 22; k++) spark(x + (Math.random()-0.5)*30, y + (Math.random()-0.5)*30, 18);
+  } catch(_){}
+
+  // === BOSS TIME BONUS（1回だけ） ===
+  if (!state._finalBonusAwarded){
+    const spawnAt = Number.isFinite(state.finalSpawnAt) ? state.finalSpawnAt : (state.timeSec||0);
+    const now     = state.timeSec || 0;
+    const took    = Math.max(0, now - spawnAt);
+
+    const MAX_BONUS = 30000; // 最速撃破
+    const FULL_TIME = 15;    // ここまで満額
+    const ZERO_TIME = 90;    // ここを過ぎると0
+    let ratio = 0;
+    if (took <= FULL_TIME)       ratio = 1;
+    else if (took >= ZERO_TIME)  ratio = 0;
+    else                         ratio = (ZERO_TIME - took) / (ZERO_TIME - FULL_TIME);
+
+    const bonus = Math.max(0, Math.round(MAX_BONUS * ratio));
+    state.bossBonus = (state.bossBonus|0) + bonus;
+    state.score     = (state.score|0)     + bonus;
+    state._finalBonusAwarded = true;
+
+    try { addEffect('text', { x, y, life: 1.3, text: `BOSS TIME BONUS +${bonus.toLocaleString()}` }); } catch(_){}
+  }
+
+  // 少し見せてからCLEAR
+  state.winCountdown = 1.2;
+  state._winLast = performance.now?.() || 0;
+  state.paused = false;
+}
+
+// 旧名で呼ばれても必ず同じ処理に流す
+function triggerFinalExplosion(x, y){
+  return finalExplosionAndClear(x, y);
+}
 
 function gameOver(){
   state.paused = true;
@@ -5249,7 +5548,7 @@ function gameOver(){
   state.gather.active = false;
   state.gather.time = 0;
   state.gather.totalXP = 0;
-  gatherEl.style.display = 'none';
+if (gatherEl) gatherEl.style.display='none';
   // ▼ ノックバック＆無敵も停止
   state.player.kbx = state.player.kby = 0;
   state.player.iTime = 0;
@@ -5262,6 +5561,8 @@ function spawnFinalBoss(){
   const margin = 120;
   const side = Math.floor(Math.random()*4);
   let x, y;
+
+
 
   // 画面の四辺「外」から出現させる
   if (side === 0) {        // 上
@@ -5292,13 +5593,19 @@ function spawnFinalBoss(){
   };
 
   state.enemies.push(e);
+  
+  // ★ ボス出現時刻を記録（タイムボーナス計測用）
+  state.finalSpawnAt = state.timeSec || 0;
+  // ★ その周のボスボーナスをリセット
+  state.bossBonus = 0;
+
   flashBossMsg();
 }
 
-
-
   requestAnimationFrame(loop);
+
 })();
+
 
 
 </script>
