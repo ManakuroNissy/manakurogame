@@ -268,6 +268,7 @@ body[data-hc] .hc-badges{ display: flex; }
 #btnPause, #btnSound{
   position: fixed;
   z-index: 12010;
+  /* top / right は JS でセットする */
 }
 
 /* 横向き/縦向き 共通で右上、SoundはPauseの左にずらす */
@@ -651,18 +652,61 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
 })();
 
 
-// === 右上 UI のレイアウト調整（タイマーとサウンドの重なり回避） ===
+// HUD を避けて Pause/SOUND の位置を決める
 function layoutTopRightUI(){
-  const snd = document.getElementById('btnSound');
+  const pause = document.getElementById('btnPause');
+  const sound = document.getElementById('btnSound');
+  if (!pause || !sound) return;
 
-  // 横向きのときだけ、タイマーがSOUNDとかぶらないように左へオフセット
-  const isPortrait = !!(window.PLAY && PLAY.isPortrait);
-  let off = 0;
-  if (!isPortrait && snd && snd.offsetParent !== null && getComputedStyle(snd).display !== 'none'){
-    off = Math.ceil(snd.getBoundingClientRect().width) + 12; // SOUNDの幅＋余白
+  // HUD候補（どれか一つでも見つかればOK）
+  const hud = document.querySelector('#hudTop, #hud, #hub, .hud, .hub');
+
+  // 要素が表示中か
+  const isVisible = el => !!el && el.offsetParent !== null && getComputedStyle(el).display !== 'none';
+
+  // 端末向き
+  const isPortrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+
+  // base 余白
+  const SAFE_TOP = 8;
+  const SAFE_RIGHT = 12;
+
+  // env(safe-area-inset-*) は CSS でしか使えないので、右は固定pxで確保
+  const pauseRight = SAFE_RIGHT;           // Pause は一番右
+  const soundGap   = 64;                   // Pause 左に 64px ずらす（ボタン幅ぶんの目安）
+
+  // HUD の下 or 右横に置く（横向きは右に十分な余白があれば横に、無ければ下）
+  let topPx = SAFE_TOP;                    // 既定: 画面上部
+  if (isVisible(hud)) {
+    const r = hud.getBoundingClientRect();
+    if (!isPortrait) {
+      const spaceRight = window.innerWidth - r.right;
+      const need = 150; // Pause+SOUND が並ぶのに必要な最低幅
+      if (spaceRight > need) {
+        // HUDの右側に十分な空き → HUDの上端と同じ高さ
+        topPx = Math.max(SAFE_TOP, Math.round(r.top) + 4);
+      } else {
+        // 右に空きがない → HUDの下に配置
+        topPx = Math.round(r.bottom) + 8;
+      }
+    } else {
+      // 縦向きは基本 HUD の下（上に置きたいときは +α で切替可）
+      topPx = Math.round(r.bottom) + 8;
+    }
   }
-  document.documentElement.style.setProperty('--snd-offset', off + 'px');
+
+  // 位置反映（Pause は右端、SOUND はその左）
+  pause.style.top   = `calc(${topPx}px + env(safe-area-inset-top, 0px))`;
+  pause.style.right = `calc(${pauseRight}px + env(safe-area-inset-right, 0px))`;
+
+  sound.style.top   = pause.style.top;
+  sound.style.right = `calc(${pauseRight + soundGap}px + env(safe-area-inset-right, 0px))`;
+
+  // タイマー右上配置時に SOUND と被らないよう、横オフセットをCSS変数で共有（既存タイマーが参照しているなら有効）
+  const sndWidth = Math.ceil(sound.getBoundingClientRect().width || 56) + 12;
+  document.documentElement.style.setProperty('--snd-offset', sndWidth + 'px');
 }
+
 
 
 
