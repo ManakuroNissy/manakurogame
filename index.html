@@ -201,11 +201,16 @@ body[data-hc] .hc-badges{ display: flex; }
   padding:8px;
   backdrop-filter: blur(2px);
   pointer-events: none;   /* ← 上帯は操作不要なので透過 */
+padding-left:  var(--hud-lpad);
+  padding-right: var(--hud-rpad);
+  margin-top:    var(--hud-tpad);
+  box-sizing:    border-box; /* 念のため */
 }
 
 :root{
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --hud-lpad: calc(env(safe-area-inset-left, 0px) + 12px);  /* 左余白（初期） */
+  --hud-rpad: calc(env(safe-area-inset-right,0px) + 12px);  /* 右余白（初期） */
+  --hud-tpad: 0px;                                          /* 上マージン（初期） */
 }
 
 /* === LevelUp layout === */
@@ -695,6 +700,24 @@ function layoutTopRightUI(){
   // タイマーが右上にある場合の避け幅（任意）：SOUNDの幅をCSS変数へ
   const sndWidth = Math.ceil(sound.getBoundingClientRect().width || 56) + 12;
   document.documentElement.style.setProperty('--snd-offset', sndWidth + 'px');
+  
+    // ★ HUDの左右余白を“ボタンの実測幅”から算出（縦画面のみ強く効かせる）
+  const pauseW = Math.ceil(pause.getBoundingClientRect().width || 44);
+  const soundW = Math.ceil(sound.getBoundingClientRect().width || 56);
+
+  if (isPortrait){
+    // のっち + ボタン幅 + 少しマージン
+    document.documentElement.style.setProperty('--hud-lpad', `calc(env(safe-area-inset-left,0px)  + ${pauseW + 10}px)`);
+    document.documentElement.style.setProperty('--hud-rpad', `calc(env(safe-area-inset-right,0px) + ${soundW + 10}px)`);
+    // 必要に応じて上方向にも数pxの余裕（重なりが完全に消えるまで微調整）
+    document.documentElement.style.setProperty('--hud-tpad', '6px');
+  }else{
+    // 横画面は控えめ（ほぼ端いっぱい使いたい）
+    document.documentElement.style.setProperty('--hud-lpad', `calc(env(safe-area-inset-left,0px)  + 12px)`);
+    document.documentElement.style.setProperty('--hud-rpad', `calc(env(safe-area-inset-right,0px) + 12px)`);
+    document.documentElement.style.setProperty('--hud-tpad', '0px');
+  }
+  
 }
 
 
