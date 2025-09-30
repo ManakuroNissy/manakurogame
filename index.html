@@ -2,7 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
 <title>10min's Survivor</title>
 <style>
   html,body { margin:0; height:100%; background:#0e0e0f; color:#eee; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif; }
@@ -78,10 +79,6 @@ canvas {
 /* かなり狭い端末ではHUDを非表示（後でプレイヤー周りリングで代替） */
 @media (max-width:480px){
   .hud { display:none; }
-  /* ジョイスティックも小さめに */
-  #joy { width:120px; height:120px; left:.7rem; bottom:.7rem; }
-  #joy i { width:52px; height:52px; }
-}
 
 /* さらに狭い幅ならHUDの縮小を強める（HUDを使う構成のままなら） */
 @media (max-width:380px){
@@ -92,23 +89,6 @@ canvas {
   background: linear-gradient(90deg,#ff5a5a,#c0392b);
 }
 
-/* 浮遊タイマー：常時表示（PC/スマホ共通） */
-
-.time-float{
-  position: fixed;
-  top: 8px;
-  right: 12px;      /* PC：右上 */
-  z-index: 9999;
-  pointer-events: none;
-  display: block;
-  font-weight: 700;
-}
-
-/* 固定ジョイスティックは常に非表示にする */
-[data-fixed-joy],
-.joystick, .stick, .stick-L, .stick-R, #joyLeft, #joyRight, #joy {
-  display: none !important;
-  pointer-events: none !important;
 }
 
 /* デスクトップ幅は HUD 右にタイマーぶんの余白を空ける */
@@ -119,23 +99,12 @@ canvas {
 }
 
 /* Pause ボタンのデフォルト位置（PC：左上） */
-#pauseBtn{
+#btnPause{
   position: fixed;
   top: 8px;
   left: 12px;
   right: auto;
   z-index: 10000;
-}
-
-/* 縦画面は Pause=右上 / タイマー=その左 にして重なり回避 */
-@media (orientation: portrait){
-  #pauseBtn{
-    left: auto;
-    right: 12px;
-  }
-  .time-float{
-    right: 64px;     /* Pause のぶんだけ左へズラす */
-  }
 }
 
 .hc-badges{
@@ -205,6 +174,201 @@ body[data-hc] .hc-badges{ display: flex; }
   box-shadow:0 6px 18px rgba(99,102,241,.25);
 }
 
+/* === Dock area (情報表示エリア) ====================== */
+#dock{
+  position:absolute;
+  display:none;
+  background:rgba(0,0,0,.6);
+  color:#fff;
+  padding:8px;
+  box-sizing:border-box;
+  border:1px solid rgba(255,255,255,.06);
+  backdrop-filter: blur(2px);
+  overflow:auto;
+  pointer-events: none;   /* ← タッチを透過してキャンバスへ渡す */
+}
+#dock.landscape{ border-left:1px solid rgba(255,255,255,.08); }
+#dock.portrait { border-top: 1px solid rgba(255,255,255,.08); }
+
+/* === Top HUD band ===================================== */
+#hudTop{
+  position:absolute;
+  left:0; top:0;
+  height:56px;
+  width:auto;
+  display:none;           /* 縦向き時のみJSで 'block' にする */
+  color:#fff;
+  background:rgba(0,0,0,.45);
+  border-bottom:1px solid rgba(255,255,255,.08);
+  box-sizing:border-box;
+  padding:8px;
+  backdrop-filter: blur(2px);
+  pointer-events: none;   /* ← 上帯は操作不要なので透過 */
+}
+
+:root{
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* === LevelUp layout === */
+#levelup{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:12px;
+}
+#cardRow{
+  display:flex; flex-wrap:wrap; gap:12px;
+  align-items:stretch; justify-content:center;
+  max-width:min(92vw, 920px); margin:0 auto;
+}
+#rerollBtn{
+  display:block; margin:12px auto 0;
+}
+
+
+/* === Timer (共通ベース) === */
+#pcTimer{
+  position: fixed;
+  z-index: 12000;
+  pointer-events: none;
+  user-select: none;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: .04em;
+  color: #fff;
+  text-shadow: 0 0 18px rgba(255,255,255,.25);
+  opacity: .32;
+  font-size: clamp(36px, 14vw, 120px);
+  background: transparent; border: 0; padding: 0;
+  display: none; /* JSで表示切替 */
+}
+
+/* 横向き（PC/タブレット含む）は右上アンカー */
+@media (orientation: landscape){
+  #pcTimer{
+    top:  calc(env(safe-area-inset-top) + 92px);
+    right: calc(env(safe-area-inset-right) + 12px + var(--snd-offset, 0px));
+    left: auto; bottom: auto; transform: none; text-align: right;
+  }
+}
+
+/* 縦向きは下部中央（JSでPLAY幅に合わせて微調整） */
+@media (orientation: portrait){
+  #pcTimer{
+    left: 50%; right: auto; top: auto;
+    bottom: calc(env(safe-area-inset-bottom) + 12px);
+    transform: translateX(-50%); text-align: center;
+  }
+}
+
+
+
+/* === Top-right buttons (Pause / Sound) === */
+#btnPause, #btnSound{
+  position: fixed;
+  z-index: 12010;
+}
+
+/* 横向き/縦向き 共通で右上、SoundはPauseの左にずらす */
+@media (orientation: landscape){
+  #btnPause{
+    top:  calc(env(safe-area-inset-top)  + 8px);
+    right:calc(env(safe-area-inset-right)+ 12px);
+  }
+  #btnSound{
+    top:  calc(env(safe-area-inset-top)  + 8px);
+    right:calc(env(safe-area-inset-right)+ 64px); /* Pause分ずらす */
+  }
+}
+@media (orientation: portrait){
+  #btnPause{
+    top:  calc(env(safe-area-inset-top)  + 8px);
+    right:calc(env(safe-area-inset-right)+ 12px);
+  }
+  #btnSound{
+    top:  calc(env(safe-area-inset-top)  + 8px);
+    right:calc(env(safe-area-inset-right)+ 64px); /* Pause分ずらす */
+  }
+}
+
+
+/* === Sound Button (fixed, safe-area 対応) === */
+#btnSound{
+  position: fixed;
+  z-index: 9999;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: calc(env(safe-area-inset-right) + 12px);
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 700; letter-spacing: .02em;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(0,0,0,.45);
+  color: #fff;
+  cursor: pointer; user-select: none;
+  pointer-events: auto;
+}
+
+@media (orientation: portrait){
+  #btnSound{
+    right: calc(env(safe-area-inset-right) + 64px);
+    top:   calc(env(safe-area-inset-top) + 8px);
+  }
+}
+
+#btnSound[data-muted="false"]{ box-shadow: 0 6px 16px rgba(16,185,129,.22); }
+#btnSound[data-muted="true"] { box-shadow: 0 6px 16px rgba(239,68,68,.22); }
+
+#btnSound .icon{ font-size: 16px; line-height: 1; }
+#btnSound .label{ font-size: 12px; line-height: 1; opacity: .95; }
+#btnSound{ z-index: 9999; /* ← タイマーより手前 */ }
+
+
+#btnSound[data-muted="false"]{ background: rgba(16,185,129,.20); }
+#btnSound[data-muted="true"] { background: rgba(239,68,68,.20); }
+#btnSound:active{ transform: translateY(1px); }
+
+/* 右上UIの重なり回避を強制：デスクトップ幅でタイマーをボタンの左へ */
+@media (min-width:768px){
+  #btnSound{
+   right: calc(env(safe-area-inset-right) + 12px + var(--snd-offset, 0px));
+  }
+/* 背景タイマー：右寄せ・前面・クリック透過 */
+#pcTimer{
+  position: fixed;
+  z-index: 12000;                            /* 最前面 */
+  pointer-events: none; user-select: none;   /* クリックは背面に通す */
+
+  /* 右上アンカー（必要なら数値だけ調整） */
+  top:  calc(env(safe-area-inset-top) + 92px);
+  right: calc(env(safe-area-inset-right) + 12px);
+
+  /* ← センタリング解除（必須） */
+  left: auto; 
+  transform: none;
+
+  /* 表示スタイル */
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: .04em;
+  text-align: right;                         /* 念のため右揃え */
+  font-size: clamp(40px, min(12vw, 14vh), 80px);
+  color: #fff;
+  opacity: .32;                              /* 濃さは .16〜.22 で調整 */
+  text-shadow: 0 0 18px rgba(255,255,255,.25);
+
+  background: transparent; border: 0; padding: 0;
+  display: none; /* 横向き時は JS で block */
+}
+
+@media (max-width: 1024px){
+  #pcTimer{ font-size: clamp(36px, 14vw, 120px); }
+}
+}
+
 </style>
 </head>
 <body>
@@ -231,11 +395,14 @@ body[data-hc] .hc-badges{ display: flex; }
   </div>
 </div>
   
-<div class="time-float">
-  <div id="timeFloat">⌛ 0:00</div>
-</div>
-  
   <canvas id="cv"></canvas>
+  
+  <!-- 上部HUD（プレイ領域に被せず上に固定） -->
+<div id="hudTop" aria-label="top hud"></div>
+  <!-- 情報ドック（横長: 右 / 縦長: 下）-->
+<div id="dock" aria-label="info dock"></div>
+
+  
   <div class="hud">
     <!-- ▼スコア表示を追加 -->
   <div id="scoreHud" style="font-weight:700; margin:4px 0;">
@@ -248,15 +415,13 @@ body[data-hc] .hc-badges{ display: flex; }
     <span class="badge">武器: <b id="wep">-</b></span>
   </div>
   <!-- ⏸/▶ ボタン（.hud の外！） -->
-  <button id="pauseBtn" class="hud-btn" aria-label="Pause">⏸</button>
+  <button id="btnPause" class="hud-btn" aria-label="Pause">⏸</button>
   <div id="bossmsg">!! BOSS APPROACHING !!</div>
   <div id="levelup"><div id="cardRow"></div></div>
   <div id="chest"><div id="chestRow"></div></div>
   <div class="chestHUD" id="chestHUD"><span class="badge">宝箱：<b id="pickLeft">2</b>つ選択</span></div>
   <div id="gather"><div class="box"><h3>経験値を集めています</h3><div class="bar xp" style="width:260px;margin:auto;"><i id="gbar"></i></div></div></div>
-<div id="joy" data-fixed-joy><i></i></div>
-  <div id="hint">Pause: [P]</div>
-</div>
+
 
 
 </div>
@@ -287,63 +452,929 @@ window.addEventListener('unhandledrejection', e=>{
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
   let W=0,H=0,DPR=1;
+
+// === Sound toggle persistence ===
+const SND_KEY = 'sndMuted';
+
+function loadSavedMute(){
+  try { return localStorage.getItem(SND_KEY) === '1'; }
+  catch(_){ return false; }
+}
+
+function saveMute(m){
+  try { localStorage.setItem(SND_KEY, m ? '1' : '0'); }
+  catch(_){}
+}
+
+// 起動時に前回状態を反映
+(function(){
+  const m = loadSavedMute();
+  if (typeof window.setAudioMuted === 'function') setAudioMuted(m);
+  else window.AUDIO_MUTED = !!m;
+})();
+
+// === Global audio mute flag (BGM/SFX 共通で使える) ===
+window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
+
+// === Audio Core =========================================================
+
+// === BGM (file-based, loop, SOUNDに連動) ================================
+(function(){
+  function AC_(){
+    if (!window.AC && typeof initAudioOnce === 'function') initAudioOnce();
+    return window.AC;
+  }
+  const BG = { el:null, node:null, gain:null, vol:0.30, ready:false };
+
+  window.bgm = {
+    load(url){
+      const AC = AC_(); if (!AC) return;
+      if (!BG.el){
+        BG.el = new Audio();
+        BG.el.loop = true;
+        BG.el.preload = 'auto';
+        // file:/// 直開きでもOK。サーバ配信時は crossOrigin つけてもよい
+        BG.node = AC.createMediaElementSource(BG.el);
+        BG.gain = AC.createGain();
+        BG.gain.gain.value = (window.AUDIO_MUTED ? 0 : BG.vol);
+        const dest = (window.bus && (bus.music || bus.master)) ? (bus.music || bus.master) : AC.destination;
+        BG.node.connect(BG.gain).connect(dest);
+        BG.el.addEventListener('canplay', ()=> BG.ready = true);
+      }
+      BG.el.src = url;
+    },
+    play(){ try{ BG.el && BG.el.play(); }catch(_){ /* autoplay規制はStart押下で回避 */ } },
+    pause(){ BG.el && BG.el.pause(); },
+    setVolume(v){ BG.vol = v; if (BG.gain) BG.gain.gain.value = (window.AUDIO_MUTED ? 0 : v); },
+    isReady(){ return !!BG.ready; }
+  };
+})();
+
+
+(function(){
+  // 既にあれば使う（再宣言しない）
+  if (!window.AC) {
+    window.AC = null; // AudioContext
+  }
+  if (!window.bus) {
+    window.bus = { master:null, bgm:null, sfx:null, ui:null };
+  }
+  if (typeof window.AUDIO_MUTED === 'undefined') {
+    window.AUDIO_MUTED = false; // 既存があればそのまま
+  }
+
+  function initAudioOnce(){
+    try{
+      if (!window.AC) window.AC = new (window.AudioContext || window.webkitAudioContext)();
+      const AC = window.AC;
+      if (!bus.master){
+        bus.master = AC.createGain();
+        bus.master.gain.value = window.AUDIO_MUTED ? 0.0001 : 1.0;
+        bus.master.connect(AC.destination);
+
+        bus.bgm = AC.createGain();  bus.bgm.gain.value = 0.25; bus.bgm.connect(bus.master);
+        bus.sfx = AC.createGain();  bus.sfx.gain.value = 0.9;  bus.sfx.connect(bus.master);
+        bus.ui  = AC.createGain();  bus.ui.gain.value  = 0.8;  bus.ui.connect(bus.master);
+      }
+    }catch(e){ console.warn('Audio init failed', e); }
+  }
+  window.initAudioOnce = initAudioOnce;
+
+  // 既存のミュート関数があればそこにフック、無ければ定義
+  const _origSetAudioMuted = window.setAudioMuted;
+  window.setAudioMuted = function(m){
+    window.AUDIO_MUTED = !!m;
+    if (typeof _origSetAudioMuted === 'function') {
+      try{ _origSetAudioMuted(m); }catch(e){}
+    }
+    if (!window.AC) return;
+    const now = AC.currentTime;
+    if (bus.master) bus.master.gain.setTargetAtTime(m ? 0.0001 : 1.0, now, 0.03);
+  };
+
+  // 初回タップ/キーでAudioを解錠
+  function unlock(){
+    initAudioOnce();
+    if (window.AC && AC.state === 'suspended') AC.resume();
+    document.removeEventListener('pointerdown', unlock, {passive:true});
+    document.removeEventListener('keydown', unlock, {passive:true});
+  }
+  document.addEventListener('pointerdown', unlock, {passive:true});
+  document.addEventListener('keydown', unlock, {passive:true});
+})();
+
+// 起動時に保存されたミュート状態を反映
+(()=>{
+  const m = loadSavedMute();
+  if (typeof window.setAudioMuted === 'function') setAudioMuted(m);
+  else window.AUDIO_MUTED = !!m;
+})();
+
+
+// ==== SFX: Slash Whoosh ===================================
+(function(){
+  // 既存の AC / bus を使う（無ければフォールバック）
+  const AC_ = ()=> window.AC || (window.initAudioOnce && initAudioOnce(), window.AC);
+  function getBus(){
+    const AC = AC_();
+    if (!AC) return null;
+    // sfx バス（無ければ master に）
+    const bus = (window.bus && (bus.sfx || bus.master)) ? window.bus : null;
+    return bus ? (bus.sfx || bus.master) : AC.destination;
+  }
+
+  // 共有ホワイトノイズバッファ
+  let _noiseBuf = null;
+  function noiseBuf(){
+    const AC = AC_(); if (!AC) return null;
+    if (_noiseBuf) return _noiseBuf;
+    const len = Math.floor(AC.sampleRate * 1.0);
+    const buf = AC.createBuffer(1, len, AC.sampleRate);
+    const ch  = buf.getChannelData(0);
+    for (let i=0;i<len;i++) ch[i] = Math.random()*2 - 1;
+    _noiseBuf = buf; return buf;
+  }
+
+  // 風切り音：連撃番号 idx に応じて少し強く/長く
+  function playSlashWhoosh(idx=0){
+    if (window.AUDIO_MUTED) return;
+    const AC = AC_(); const dest = getBus(); const buf = noiseBuf();
+    if (!AC || !dest || !buf) return;
+
+    const t0   = AC.currentTime;
+    const dur  = 0.10 + 0.02*idx;          // 2発目以降はほんの少し長い
+    const peak = 0.20 + 0.06*idx;          // 2発目以降は気持ち大きい
+
+    const src = new AudioBufferSourceNode(AC, {buffer: buf, loop:false});
+    const hp  = new BiquadFilterNode(AC, {type:'highpass', frequency:500});
+    const bp  = new BiquadFilterNode(AC, {type:'bandpass', Q:0.7, frequency:1400+200*idx});
+    const gn  = new GainNode(AC, {gain:0});
+
+    src.connect(hp).connect(bp).connect(gn).connect(dest);
+
+    // エンベロープ（気持ち立ち上がってスッと消える）
+    gn.gain.setValueAtTime(0.0001, t0);
+    gn.gain.linearRampToValueAtTime(peak, t0 + 0.02);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+    // フィルタ周波数を軽くスイープ（スパッと切る質感）
+    bp.frequency.setValueAtTime(1400+200*idx, t0);
+    bp.frequency.exponentialRampToValueAtTime(7000, t0 + Math.min(0.08+0.01*idx, dur));
+
+    try{ src.start(t0); src.stop(t0 + dur + 0.02); }catch(_){}
+  }
+
+  // sfx 名前空間に公開
+  window.sfx = window.sfx || {};
+  window.sfx.slash = playSlashWhoosh;
+})();
+
+
+// === 右上 UI のレイアウト調整（タイマーとサウンドの重なり回避） ===
+function layoutTopRightUI(){
+  const snd = document.getElementById('btnSound');
+
+  // 横向きのときだけ、タイマーがSOUNDとかぶらないように左へオフセット
+  const isPortrait = !!(window.PLAY && PLAY.isPortrait);
+  let off = 0;
+  if (!isPortrait && snd && snd.offsetParent !== null && getComputedStyle(snd).display !== 'none'){
+    off = Math.ceil(snd.getBoundingClientRect().width) + 12; // SOUNDの幅＋余白
+  }
+  document.documentElement.style.setProperty('--snd-offset', off + 'px');
+}
+
+
+
+// 右上UIとタイマーの再レイアウト（安全版：存在チェックつき）
+function recalcUi(){
+  if (typeof layoutTopRightUI === 'function') layoutTopRightUI();
+  if (typeof positionPcTimer === 'function') positionPcTimer();
+}
+window.addEventListener('load', recalcUi);
+window.addEventListener('resize', recalcUi);
+window.addEventListener('orientationchange', recalcUi);
+// フォント適用後の保険（描画が整ってからもう一度）
+setTimeout(recalcUi, 0);
+setTimeout(recalcUi, 300);
+
+
+
+// ボタン幅が変わったら（SOUND ⇄ MUTE）自動で再計算
+const _btn = document.getElementById('btnSound');
+if (_btn) new ResizeObserver(()=>layoutTopRightUI()).observe(_btn);
+
+
+// === SFX Synth ==========================================================
+(function(){
+function now(){ return (window.AC ? window.AC.currentTime : 0); }
+
+  // 1オシレーター（ADSR）＋周波数グライド（任意）＋パン
+  function tone({
+    type='square', freq=440, freq2=null,
+    t0=now(), a=0.005, d=0.05, s=0.0, r=0.08,
+    gain=0.4, pan=0
+  }={}){
+    if (!AC) return;
+    const o = AC.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t0);
+    if (freq2 && freq2>0){
+      // グライド（指数 or 線形は耳で合う方を選択）
+      o.frequency.exponentialRampToValueAtTime(freq2, t0 + a + d + r*0.8);
+    }
+    const g = AC.createGain();
+    const p = (AC.createStereoPanner ? AC.createStereoPanner() : null);
+
+    // エンベロープ
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain), t0 + a);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, gain*s), t0 + a + d);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + a + d + r);
+
+    o.connect(g);
+    if (p){ g.connect(p); p.pan.value = pan; p.connect(bus.sfx); }
+    else   { g.connect(bus.sfx); }
+
+    o.start(t0);
+    o.stop (t0 + a + d + r + 0.02);
+  }
+
+  // ノイズ（HP/LP可・ステレオ任意）
+  let NOISE_BUF = null;
+  function ensureNoise(){
+    if (!AC || NOISE_BUF) return;
+    const len = AC.sampleRate * 1.0;
+    const buf = AC.createBuffer(1, len, AC.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i=0;i<len;i++) ch[i] = Math.random()*2-1;
+    NOISE_BUF = buf;
+  }
   
-  /* ▼▼ ここから追加：ビュー縮尺 ▼▼ */
-let VIEW_SCALE = 1; // 1=等倍, 0.92=ちょい引き など
+function noise({
+  t0 = (AC ? AC.currentTime : 0),
+  dur = 0.06,
+  gain = 0.35,
+  hp = null,     // 例: 600
+  lp = null,     // 例: 2400
+  bp = null,     // 例: 1400（センター周波数）
+  q  = 6,        // bp 用 Q（細さ）
+  pan = 0
+} = {}){
+  if (!AC) return;
+  ensureNoise();
 
-function recomputeViewScale(){
-  const shortSide = Math.min(window.innerWidth, window.innerHeight);
-  const isPortrait = window.matchMedia && window.matchMedia('(orientation: portrait)').matches;
+  const s = AC.createBufferSource(); s.buffer = NOISE_BUF;
+  let node = s;
 
-  // 端末の短辺や縦持ちで“少し引く”
-  if (shortSide <= 380) {
-    VIEW_SCALE = 0.88;         // かなり小さい端末
-  } else if (shortSide <= 480 || isPortrait) {
-    VIEW_SCALE = 0.92;         // 一般的スマホ縦持ち
-  } else {
-    VIEW_SCALE = 1;            // タブレット/横持ち等は等倍
+  if (bp){
+    const f = AC.createBiquadFilter(); f.type = 'bandpass';
+    f.frequency.setValueAtTime(bp, t0);
+    f.Q.value = q;
+    node.connect(f); node = f;
+  }
+  if (hp){
+    const f = AC.createBiquadFilter(); f.type = 'highpass';
+    f.frequency.setValueAtTime(hp, t0);
+    node.connect(f); node = f;
+  }
+  if (lp){
+    const f = AC.createBiquadFilter(); f.type = 'lowpass';
+    f.frequency.setValueAtTime(lp, t0);
+    node.connect(f); node = f;
+  }
+
+  const g = AC.createGain();
+  g.gain.setValueAtTime(gain, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+  const p = (AC.createStereoPanner ? AC.createStereoPanner() : null);
+  if (p){ node.connect(p); p.pan.value = pan; p.connect(g); }
+  else  { node.connect(g); }
+  g.connect(bus.sfx);
+
+  s.start(t0);
+  s.stop(t0 + dur + 0.02);
+}
+
+
+  // カタログ（持続系の一時ノード置き場）
+  const live = { laser: null };
+
+  const sfx = {
+    // 既存（必要なら微調整してOK）
+    shot(opts={}){
+      const t = now();
+      const base = opts.freq || 1100;
+      tone({type:'square',   freq:base,    freq2:base*0.86, t0:t, a:0.003, d:0.05, r:0.06, gain:0.23, pan:opts.pan||0});
+      tone({type:'triangle', freq:base*0.5, freq2:base*0.43, t0:t, a:0.002, d:0.045, r:0.06, gain:0.12, pan:opts.pan||0});
+    },
+    enemyDown(opts={}){
+      const t = now();
+      noise({t0:t, dur:0.05, gain:0.24, hp:500, pan:opts.pan||0});
+      tone({type:'triangle', freq:220, freq2:180, t0:t, a:0.001, d:0.09, r:0.10, gain:0.22, pan:opts.pan||0});
+    },
+    pickup(){
+      const t = now();
+      tone({type:'sine', freq:1200, t0:t,       a:0.002, d:0.05, r:0.07, gain:0.22});
+      tone({type:'sine', freq:1600, t0:t+0.03,  a:0.002, d:0.05, r:0.07, gain:0.18});
+    },
+    levelUp(){
+      // 少し長く明るく
+      const t = now();
+      tone({type:'square',   freq:880,  t0:t,        a:0.005, d:0.10, r:0.14, gain:0.30});
+      tone({type:'square',   freq:1175, t0:t+0.09,   a:0.005, d:0.12, r:0.16, gain:0.28});
+      tone({type:'square',   freq:1568, t0:t+0.18,   a:0.006, d:0.14, r:0.18, gain:0.26});
+      tone({type:'triangle', freq:2093, t0:t+0.26,   a:0.006, d:0.16, r:0.20, gain:0.20});
+    },
+
+    // ── 新規：電撃・岩・ノヴァ・毒（既に入れていればそのままでOK） ──
+    lightning(){
+  const AC = window.AC; if (!AC || window.AUDIO_MUTED) return;
+  ensureNoise();
+  const t0 = AC.currentTime;
+  const total = 0.28;
+
+  // 1) 帯電の低い唸り（控えめ、耳に痛くない）
+  {
+    const o  = AC.createOscillator(); o.type = 'square'; o.frequency.setValueAtTime(120, t0);
+    const lfo = AC.createOscillator(); lfo.type='sine'; lfo.frequency.setValueAtTime(16, t0);
+    const lfg = AC.createGain(); lfg.gain.value = 8; // ±8Hz
+    lfo.connect(lfg); lfg.connect(o.frequency); lfo.start(t0); lfo.stop(t0 + total);
+
+    const g  = AC.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.20, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + total);
+
+    o.connect(g); g.connect(bus.sfx);
+    o.start(t0); o.stop(t0 + total);
+  }
+
+  // 2) スパーク（高域ノイズの破裂をランダムに数回）
+  const bursts = 5 + (Math.random()*2|0); // 5〜6発
+  for(let i=0;i<bursts;i++){
+    const st  = t0 + Math.random()*0.18;
+    const dur = 0.05 + Math.random()*0.04; // 50〜90ms
+    const n   = AC.createBufferSource(); n.buffer = NOISE_BUF;
+    const bp  = AC.createBiquadFilter(); bp.type='bandpass';
+    bp.frequency.value = 2500 + Math.random()*1500; bp.Q.value = 6 + Math.random()*4;
+
+    const hp  = AC.createBiquadFilter(); hp.type='highpass'; hp.frequency.value = 900;
+    const g   = AC.createGain();
+    g.gain.setValueAtTime(0.0001, st);
+    g.gain.exponentialRampToValueAtTime(0.32, st + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, st + dur);
+
+    n.connect(bp); bp.connect(hp); hp.connect(g); g.connect(bus.sfx);
+    n.start(st); n.stop(st + dur + 0.02);
+  }
+},
+
+ rockRoll(){
+  const AC = window.AC; if (!AC || window.AUDIO_MUTED) return;
+  ensureNoise();
+  const t0  = AC.currentTime;
+  const dur = 1.60 + Math.random()*0.25;
+
+  // 地鳴り（低域ノイズを厚めに2段LP）
+  const n   = AC.createBufferSource(); n.buffer = NOISE_BUF;
+  const lp1 = AC.createBiquadFilter(); lp1.type='lowpass'; lp1.frequency.value = 240; lp1.Q.value = 0.7;
+  const lp2 = AC.createBiquadFilter(); lp2.type='lowpass'; lp2.frequency.value = 180; lp2.Q.value = 0.7;
+  const g   = AC.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.32, t0 + 0.10);   // ふわっと立ち上げ
+  g.gain.exponentialRampToValueAtTime(0.12, t0 + dur*0.6);// ゆるく減衰
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);  // フェード
+
+  // 転がり感（音量トレモロ 3.5Hz）
+  const lfo = AC.createOscillator(); lfo.type='sine'; lfo.frequency.value = 3.5;
+  const lfg = AC.createGain(); lfg.gain.value = 0.10;
+  lfo.connect(lfg); lfg.connect(g.gain);
+
+  n.connect(lp1); lp1.connect(lp2); lp2.connect(g); g.connect(bus.sfx);
+  n.start(t0); n.stop(t0 + dur + 0.1);
+  lfo.start(t0); lfo.stop(t0 + dur);
+
+  // コツコツ当たる小石（80〜140Hzの短いトンを2〜4回）
+  const knocks = 2 + (Math.random()*3|0);
+  for(let i=0;i<knocks;i++){
+    const st = t0 + 0.15 + Math.random()*(dur-0.35);
+    const o  = AC.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(80 + Math.random()*60, st);
+    const og = AC.createGain();
+    og.gain.setValueAtTime(0.0001, st);
+    og.gain.exponentialRampToValueAtTime(0.18, st + 0.012);
+    og.gain.exponentialRampToValueAtTime(0.0001, st + 0.16 + Math.random()*0.06);
+    o.connect(og); og.connect(bus.sfx);
+    o.start(st); o.stop(st + 0.24);
+  }
+},
+
+    nova(){
+      const t = now();
+      tone({type:'sine', freq:220, freq2:420, t0:t, a:0.008, d:0.25, r:0.45, gain:0.32});
+      noise({t0:t+0.02, dur:0.35, gain:0.16, lp:800});
+    },
+    poison(){
+      const t = now();
+      noise({t0:t, dur:0.25, gain:0.10, lp:1200});
+      const n = 5 + (Math.random()*3|0);
+      for (let i=0;i<n;i++){
+        const dt = t + i*(0.035+Math.random()*0.02);
+        const f  = 520 + Math.random()*280;
+        tone({type:'sine', freq:f, t0:dt, a:0.001, d:0.04, r:0.06, gain:0.16});
+      }
+    },
+
+    // ── 重厚な爆発（ボス撃破） ──
+bossExplode(){
+  const t = now();
+
+  // 初期クラック（高域は控えめ）
+  noise({t0:t, dur:0.11, gain:0.34, hp:800, lp:2400});
+
+  // 主ブーム（超低域・長尾）
+  const o1 = AC.createOscillator(); o1.type='sine';
+  o1.frequency.setValueAtTime(52, t);
+  o1.frequency.exponentialRampToValueAtTime(45, t+1.6);
+  const g1 = AC.createGain();
+  g1.gain.setValueAtTime(0.0001, t);
+  g1.gain.exponentialRampToValueAtTime(0.9, t+0.03);
+  g1.gain.exponentialRampToValueAtTime(0.0001, t+1.7);
+  o1.connect(g1); g1.connect(bus.sfx);
+  o1.start(t); o1.stop(t+1.8);
+
+  // 中低域の衝撃層（短めに2層）
+  for (let i=0;i<2;i++){
+    const tt = t + 0.06 + i*0.05;
+    const o = AC.createOscillator(); o.type='triangle';
+    o.frequency.setValueAtTime(130, tt);
+    o.frequency.exponentialRampToValueAtTime(90, tt+0.35);
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, tt);
+    g.gain.exponentialRampToValueAtTime(0.45, tt+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, tt+0.5);
+    o.connect(g); g.connect(bus.sfx);
+    o.start(tt); o.stop(tt+0.55);
+  }
+
+  // デブリは“コロコロ成分”を削除：ノイズのみで散らす（高域控えめ）
+  for (let i=0;i<4;i++){
+    const dt = t + 0.10 + i*0.06;
+    noise({t0:dt, dur:0.06, gain:0.20, hp:700, lp:2200});
+  }
+
+  // 余韻の土埃（低域ノイズを長めに）
+  noise({t0:t+0.18, dur:1.2, gain:0.20, lp:450});
+},
+
+
+    // ── ボス：レーザービーム（開始／停止） ──
+bossLaserStart(){
+  if (!AC || live.laser) return;
+  const t = now();
+
+  // 連続音：やや低め＆デチューン少なめ
+  const o1 = AC.createOscillator(); o1.type = 'sawtooth'; o1.frequency.setValueAtTime(760, t);
+  const o2 = AC.createOscillator(); o2.type = 'sawtooth'; o2.frequency.setValueAtTime(772, t);
+  const n  = AC.createBufferSource(); ensureNoise(); n.buffer = NOISE_BUF;
+
+  // 帯域整形（刺さり帯域を減らす）
+  const bp = AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value = 1400; bp.Q.value = 3.2;
+  const lp = AC.createBiquadFilter(); lp.type='lowpass';  lp.frequency.value = 2100; // ←下げた
+
+  const g  = AC.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.26, t+0.04); // ←全体ゲイン小さめ
+  const p  = (AC.createStereoPanner? AC.createStereoPanner():null);
+
+  // 配線
+  o1.connect(g); o2.connect(g);
+  n.connect(bp); bp.connect(lp); lp.connect(g);
+  if (p){ g.connect(p); p.pan.value = 0; p.connect(bus.sfx); } else { g.connect(bus.sfx); }
+
+  // ノイズはさらに控えめ
+  const ng = AC.createGain(); ng.gain.value = 0.10; // ←下げた
+  lp.disconnect(); lp.connect(ng); ng.connect(g);
+  n.loop = true;
+
+  o1.start(t); o2.start(t); n.start(t);
+
+  live.laser = { o1, o2, n, g, ng, p, stopAt:null };
+},
+
+
+
+bossWave(){
+  if (!AC) return;
+  const t = now();
+
+  // 出力ミキサ：直音 + ディレイを束ねる
+  const mix = AC.createGain(); mix.connect(bus.sfx);
+
+  // ディレイ網（シンプルなフィードバック）
+  const d   = AC.createDelay();      d.delayTime.value = 0.14; // 140ms
+  const fb  = AC.createGain();       fb.gain.value     = 0.30; // フィードバック量
+  const dlpf= AC.createBiquadFilter(); dlpf.type='lowpass'; dlpf.frequency.value = 1600;
+
+  // 直列：d → lp → fb → d（ループ）、かつ lp から mix へ
+  d.connect(dlpf); dlpf.connect(fb); fb.connect(d);
+  dlpf.connect(mix);
+
+  // メイン低域トーン（ブワァン）
+  const o  = AC.createOscillator(); o.type='sine';
+  o.frequency.setValueAtTime(140, t);
+  o.frequency.exponentialRampToValueAtTime(70,  t+0.55);
+
+  const og = AC.createGain();
+  og.gain.setValueAtTime(0.0001, t);
+  og.gain.exponentialRampToValueAtTime(0.8, t+0.02);
+  og.gain.exponentialRampToValueAtTime(0.0001, t+0.65);
+
+  o.connect(og); og.connect(mix); og.connect(d); // 直音+ディレイへ送る
+  o.start(t); o.stop(t+0.7);
+
+  // 帯域ノイズで厚み
+  const ns = AC.createBufferSource(); ensureNoise(); ns.buffer = NOISE_BUF;
+  const bp = AC.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=520; bp.Q.value=1.4;
+  const ng = AC.createGain(); ng.gain.setValueAtTime(0.18, t);
+  ng.gain.exponentialRampToValueAtTime(0.0001, t+0.45);
+
+  ns.connect(bp); bp.connect(ng); ng.connect(mix); ng.connect(d);
+  ns.start(t); ns.stop(t+0.5);
+},
+
+
+warnLevelUp(){
+  const t = now();
+  // 降下するマイナー2音（短いブザー風）
+  const f1 = 740;  // F#5
+  const f2 = 622;  // D#5（短三度下）
+  for (let i=0;i<2;i++){
+    const tt = t + i*0.18;
+    const o = AC.createOscillator(); o.type='square';
+    o.frequency.setValueAtTime(f1, tt);
+    o.frequency.exponentialRampToValueAtTime(f2, tt+0.12);
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, tt);
+    g.gain.exponentialRampToValueAtTime(0.35, tt+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, tt+0.14);
+    o.connect(g); g.connect(bus.sfx);
+    o.start(tt); o.stop(tt+0.18);
+  }
+},
+
+warnBoss(){
+  const t = now();
+  const reps = 3;           // 3連発
+  const dur  = 0.42;        // 1発の長さ（ブィーーーの尺）
+  const gap  = 0.09;        // 発と発の間
+  const f0   = 520;         // 低い出発周波数
+  const f1   = 1100;        // 高い到達周波数（上昇終点）
+
+  for (let i = 0; i < reps; i++){
+    const tt = t + i * (dur + gap);
+
+    // ざらつきの核：デチューンした鋸波2本を上昇させる
+    const o1 = AC.createOscillator(); o1.type = 'sawtooth';
+    const o2 = AC.createOscillator(); o2.type = 'sawtooth';
+    o1.frequency.setValueAtTime(f0, tt);
+    o2.frequency.setValueAtTime(f0 * 1.015, tt); // ほんの少し上にデチューン
+    // 低→高へ上昇（指数ランプで“うねり感”）
+    o1.frequency.exponentialRampToValueAtTime(f1, tt + dur * 0.9);
+    o2.frequency.exponentialRampToValueAtTime(f1 * 1.015, tt + dur * 0.9);
+
+    // 「ザラつき」成分：帯域ノイズを中央周波数ごと上昇させて混ぜる
+    const ns = AC.createBufferSource(); ensureNoise(); ns.buffer = NOISE_BUF;
+    const bp = AC.createBiquadFilter(); bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(900, tt);
+    bp.frequency.exponentialRampToValueAtTime(1700, tt + dur * 0.9);
+    bp.Q.value = 6;
+
+    const ng = AC.createGain();  // ノイズ量
+    ng.gain.setValueAtTime(0.12, tt);
+    ng.gain.exponentialRampToValueAtTime(0.10, tt + dur);
+
+    ns.connect(bp); bp.connect(ng);
+
+    // 上の刺さりを少しだけ落とすLPF（ブィーーーの耳当たり調整）
+    const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+
+    // ゲート包絡（素早い立上げ→保持→リリース）
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0001, tt);
+    g.gain.exponentialRampToValueAtTime(0.42, tt + 0.016);    // Attack
+    g.gain.setValueAtTime(0.42, tt + dur - 0.08);             // Hold
+    g.gain.exponentialRampToValueAtTime(0.0001, tt + dur);    // Release
+
+    // ルーティング
+    o1.connect(lp); o2.connect(lp); lp.connect(g);
+    ng.connect(g);
+    g.connect(bus.sfx);
+
+    // 発音
+    o1.start(tt); o2.start(tt); ns.start(tt);
+    o1.stop(tt + dur + 0.03); o2.stop(tt + dur + 0.03); ns.stop(tt + dur + 0.03);
   }
 }
-/* ▲▲ ここまで追加 ▲▲ */
-  
-  function resize(){
-    DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-    const r = cv.getBoundingClientRect();
-    W = Math.floor(r.width * DPR);
-    H = Math.floor(r.height * DPR);
-    cv.width = W; cv.height = H;
-    
-    // ▼ 追加：端末条件に応じて縮尺を決める
-  recomputeViewScale();
+  };
 
-  // ▼ 変更：スケール込みで描画変換
-ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  window.sfx = sfx; // 公開
+
+})();
+
+
+// === Debug: SFX hotkeys (1..0 + L/W/U/B + M) ===============================
+(function(){
+  function play(name){ initAudioOnce(); if (window.sfx && sfx[name]) sfx[name](); }
+
+  document.addEventListener('keydown', (ev)=>{
+    const k = ev.key;
+
+    // SFX テスト
+    if      (k === '1') play('shot');
+    else if (k === '2') play('enemyDown');
+    else if (k === '3') play('pickup');
+    else if (k === '4') play('levelUp');
+    else if (k === '5') play('lightning');
+    else if (k === '6') play('rockRoll');
+    else if (k === '7') play('nova');
+    else if (k === '8') play('poison');
+    else if (k === '9') play('warnLevelUp');
+    else if (k === '0') play('bossExplode');
+
+    // レーザー／波状／警告
+    else if (k === 'l' || k === 'L'){ // レーザーOn/Off切替
+      initAudioOnce();
+      if (sfx.bossLaserIsOn && sfx.bossLaserIsOn()) sfx.bossLaserStop();
+      else if (sfx.bossLaserStart) sfx.bossLaserStart();
+    }
+    else if (k === 'w' || k === 'W'){ play('bossWave'); }
+    else if (k === 'u' || k === 'U'){ play('warnLevelUp'); }
+    else if (k === 'b' || k === 'B'){ play('warnBoss'); }
+
+    // 追加：ミュート切替（保存＆アイコン更新）
+    else if (k === 'm' || k === 'M'){
+      initAudioOnce();
+      const next = !window.AUDIO_MUTED;
+
+      if (typeof window.setAudioMuted === 'function'){
+        setAudioMuted(next);
+      }else{
+        // 万一 setAudioMuted が無い版へのフォールバック
+        window.AUDIO_MUTED = next;
+        const AC = window.AC;
+        if (window.bus && bus.master && AC){
+          const t = AC.currentTime;
+          bus.master.gain.setTargetAtTime(next ? 0.0001 : 1.0, t, 0.03);
+        }
+      }
+
+      if (typeof saveMute === 'function') saveMute(next);
+      if (typeof refreshSoundIcon === 'function') refreshSoundIcon();
+    }
+
+  }, {passive:true});
+})();
+
+
+
+// === 固定アスペクトのプレイ領域（4:3 / 3:4） ===
+const ASPECT_L = 4/3;
+const ASPECT_P = 3/4;
+const UI_TOP_BAR_CSS = 84; // 上帯の実寸(px)
+
+// HUDをノッチから少し下げる（px）
+const HUD_TOP_OFFSET_CSS = 10;
+
+// === World size（実寸）===
+const WORLD_L = { w: 1200, h: 900 }; // 横長
+const WORLD_P = { w: 900, h: 1200 }; // 縦長
+const WORLD   = { w: WORLD_L.w, h: WORLD_L.h };
+
+const PLAY = { x:0, y:0, w:0, h:0, aspect:ASPECT_L, isPortrait:false };
+
+function computePlayRect(){
+  const vw = W / DPR, vh = H / DPR;
+
+  // 向きとアスペクト
+  const isPortrait = vw <= vh;
+  const target = isPortrait ? ASPECT_P : ASPECT_L;
+
+  // CSSの --safe-top を取得
+  const safeTopPx = parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--safe-top')
+  ) || 0;
+
+  // 縦向きのときだけ、上に「ノッチ＋オフセット＋HUD高」を確保
+  const topBar = isPortrait ? (safeTopPx + HUD_TOP_OFFSET_CSS + UI_TOP_BAR_CSS) : 0;
+  const availH = Math.max(0, vh - topBar);
+
+  // 3:4 / 4:3 を残り領域にフィット
+  let w, h;
+  if (vw / availH > target){ h = availH; w = h * target; }
+  else { w = vw; h = w / target; if (h > availH){ h = availH; w = h * target; } }
+
+  const x = Math.floor((vw - w)/2);
+  // ★縦は“HUDの直下にぴったり”配置／横は中央寄せ
+  const y = isPortrait ? Math.floor(topBar) : Math.floor((vh - h)/2);
+
+  PLAY.x = x; PLAY.y = y; PLAY.w = w; PLAY.h = h;
+  PLAY.aspect = target; PLAY.isPortrait = isPortrait;
+
+  // WORLD 切替（従来どおり）
+  if (isPortrait){ WORLD.w = WORLD_P.w; WORLD.h = WORLD_P.h; }
+  else           { WORLD.w = WORLD_L.w; WORLD.h = WORLD_L.h; }
 }
+
+function updateDock(){
+  const dock = document.getElementById('dock');
+  if(!dock) return;
+  const vw = W / DPR, vh = H / DPR;
+
+  if(PLAY.isPortrait){
+    // 縦長：下の黒帯に
+    dock.style.left   = PLAY.x + 'px';
+    dock.style.top    = (PLAY.y + PLAY.h) + 'px';
+    dock.style.width  = PLAY.w + 'px';
+    dock.style.height = Math.max(0, vh - (PLAY.y + PLAY.h)) + 'px';
+    dock.className = 'portrait';
+  }else{
+    // 横長：右の黒帯に
+    dock.style.left   = (PLAY.x + PLAY.w) + 'px';
+    dock.style.top    = PLAY.y + 'px';
+    dock.style.width  = Math.max(0, vw - (PLAY.x + PLAY.w)) + 'px';
+    dock.style.height = PLAY.h + 'px';
+    dock.className = 'landscape';
+  }
+
+  // 面積が取れない時は非表示
+  const ww = parseFloat(dock.style.width)||0, hh = parseFloat(dock.style.height)||0;
+  dock.style.display = (ww > 1 && hh > 1) ? 'block' : 'none';
+}
+
+function updateHudTop(){
+  const el = document.getElementById('hudTop');
+  if (!el) return;
+
+  // 縦向きだけ表示（横では隠す）
+  if (!PLAY.isPortrait){
+    el.style.display = 'none';
+    return;
+  }
+
+  // 幅はプレイ面に合わせ、上端は「ノッチ分＋オフセット」だけ下げる
+  el.style.left   = PLAY.x + 'px';
+  el.style.top    = `calc(var(--safe-top) + ${HUD_TOP_OFFSET_CSS}px)`;
+  el.style.width  = PLAY.w + 'px';
+  el.style.height = UI_TOP_BAR_CSS + 'px';
+  el.style.display = 'block';
+}
+
+function ensurePcTimer(){
+  let el = document.getElementById('pcTimer');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'pcTimer';
+    el.textContent = '0:00';
+    document.body.appendChild(el);        // ← dock ではなく body へ
+  }
+  // 表示はJS側で制御したいならここで block に
+  el.style.display = 'block';
+}
+
+function positionPcTimer(){
+  const el = document.getElementById('pcTimer');
+  if (!el || !window.PLAY) return;
+
+  const isPortrait = !!PLAY.isPortrait;
+  if (isPortrait){
+    // 縦：プレイ領域の下黒帯に幅ピッタリで中央表示
+    el.style.left   = PLAY.x + 'px';
+    el.style.width  = PLAY.w + 'px';
+    el.style.textAlign = 'center';
+    el.style.top    = 'auto';
+    el.style.right  = 'auto';
+    el.style.bottom = 'calc(env(safe-area-inset-bottom) + 12px)';
+    el.style.transform = 'none';
+  } else {
+    // 横：右上（HUDの下）＋muteボタン幅を避ける
+    el.style.width  = '';
+    el.style.left   = 'auto';
+    el.style.right  = 'calc(env(safe-area-inset-right) + 12px + var(--snd-offset, 0px))';
+    el.style.top    = 'calc(env(safe-area-inset-top) + 92px)';
+    el.style.bottom = 'auto';
+    el.style.textAlign = 'right';
+    el.style.transform = 'none';
+  }
+  el.style.display = 'block';
+}
+
+
+  
+function resize(){
+  DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  const r = cv.getBoundingClientRect();
+  W = Math.floor(r.width * DPR);
+  H = Math.floor(r.height * DPR);
+  cv.width = W; 
+  cv.height = H;
+
+  // 等倍描画（縮小はしない）
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+// プレイ枠の再計算 → ドック配置 → HUD生成 → HUD位置更新（この順）
+computePlayRect();
+updateDock();
+ensurePcTimer();  // ← 追加：PC用タイマーを一度作っておく
+ensureTopHud();
+ensureSoundButton(); 
+layoutTopRightUI(); 
+positionPcTimer();
+updateHudTop();
+
+}
+
+// 画面にサウンドボタンを必ず作る（縦=HUD内 / 横=ドック右寄せ）
+function ensureSoundButton(){
+  let el = document.getElementById('btnSound');
+  if (!el){
+    el = document.createElement('button');
+    el.id = 'btnSound';
+    el.innerHTML = `<span class="icon">🔊</span><span class="label">SOUND</span>`;
+    el.title = 'Sound On/Off (M)';
+    el.addEventListener('click', ()=>{
+      initAudioOnce();
+      const next = !window.AUDIO_MUTED;
+      if (typeof window.setAudioMuted === 'function') setAudioMuted(next);
+      else {
+        // フォールバック
+        window.AUDIO_MUTED = next;
+        const AC = window.AC;
+        if (window.bus && bus.master && AC){
+          const t = AC.currentTime;
+          bus.master.gain.setTargetAtTime(next ? 0.0001 : 1.0, t, 0.03);
+        }
+      }
+      if (typeof saveMute === 'function') saveMute(next);
+      refreshSoundIcon();
+    }, {passive:true});
+    document.body.appendChild(el); // canvasより上に固定
+  }
+  refreshSoundIcon();
+  layoutTopRightUI();
+}
+
+function refreshSoundIcon(){
+  const el = document.getElementById('btnSound');
+  if (!el) return;
+  const muted = !!window.AUDIO_MUTED;
+  el.dataset.muted = String(muted);
+  const icon  = el.querySelector('.icon');
+  const label = el.querySelector('.label');
+  if (icon)  icon.textContent  = muted ? '🔇' : '🔊';
+  if (label) label.textContent = muted ? 'MUTE' : 'SOUND';
+}
+
+
+// 保存されたミュート状態を起動時に反映
+(function(){
+  const m = loadSavedMute();
+  if (typeof window.setAudioMuted === 'function') setAudioMuted(m);
+  else window.AUDIO_MUTED = !!m;
+})();
+
   new ResizeObserver(resize).observe(cv); resize();
   
   window.addEventListener('orientationchange', resize);
 window.addEventListener('resize', resize);
+window.addEventListener('resize', layoutTopRightUI);
+
 
 
   const rnd = (a,b)=>a+Math.random()*(b-a);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   
-  // 追加：ズームに応じた世界境界（左右上下の広がり）を返す
+// 置換：ワールド内の絶対境界（移動・アイテム用）
 function worldBounds(radius = 0){
-  const vw = W / DPR, vh = H / DPR;
-  // ズーム取得（state.cameraZoom を最優先。無ければ VIEW_SCALE、どちらも無ければ 1）
-  const z = (state && typeof state.cameraZoom === 'number') ? state.cameraZoom :
-            (typeof VIEW_SCALE !== 'undefined' ? VIEW_SCALE : 1);
-  // ズームで広がった“余白”量（左右/上下それぞれ半分ずつ広がる）
-  const ex = (vw * (1 / z - 1)) * 0.5;
-  const ey = (vh * (1 / z - 1)) * 0.5;
   return {
-    minX: radius - ex,
-    maxX: vw - radius + ex,
-    minY: radius - ey,
-    maxY: vh - radius + ey
+    minX: 0 + radius,
+    maxX: WORLD.w - radius,
+    minY: 0 + radius,
+    maxY: WORLD.h - radius
   };
 }
+
+// 追加：現在ズームで見えている中央の切り抜き（スポーン用）
+function visibleBounds(radius = 0){
+  const z = (typeof state?.cameraZoom === 'number' && state.cameraZoom > 1) ? state.cameraZoom : 1;
+  // z=1 なら WORLD 全面が見えている。z>1 なら中央を (1/z) 倍で切り抜き
+  const vw = WORLD.w / z;
+  const vh = WORLD.h / z;
+  const minX = (WORLD.w - vw) * 0.5 + radius;
+  const maxX = (WORLD.w + vw) * 0.5 - radius;
+  const minY = (WORLD.h - vh) * 0.5 + radius;
+  const maxY = (WORLD.h + vh) * 0.5 - radius;
+  return { minX, maxX, minY, maxY };
+}
+
   
   
   const dist2=(x1,y1,x2,y2)=>{const dx=x2-x1, dy=y2-y1; return dx*dx+dy*dy;}
@@ -390,6 +1421,30 @@ const timeFloatEl = document.getElementById('timeFloat');
   const pickLeftEl = document.getElementById('pickLeft');
   const startEl = document.getElementById('start');
   const startBtn = document.getElementById('startBtn');
+  
+// Start押下でBGMを読み込み＆再生（1回だけ）
+(function(){
+  const btn = document.getElementById('startBtn');
+  if (!btn || !window.bgm) return;
+
+  btn.addEventListener('click', ()=>{
+    try{
+      // AudioContext を確実に用意＆再開
+      if (window.initAudioOnce) initAudioOnce();
+      if (window.AC && AC.state === 'suspended') AC.resume();
+
+      // BGM を必ずロード→音量設定→再生
+      bgm.load('main.mp3');      // index.html と同じ階層のファイル名
+      bgm.setVolume(0.30);       // 初期音量（お好みで）
+      const p = bgm.play();
+      if (p && p.catch) p.catch(e=>console.warn('BGM play blocked:', e));
+    }catch(e){
+      console.warn('BGM start error:', e);
+    }
+  }, {once:true});
+})();
+
+  
   const goEl = document.getElementById('gameover');
   // === 大きいスコア表示 用スタイル注入（1回だけ） ===
 (() => {
@@ -416,53 +1471,49 @@ const timeFloatEl = document.getElementById('timeFloat');
   const clearEl = document.getElementById('gameclear');
 const replayBtn = document.getElementById('replayBtn');
 
-// === camera zoom resolver (mobileは強めに引く) ===
+// === camera zoom resolver（全端末で等倍固定。拡大・縮小を禁止） ===
 function computeCameraZoom(){
-  const dpr = (typeof DPR !== 'undefined' ? DPR : (window.devicePixelRatio || 1));
-  const vw  = cv.width / dpr, vh = cv.height / dpr;
+  state.cameraZoom = 1.0;
+}
 
-  const isPortrait =
-    (window.matchMedia && window.matchMedia('(orientation: portrait)').matches) || false;
+function ensureTopHud(){
+  const host = document.getElementById('hudTop');
+  if (!host || host.dataset.init) return;
 
-  // ← これが無かったのがエラー原因
-  const isTouch =
-    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
-    ('ontouchstart' in window) ||
-    (navigator.maxTouchPoints > 0);
+  host.dataset.init = '1';
+  host.innerHTML = `
+    <div class="tophud tophud3" style="height:100%;display:flex;flex-direction:column;gap:6px;padding:0 10px;">
+      <!-- 1行目：HP -->
+      <div class="row row1" style="display:flex;align-items:center;gap:8px;">
+        <span class="label" style="font-size:12px;opacity:.9;min-width:28px;text-align:right;">HP</span>
+        <div class="bar hp" style="position:relative;flex:1;height:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden">
+          <!-- 初期は緑で描画（後でJSが％に応じて赤へ切替）-->
+          <i id="hpTop" style="position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#27e38a,#12c574)"></i>
+        </div>
+        <span class="v" id="hpTopVal" style="font-weight:700;letter-spacing:.02em;white-space:nowrap"></span>
+      </div>
 
-  // 基準ズーム
-  let z = 1.0;
+      <!-- 2行目：EX -->
+      <div class="row row2" style="display:flex;align-items:center;gap:8px;">
+        <span class="label" style="font-size:12px;opacity:.9;min-width:28px;text-align:right;">EX</span>
+        <div class="bar xp" style="position:relative;flex:1;height:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden">
+          <i id="xpTop" style="position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#6ae3ff,#4da6ff)"></i>
+        </div>
+        <span class="v" id="xpTopVal" style="font-weight:700;letter-spacing:.02em;white-space:nowrap"></span>
+      </div>
 
-  // モバイルは引き気味
-  if (isTouch){
-    z = isPortrait ? 0.60 : 0.65;
-    const shortSide = Math.min(vw, vh);
-    if (shortSide < 380) z = isPortrait ? 0.50 : 0.56;
-  }
-
-  // PC の超大画面は“寄せる”（可視領域の上限）
-  const MAX_VIEW_W = 1600;  // 横の最大可視幅（好みで調整）
-  const MAX_VIEW_H = 840;   // 縦の最大可視高（好みで調整）
-  const MAX_Z_CAP  = 2.2;   // ズームイン上限
-
-  if (!isTouch){
-    const needZ = Math.max(vw / MAX_VIEW_W, vh / MAX_VIEW_H); // >1 でズームイン
-    if (needZ > 1){
-      z = Math.min(Math.max(z, needZ), MAX_Z_CAP);
-    }
-  }
-
-  state.cameraZoom = z;
+      <!-- 3行目：Lv / WL / タイマー -->
+      <div class="row row3" style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
+        <span class="v" style="font-weight:700;letter-spacing:.02em">Lv <b id="lvTop">1</b> / WL <b id="wlTop">1</b></span>
+        <span class="v" id="timeTop" style="font-weight:800;letter-spacing:.03em">0:00</span>
+      </div>
+    </div>
+  `;
 }
 
 
 
-
-const pauseBtn = document.getElementById('pauseBtn'); 
-// 固定ジョイスティックのDOMが残っていたら除去（安全策）
-document.querySelectorAll('[data-fixed-joy], .joystick, .stick, .stick-L, .stick-R, #joyLeft, #joyRight')
-  .forEach(el => el.parentNode && el.parentNode.removeChild(el));
-
+const pauseBtn = document.getElementById('btnPause'); 
 
 // === Floating Joystick listeners ===
 let joyBase = document.getElementById('joyBase');
@@ -530,66 +1581,65 @@ cv.addEventListener('touchend', (ev)=>{
 cv.addEventListener('touchcancel', ()=>{ joyHide(); }, {passive:true});
 
 
-// === resize: 縦横切り替えでズーム更新 ===
-window.addEventListener('resize', ()=>{
-  try { if (typeof fitCanvas === 'function') fitCanvas(); } catch(e){}
-  computeCameraZoom();
-});
-
 
 const scoreVal = document.getElementById('scoreVal');
 
 
 
-// === Debug hotkeys on Start screen (H/F/N inside IIFE) ===
-document.addEventListener('keydown', (ev)=>{
-  // タイトル表示中のみ有効
-  const s = document.getElementById('start');
-  if (!s || s.style.display === 'none') return;
+// === Debug hotkeys on Start screen (H / N / F) =========================
+(function(){
+  if (window._debugKeysInstalled) return;
+  window._debugKeysInstalled = true;
 
-  const k = ev.key;
-  if (k === 'h' || k === 'H') {
-    state.mode.hardcore = true;
-    state._debugSkipToFinal = false;   // 念のためリセット
-    state._didSkipFinal = false;
-    showStartToast('HARDCORE: ON');
-  } else if (k === 'n' || k === 'N') {
-    state.mode.hardcore = false;       // ← ノーマルへ戻す
-    state._debugSkipToFinal = false;
-    state._didSkipFinal = false;
-    showStartToast('NORMAL: ON');
-  } else if (k === 'f' || k === 'F') {
-    state._debugSkipToFinal = true;    // ループ先頭で timeSec（または elapsed）を進める
-    state._didSkipFinal = false;
-    if (startBtn) startBtn.click();    // そのまま開始
-    showStartToast('Skip to FINAL BOSS');
+  function showStartToast(msg){
+    let t = document.getElementById('startToast');
+    const host = document.getElementById('start') || document.body;
+    if (!t){
+      t = document.createElement('div');
+      t.id = 'startToast';
+      t.style.cssText = 'position:fixed;left:50%;top:12%;transform:translateX(-50%);' +
+                        'padding:8px 12px;background:rgba(0,0,0,.8);color:#fff;' +
+                        'border:1px solid rgba(255,255,255,.12);border-radius:10px;' +
+                        'font-weight:700;letter-spacing:.02em;z-index:9999;pointer-events:none;' +
+                        'opacity:0;transition:opacity .12s ease';
+      host.appendChild(t);
+    }
+    t.textContent = msg;
+    requestAnimationFrame(()=>{ t.style.opacity = '1'; });
+    setTimeout(()=>{ t.style.opacity = '0'; }, 900);
   }
-});
 
-// シンプルなトースト表示
-function showStartToast(msg){
-  let el = document.getElementById('startToast');
-  if (!el){
-    el = document.createElement('div');
-    el.id = 'startToast';
-    el.style.position = 'fixed';
-    el.style.left = '50%';
-    el.style.top = '12%';
-    el.style.transform = 'translateX(-50%)';
-    el.style.padding = '8px 14px';
-    el.style.background = 'rgba(0,0,0,.6)';
-    el.style.color = '#fff';
-    el.style.fontSize = '14px';
-    el.style.borderRadius = '10px';
-    el.style.pointerEvents = 'none';
-    el.style.zIndex = '9999';
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.opacity = '1';
-  clearTimeout(el._timer);
-  el._timer = setTimeout(()=>{ el.style.opacity='0'; }, 900);
-}
+  document.addEventListener('keydown', (ev)=>{
+    // タイトル表示中のみ有効
+    const s = document.getElementById('start');
+    if (!s || s.style.display === 'none') return;
+    if (!window.state) return;
+    state.mode = state.mode || {};
+
+    const k = ev.key;
+    if (k === 'h' || k === 'H') {
+      state.mode.hardcore = true;
+      document.body.dataset.hc = state.mode.hardcore ? '1' : '';
+      state._debugSkipToFinal = false;
+      state._didSkipFinal = false;
+      showStartToast('HARDCORE: ON');
+    } else if (k === 'n' || k === 'N') {
+      state.mode.hardcore = false;
+      document.body.dataset.hc = state.mode.hardcore ? '1' : '';
+      state._debugSkipToFinal = false;
+      state._didSkipFinal = false;
+      showStartToast('NORMAL: ON');
+    } else if (k === 'f' || k === 'F') {
+      // 次のゲーム開始時に最終戦へスキップ
+      state._debugSkipToFinal = true;
+      state._didSkipFinal = false;
+      const startBtn = document.getElementById('startBtn') || s.querySelector('button');
+      if (startBtn) startBtn.click();
+      showStartToast('Skip to FINAL BOSS');
+    }
+  }, {passive:true});
+})();
+
 
 // クリックで再スタート
 replayBtn.onclick = () => {
@@ -757,9 +1807,11 @@ function updateEndScore(kind){ // kind: 'over' | 'clear'
     // Clear arrays
     state.enemies.length=0; state.bullets.length=0; state.enemyBullets.length=0;
     state.gems.length=0; state.sparks.length=0; state.effects.length=0; state.items.length=0;
-    // Reset player
-    state.player.x = (cv.width / DPR) / 2;
-    state.player.y = (cv.height / DPR) / 2;
+// Reset player
+state.player.x = WORLD.w * 0.5;
+state.player.y = WORLD.h * 0.5;
+state.player.aimAngle = 0; // 初期向き（右向き相当）
+
     state.player.r = 14;
     state.player.speed = 170;
     state.player.maxHp = 110;
@@ -842,6 +1894,14 @@ state.records = JSON.parse(localStorage.getItem('vs_records') || '[]'); // [{sco
 
   }
 
+function hoistPcTimerToBody(){
+  const el = document.getElementById('pcTimer');
+  if (el && el.parentNode !== document.body){
+    document.body.appendChild(el);
+  }
+}
+
+
 function updateHUD(){
   lvEl.textContent = state.player.level;
 
@@ -873,47 +1933,73 @@ if (state.mode.hardcore) {
 
 if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
 
+// === Top HUD 同期 ===
+(function(){
+  const p = state.player;
+  if (!p) return;
+
+  const hpNow = Math.max(0, Math.min(p.hp, p.maxHp || 0));
+  const hpPct = (p.maxHp > 0) ? (hpNow / p.maxHp) * 100 : 0;
+
+  // XP / 次レベル必要量
+  const xp = Math.max(0, state?.player?.xp || 0);
+  let needXP = 0;
+  if (typeof p.nextXp === 'function')           needXP = p.nextXp(p.level);
+  else if (typeof state?.nextXp === 'function') needXP = state.nextXp(p.level);
+  else if (typeof state?.xpToNext === 'function') needXP = state.xpToNext(p.level);
+  const xpPct = needXP > 0 ? Math.min(100, (xp / needXP) * 100) : 0;
+
+  // 参照要素
+  const hpTop    = document.getElementById('hpTop');
+  const hpTopVal = document.getElementById('hpTopVal');
+  const xpTop    = document.getElementById('xpTop');
+  const xpTopVal = document.getElementById('xpTopVal');
+  const lvTop    = document.getElementById('lvTop');
+  const wlTop    = document.getElementById('wlTop');
+  const timeTop  = document.getElementById('timeTop');
+
+  // HP：幅＆色（20%以下で赤／それ以外は緑）
+  if (hpTop){
+    hpTop.style.width = hpPct.toFixed(1) + '%';
+    const low = hpPct <= 20;
+    hpTop.style.background = low
+      ? 'linear-gradient(90deg,#ff6464,#ff3a3a)'
+      : 'linear-gradient(90deg,#27e38a,#12c574)';
+  }
+  if (hpTopVal) hpTopVal.textContent = `${Math.floor(hpNow)} / ${p.maxHp || 0}`;
+
+  // EX：幅＆数値
+  if (xpTop)    xpTop.style.width = xpPct.toFixed(1) + '%';
+  if (xpTopVal) xpTopVal.textContent = needXP > 0 ? `${Math.floor(xp)} / ${needXP}` : `${Math.floor(xp)}`;
+
+  // Lv / 武器Lv
+  if (lvTop) lvTop.textContent = p.level || 1;
+  const wl =
+    (state?.weapons?.main?.level) ??
+    (state?.weaponLevel) ??
+    (p?.weaponLevel) ?? 1;
+  if (wlTop) wlTop.textContent = wl;
+
+  // タイマー（mm:ss）— 一度だけ計算して両方に使う
+  const t  = Math.max(0, Math.floor(state?.timeSec || 0));
+  const mm = String(Math.floor(t/60));
+  const ss = String(t%60).padStart(2,'0');
+
+  if (timeTop) timeTop.textContent = `${mm}:${ss}`;
+// 大タイマーも同期（表示位置は positionPcTimer で調整）
+const pcTimer = document.getElementById('pcTimer');
+if (pcTimer){
+  pcTimer.textContent = `${mm}:${ss}`;
+  pcTimer.style.display = 'block';
+  if (typeof positionPcTimer === 'function') positionPcTimer();
 }
 
+  
+  
+})();
 
-  // Joystick + keyboard（固定ジョイは無くてもOKにする）
-  const joyEl = document.getElementById('joy');
-  const knob  = joyEl ? joyEl.querySelector('i') : null;
-  let joyId = null, joyCenter = null;
 
-  function setJoy(dx, dy){
-    if (!knob) return; // ← 無ければ何もしない
-    const mag = Math.hypot(dx,dy);
-    const max = 55;
-    const nx = (mag>0?dx/mag:0), ny=(mag>0?dy/mag:0);
-    const r = Math.min(max, mag);
-    knob.style.left = (70 + nx*r) + 'px';
-    knob.style.top  = (70 + ny*r) + 'px';
-    state.input.vx = nx; state.input.vy = ny;
-    if(mag>6){ state.input.lastDir = {x:nx, y:ny}; }
-  }
-  function resetJoy(){
-    if (!knob) { state.input.vx=0; state.input.vy=0; return; }
-    knob.style.left='50%'; knob.style.top='50%';
-    state.input.vx=0; state.input.vy=0;
-  }
 
-  // 固定ジョイスティック用のリスナーは、要素があるときだけ登録
-  if (joyEl && knob){
-    joyEl.addEventListener('touchstart', e=>{
-      const t = e.changedTouches[0]; joyId = t.identifier;
-      const r = joyEl.getBoundingClientRect();
-      joyCenter = { x:r.left + r.width/2, y:r.top + r.height/2 };
-      setJoy(t.clientX - joyCenter.x, t.clientY - joyCenter.y);
-    }, {passive:false});
-    joyEl.addEventListener('touchmove', e=>{
-      for(const t of e.changedTouches){
-        if (t.identifier===joyId) { setJoy(t.clientX - joyCenter.x, t.clientY - joyCenter.y); e.preventDefault(); }
-      }
-    }, {passive:false});
-    joyEl.addEventListener('touchend', e=>{
-      for(const t of e.changedTouches){ if (t.identifier===joyId){ joyId=null; resetJoy(); } }
-    });
   }
 
   
@@ -1223,16 +2309,23 @@ function addXP(v){
   }
 }
 
-  // ==== 修正版 offerUpgrades ====
-  function offerUpgrades(){
-    const pool = ALL_UPGRADES.filter(u => u.can());
-    const choices = [];
-    while (choices.length < 3 && pool.length) {
-      const i = (Math.random() * pool.length) | 0;
-      choices.push(pool.splice(i, 1)[0]);
-    }
-    showLevelUp(choices);
+// ==== 修正版 offerUpgrades（リロール対応） ====
+function pickUpgradeChoices(n=3){
+  const pool = ALL_UPGRADES.filter(u => u.can());
+  const choices = [];
+  while (choices.length < n && pool.length) {
+    const i = (Math.random() * pool.length) | 0;
+    choices.push(pool.splice(i, 1)[0]);
   }
+  return choices;
+}
+
+function offerUpgrades(){
+  // このレベルアップ中にリロールを使ったかどうか（1回だけ）
+  window._rerollUsedThisLevel = false;
+  const choices = pickUpgradeChoices(3);
+  showLevelUp(choices);
+}
 
 function xpMulByTime(){
   if(state.timeSec < 360) return 1.0;              // 〜6:00 は等倍
@@ -1240,28 +2333,73 @@ function xpMulByTime(){
   return 1.0 + t * 0.8;                            // 10:00で最大1.8倍（例）
 }
 
-  // ==== 修正版 showLevelUp ====
+// ==== 修正版 showLevelUp（リロール対応） ====
 function showLevelUp(choices){
+  // 参照は毎回取り直し（スコープ差異・重複定義対策）
+  const levelupEl = document.getElementById('levelup');
+  const cardRow   = document.getElementById('cardRow');
+  if (!levelupEl || !cardRow) return;
+
   state.paused = true;
   levelupEl.style.display = 'flex';
   cardRow.innerHTML = '';
 
+  // 選択カードを並べる（従来と同じ）
   for (const u of choices) {
     const c = document.createElement('button');
-    c.className = 'card';                        // ← openChest と同じ
+    c.className = 'card';
     c.innerHTML = `<h3>${u.name}</h3><p>${u.desc || ''}</p>`;
     c.onclick = () => {
+      // 能力を適用して閉じる
       u.apply();
       state.paused = false;
       levelupEl.style.display = 'none';
       cardRow.innerHTML = '';
+      // 次のレベルアップではまた1回リロール可能に
+      window._rerollUsedThisLevel = false;
+      // リロールボタンが残っていれば念のため無効化
+      const btn = document.getElementById('rerollBtn');
+      if (btn) btn.disabled = true;
     };
     cardRow.appendChild(c);
   }
 
-  const first = cardRow.querySelector('.card');  // ← 最初のカードにフォーカス
+  // ===== リロール・ボタン（このレベルアップ中は1回だけ） =====
+  let rr = document.getElementById('rerollBtn');
+  if (!rr){
+    rr = document.createElement('button');
+    rr.id = 'rerollBtn';
+    rr.className = 'btn';
+    rr.textContent = 'リロール（1回だけ）';
+    // レイアウトは控えめに：カード行の下へ配置
+    rr.style.margin = '12px auto 0';
+    rr.style.display = 'block';
+    levelupEl.appendChild(rr);
+  }
+  // 状態反映
+  rr.disabled = !!window._rerollUsedThisLevel;
+  rr.textContent = window._rerollUsedThisLevel ? 'リロール使用済み' : 'リロール（1回だけ）';
+
+  rr.onclick = () => {
+    if (window._rerollUsedThisLevel) return;
+    window._rerollUsedThisLevel = true;
+    // 新しい3択を作り直して、同じUIに差し替え
+    const newChoices = pickUpgradeChoices(3);
+    showLevelUp(newChoices);
+    // 今回は使用済みにする
+    const btn = document.getElementById('rerollBtn');
+    if (btn){
+      btn.disabled = true;
+      btn.textContent = 'リロール使用済み';
+    }
+  };
+
+  // 最初のカードにフォーカス（キーボード操作のしやすさ向上）
+  const first = cardRow.querySelector('.card');
   if (first) first.focus();
 }
+
+
   // === Weapons with Awaken ===
   const weapons = {
 blaster:{ short:'BL', name:'ブラスター', lv:1, awaken:false, cd:0, baseRate:.48, baseDmg:12, baseSpeed:360, range:500, rangeAwaken:660,
@@ -1294,6 +2432,7 @@ for(const o of positions){
     dmg: (dmg * state.mods.dmgMul) / Math.max(1, shotCount * 0.90), // ★ 調整
     life: lifeEach
       });
+
 }
         this.cd = rate * state.mods.rateMul;
       }
@@ -1301,7 +2440,7 @@ for(const o of positions){
     shotgun:{
   short:'SG', name:'ショットガン',
   lv:0, awaken:false, cd:0,
-  baseRate:1.2, baseDmg:18, baseSpeed:340, // ★ 基礎ダメージUP（12→15）
+  baseRate:1.2, baseDmg:20, baseSpeed:340, // ★ 基礎ダメージUP（12→15）
   update(dt){
     if(this.lv<=0) return;
     this.cd -= dt; if(this.cd>0) return;
@@ -1309,8 +2448,8 @@ for(const o of positions){
     const target = nearestEnemy(state.player.x, state.player.y);
     if(!target) return;
 
-    const count = 4 + (this.lv-1)*2;                // 弾数は今のまま
-    const spread = 0.6 - 0.1*(this.lv-1);           // 拡散も今のまま
+    const count = 5 + (this.lv-1)*2;                // 弾数は今のまま
+    const spread = 0.2 - 0.02*(this.lv-1);           // 拡散も今のまま
     const dmg = (this.baseDmg + 3*(this.lv-1))      // ★ 伸び率を+3に強化（+2→+3）
                  * state.mods.dmgMul;
 
@@ -1421,8 +2560,8 @@ rock:{
 
     const sizeBase = (24 + (this.lv-1)*9) * state.mods.sizeMul; // 少しだけ大きめ
     const speed    = 170;                                      // 150→170
-    const baseDmg  = (28 + 10*(this.lv-1)) * state.mods.dmgMul; // 18+6*(lv-1) → 28+10*(lv-1)
-    const bossMul  = 1.25; // mid/big/final には25%増し
+    const baseDmg  = (25 + 10*(this.lv-1)) * state.mods.dmgMul; // 18+6*(lv-1) → 28+10*(lv-1)
+    const bossMul  = 1.1; // mid/big/final には25%増し
 
 const addRock=(ang)=>{
   const sz  = sizeBase * (this.awaken ? 2.0 : 1.0);
@@ -1466,6 +2605,88 @@ orbit:{
   }
 },
     
+blade:{
+  short:'BD', name:'ブレード', lv:0, awaken:false, cd:0,
+  // 調整しやすい基礎値
+  short:'BD', name:'ブレード', lv:0, awaken:false, cd:0,
+  baseRate: 1.10,     // ← 発生は少し遅め（近接リスクのご褒美に）
+  baseDmg:  55,       // ← 威力UP（元:26）
+  span:     Math.PI * 0.62, // 横に広い
+  inner:    10,             // 足元の当たり開始
+  outer:    130,            // 最大到達（基礎）
+  fxSpeed:  360,            // ← 見た目の前進速度UP（元:220）
+  reachLv:  22,             // ← Lvごとに“到達距離”を+18px
+
+
+update(dt){
+  if (this.lv <= 0) return;
+  this.cd -= dt; if (this.cd > 0) return;
+
+  // 向き：移動方向（停止中のみ最近敵へフォールバック）
+  let dir = state.input.lastDir;
+  if (Math.hypot(dir.x, dir.y) < 0.1){
+    const t = nearestEnemy(state.player.x, state.player.y);
+    if (t){
+      const a = Math.atan2(t.y - state.player.y, t.x - state.player.x);
+      dir = { x: Math.cos(a), y: Math.sin(a) };
+    } else {
+      dir = { x: 1, y: 0 };
+    }
+  }
+  const baseAng = Math.atan2(dir.y, dir.x);
+
+  // 連撃数：Lvで +1（最大3）、覚醒で6
+  const count = this.awaken ? 6 : Math.min(1 + (this.lv - 1), 3);
+
+  // ★ レベルに応じた“到達距離”ボーナスとダメージ補正
+  const reachBonus = (this.reachLv || 0) * Math.max(0, this.lv - 1);
+  const innerR = this.inner * state.mods.sizeMul;
+  const outerR = (this.outer + reachBonus) * state.mods.sizeMul;
+  const dmgBase = this.baseDmg * (1 + 0.25 * (this.lv - 1)); // ← 成長率UP（元:0.18）
+
+  const comboDelay = 0.1; // 1発ごとの時差
+  for (let i = 0; i < count; i++){
+    const off = (i - (count - 1)/2) * 0.10; // 角度ずらし
+    schedule(() => {
+      const a = baseAng + off;
+
+      // ---- ダメージ（当たり判定）：到達距離をLvで伸ばす ----
+      const dmg = Math.round(dmgBase * state.mods.dmgMul);
+      dealSlashDamage(
+        state.player.x, state.player.y,
+        a, this.span,
+        innerR, outerR,
+        dmg
+      );
+
+      // ---- 見た目（前へ出ながらフェード）：速度もLvで少し増加 ----
+      const v = (this.fxSpeed || 360) + 100 * Math.max(0, this.lv - 1); // ← 前進距離をレベルで増やす
+      addEffect('slash', {
+        x: state.player.x, y: state.player.y,
+        ang: a, span: this.span,
+        inner: this.inner * state.mods.sizeMul,
+        outer: (this.outer + reachBonus) * state.mods.sizeMul,
+        life: 0.16 + 0.01 * Math.max(0, this.lv - 1), // 少し長く見せる
+        life0: 0.16 + 0.01 * Math.max(0, this.lv - 1),
+        vx: Math.cos(a) * v,
+        vy: Math.sin(a) * v,
+        comboIdx: i
+      });
+    }, i * comboDelay);
+  }
+
+// 次発までのクールダウン（Lvで短縮、覚醒でさらに少し短縮）
+const lv = Math.max(1, this.lv);
+// 係数 0.85 = 1LvごとにCTを15%短縮（幾何減衰）。下限は 0.35s
+const ct = Math.max(0.35, this.baseRate * Math.pow(0.85, lv - 1) * (this.awaken ? 0.90 : 1.0));
+this.cd = ct * state.mods.rateMul;
+
+
+}
+
+},
+    
+    
 ghost:{
   short:'GH', name:'ゴースト', lv:0, awaken:false,
   cd:0, baseRate:1.10, ang:0,   // ← angを持たせて回転管理
@@ -1494,7 +2715,7 @@ ghost:{
         if(!t) continue;
 
         const base = Math.atan2(t.y-gy, t.x-gx);
-        const spread = 0.14; // 3発の拡散
+        const spread = 0.3; // 3発の拡散
         for(const off of [0, -spread, spread]){
           state.bullets.push({
             type:'ghost',             // ← 区別できるよう変更
@@ -1502,7 +2723,7 @@ ghost:{
             vx:Math.cos(base+off)*360,
             vy:Math.sin(base+off)*360,
             r:6*state.mods.sizeMul,   // ← 少し大きめ
-            dmg:(3 + 3*(this.lv-1)) * (this.awaken ? 1.1 : 1.0) * state.mods.dmgMul,
+            dmg:(2.5 + 3*(this.lv-1)) * (this.awaken ? 1.1 : 1.0) * state.mods.dmgMul,
             life:3.0,
             pierce:3                  // ← 貫通回数3
           });
@@ -1560,8 +2781,8 @@ poison:{
       update(dt){
         if(this.lv<=0) return;
         this.cd -= dt; if(this.cd<=0){
-          const R = (this.baseR + 18*(this.lv-1)) * state.mods.sizeMul;
-          const dmg = (this.baseDmg + 8*(this.lv-1)) * state.mods.dmgMul;
+          const R = (this.baseR + 22*(this.lv-1)) * state.mods.sizeMul;
+          const dmg = (this.baseDmg + 10*(this.lv-1)) * state.mods.dmgMul;
           addEffect('nova',{x:state.player.x,y:state.player.y,r:R, life:.25});
           for(const e of state.enemies){
             const d = Math.hypot(e.x-state.player.x, e.y-state.player.y);
@@ -1583,7 +2804,7 @@ poison:{
     e.kby = (e.kby || 0) + ny * kb;
     
       // === ここにスタン効果を追加 ===
-  const base = 0.12; // 秒
+  const base = 0.20; // 秒
   const resist = (e.type==='final') ? 0.35 : 
                  (e.type==='big'||e.type==='mid') ? 0.6 : 
                  1.0;
@@ -1674,6 +2895,29 @@ function strikeLightning(hit, mult){
     return out;
   }
 
+// 扇形 [inner..outer] × [ang ± span/2] にいる敵へ一括ダメ＆軽いノックバック
+function dealSlashDamage(cx, cy, ang, span, inner, outer, dmg){
+  for(let j=state.enemies.length-1;j>=0;j--){
+    const e = state.enemies[j];
+    const dx = e.x - cx, dy = e.y - cy;
+    const d  = Math.hypot(dx,dy);
+    if (d < inner || d > outer) continue;
+    let a = Math.atan2(dy,dx) - ang;
+    // -PI..PI に正規化
+    if (a >  Math.PI) a -= Math.PI*2;
+    if (a < -Math.PI) a += Math.PI*2;
+    if (Math.abs(a) <= span*0.5){
+      e.hp -= dmg;
+      e.hitFlash = Math.max(e.hitFlash || 0, 0.12);
+      // ほんのりノックバック（手応え）
+      const nx = Math.cos(ang), ny = Math.sin(ang);
+      e.x += nx * 14; e.y += ny * 14;
+      if (e.hp <= 0){ safeKillEnemy(j); } // 安全な既存死亡処理
+    }
+  }
+}
+
+
   function buildZigPath(x2,y2,segments){
     const x1 = x2; const y1 = -30;
     const pts=[[x1,y1]];
@@ -1741,11 +2985,11 @@ const U = {
   maxhp: {
     id: 'maxhp+',
     name: '最大HPアップ',
-    desc: '+15%最大HP（上限あり）',
+    desc: '+10%最大HP（上限あり）',
     can: () => state.player.maxHp < CAPS.hpMax - 1,
     apply: () => {
       const before = state.player.maxHp;
-      state.player.maxHp = Math.min(CAPS.hpMax, Math.round(state.player.maxHp * 1.15));
+      state.player.maxHp = Math.min(CAPS.hpMax, Math.round(state.player.maxHp * 1.10));
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + Math.round(state.player.maxHp * 0.15));
       if (state.player.maxHp === before) {
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
@@ -1775,10 +3019,10 @@ const U = {
   atkRate: {
     id: 'rate+',
     name: '攻撃速度アップ',
-    desc: 'クールダウン -12%（下限あり）',
+    desc: 'クールダウン -10%（下限あり）',
     can: () => state.mods.rateMul > CAPS.rateMulMin + 1e-6,
     apply: () => {
-      state.mods.rateMul = Math.max(CAPS.rateMulMin, state.mods.rateMul * 0.88);
+      state.mods.rateMul = Math.max(CAPS.rateMulMin, state.mods.rateMul * 0.90);
       if (state.mods.rateMul === CAPS.rateMulMin) {
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '最速!' });
       }
@@ -1788,11 +3032,11 @@ const U = {
   atkDmg: {
     id: 'dmg+',
     name: '与ダメージアップ',
-    desc: 'ダメージ +15%（上限あり）',
+    desc: 'ダメージ +8%（上限あり）',
     can: () => state.mods.dmgMul < CAPS.dmgMulMax - 1e-6,
     apply: () => {
       const before = state.mods.dmgMul;
-      state.mods.dmgMul = Math.min(CAPS.dmgMulMax, state.mods.dmgMul * 1.15);
+      state.mods.dmgMul = Math.min(CAPS.dmgMulMax, state.mods.dmgMul * 1.08);
       if (state.mods.dmgMul === before) {
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
       }
@@ -1802,11 +3046,11 @@ const U = {
   sizeUp: {
     id: 'size+',
     name: '弾サイズアップ',
-    desc: '弾・範囲 +12%（上限あり）',
+    desc: '弾・範囲 +10%（上限あり）',
     can: () => state.mods.sizeMul < CAPS.sizeMulMax - 1e-6,
     apply: () => {
       const before = state.mods.sizeMul;
-      state.mods.sizeMul = Math.min(CAPS.sizeMulMax, state.mods.sizeMul * 1.12);
+      state.mods.sizeMul = Math.min(CAPS.sizeMulMax, state.mods.sizeMul * 1.10);
       if (state.mods.sizeMul === before) {
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
       }
@@ -1832,6 +3076,7 @@ const ALL_UPGRADES = [
   U.weaponAdd('homing'),    U.weaponUp('homing'),    U.weaponAwaken('homing'),
   U.weaponAdd('ghost'),     U.weaponUp('ghost'),     U.weaponAwaken('ghost'),
   U.weaponAdd('poison'), U.weaponUp('poison'), U.weaponAwaken('poison'),
+    U.weaponAdd('blade'), U.weaponUp('blade'), U.weaponAwaken('blade'),
   U.weaponUp('blaster'),    U.weaponAwaken('blaster'), // 既存武器の強化/覚醒
   U.speed, U.maxhp, U.regen, U.pickup, U.atkRate, U.atkDmg, U.sizeUp ,U.doubleItem
 ];
@@ -1847,6 +3092,15 @@ function loop(now){
   // dt はこの1回だけ計算し、state.last もここで1回だけ更新
 let dt = Math.min((now - state.last) / 1000, 0.05);
   state.last = now;
+  
+  // ---- tiny per-frame scheduler (pausable) ----
+state._q ||= [];
+for (let i = state._q.length - 1; i >= 0; i--) {
+  const t = state._q[i];
+  if (!state.paused) t.t -= dt;     // ポーズ中は進めない
+  if (t.t <= 0) { try { t.fn(); } catch (_) {} state._q.splice(i, 1); }
+}
+
 
   // === デバッグ：Fキーでラスボス戦にワープ ===
   if (state._debugSkipToFinal && !state._didSkipFinal){
@@ -1878,6 +3132,19 @@ try {
       draw(); requestAnimationFrame(loop); return;
     }
 
+// --- Debug: Skip to FINAL BOSS once ------------------------------------
+if (state._debugSkipToFinal && !state._didSkipFinal){
+  // あなたのゲームが 10分(=600秒)でボス出現なら、9:58 にワープ
+  const target = 600 - 2;
+  const tNow = Math.max(0, Math.floor(state.timeSec || 0));
+  if (tNow < target){
+    state.timeSec = target;
+    // 併用している時間系があれば合わせる
+    if (typeof state.elapsedMs === 'number') state.elapsedMs = target * 1000;
+    if (typeof state.elapsed   === 'number') state.elapsed   = target * 1000;
+  }
+  state._didSkipFinal = true;
+}
 
 
 // === GameOverは完全停止（描画だけして抜ける）
@@ -1887,6 +3154,11 @@ if (state.gameover){
   return;
 }
 
+// 合成 pause を先に反映（手動ポーズ／レベルアップ／宝箱）
+const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
+const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
+state.paused = !!(lvlOpen || chestOpen || state.manualPaused);
+
 // オーバーレイ/手動いずれかで停止していたらここで抜ける
 if (state.paused){
   draw();
@@ -1894,11 +3166,6 @@ if (state.paused){
   return;
 }
 
-
-// === オーバーレイ停止 + 手動停止を合成
-const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
-const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
-state.paused = !!(lvlOpen || chestOpen || state.manualPaused);
 
 // === GameOverは完全停止（描画だけして抜ける）
 if (state.gameover){
@@ -1958,6 +3225,11 @@ if (state.touchJoy && state.touchJoy.active) {
 // 正規化 & 最終向き
 const pm = Math.hypot(vx, vy) || 0;
 if (pm > 0) { vx /= pm; vy /= pm; state.input.lastDir = { x:vx, y:vy }; }
+
+// ★ 進行方向を角度で保持（移動中のみ更新）
+if (state.player && pm > 0) {
+  state.player.aimAngle = Math.atan2(vy, vx);  // -π..π
+}
 
 
 
@@ -2059,7 +3331,20 @@ if (b.type === 'rock') {
   continue;
 }
 
-  // 敵との当たり判定
+// === Safe enemy kill (drop() が無い環境でも落ちない) ===
+function safeKillEnemy(index){
+  const e = state.enemies && state.enemies[index];
+  if (!e) return;
+  try { if (typeof addEffect === 'function') addEffect('pop', {x:e.x, y:e.y}); } catch(_){}
+  // drop() が無ければ簡易XPドロップ
+  try {
+    if (typeof drop === 'function') drop(e);
+    else if (Array.isArray(state.gems)) state.gems.push({x:e.x, y:e.y, v:1});
+  } catch(_){}
+  try { state.enemies.splice(index, 1); } catch(_){}
+}
+
+
  // 敵との当たり判定
 let rockHitThisFrame = false; // rock は複数体に当てるためのフラグ
 for(let j=state.enemies.length-1;j>=0;j--){
@@ -2099,6 +3384,27 @@ for(let j=state.enemies.length-1;j>=0;j--){
     } else if(b.type==='ghost'){
       if(b.pierce > 0){ b.pierce--; } else { state.bullets.splice(i,1); }
       break; // ゴーストも1体で次フレームへ
+
+      } else if (b.type === 'slash') {
+        // 斬撃：寿命で消える。1体につき1回だけダメージ
+        if (!b._hit) b._hit = new Set();
+        if (!b._hit.has(e)) {
+          e.hp -= b.dmg;
+          e.hitFlash = Math.max(e.hitFlash||0, 0.12);
+
+          // 軽いノックバック（方向＝斬撃の向き）
+          const a = b.ang || Math.atan2(b.vy, b.vx);
+          const kb = (state.weapons && state.weapons.blade && state.weapons.blade.awaken) ? 220 : 160;
+          e.kbx = (e.kbx||0) + Math.cos(a)*kb;
+          e.kby = (e.kby||0) + Math.sin(a)*kb;
+
+          b._hit.add(e);
+          // （斬撃は貫通扱いなので弾は消さない）
+if (e.hp <= 0) {
+  safeKillEnemy(j);
+}
+        }
+
 
     } else if(b.type==='rock'){
       // rock は消さずに次の敵判定も続行（同フレームで複数体に当たる）
@@ -2662,6 +3968,9 @@ if (e.type === 'final') {
     }
     for(let i=state.effects.length-1;i>=0;i--){
       const e=state.effects[i]; 
+      if (e.vx) e.x += e.vx * dt;
+if (e.vy) e.y += e.vy * dt;
+
       e.life-=dt; 
       if(e.life<=0){ state.effects.splice(i,1); }
     }
@@ -2864,27 +4173,67 @@ function drawChestIcon(ctx, x, y, r, t){
 function draw(){
 
   try {
-  ctx.clearRect(0,0,cv.width,cv.height);
-// grid（置き換え）
-ctx.save();
-ctx.globalAlpha = .06;           // 少し薄め
-ctx.strokeStyle = '#666';        // ほんのり暗く
-const step = 44;                 // 目も疲れにくい少し広め
-for (let x = 0; x < cv.width / DPR; x += step) {
-  ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cv.height / DPR); ctx.stroke();
-}
-for (let y = 0; y < cv.height / DPR; y += step) {
-  ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cv.width / DPR, y); ctx.stroke();
-}
-ctx.restore();
+    ctx.clearRect(0,0,cv.width,cv.height);
 
-// === ワールド縮尺：画面中心基準で「少し引く」 ===
-ctx.save();
-const z  = state.cameraZoom || 1.0;
-const vw = cv.width / DPR, vh = cv.height / DPR;
-ctx.translate(vw * 0.5, vh * 0.5);
-ctx.scale(z, z);
-ctx.translate(-vw * 0.5, -vh * 0.5);
+    // ===== 背景 =====
+    const vw = cv.width / DPR, vh = cv.height / DPR;
+    const px = PLAY.x, py = PLAY.y, pw = PLAY.w, ph = PLAY.h;
+
+    // 余白（情報エリア側を含む）をうっすら暗く
+    ctx.fillStyle = '#0b0b0b';
+    // 上下
+    ctx.fillRect(0, 0, vw, py);
+    ctx.fillRect(0, py + ph, vw, Math.max(0, vh - (py + ph)));
+    // 左右
+    ctx.fillRect(0, py, px, ph);
+    ctx.fillRect(px + pw, py, Math.max(0, vw - (px + pw)), ph);
+
+    // プレイ面の下地
+    ctx.fillStyle = '#101010';
+    ctx.fillRect(px, py, pw, ph);
+
+    // ===== グリッド（WORLD単位で一定の間隔）=====
+    ctx.save();
+    ctx.beginPath(); ctx.rect(px, py, pw, ph); ctx.clip();
+
+    // WORLD座標で描くため、先に同じ変換を掛ける
+    ctx.translate(px + pw*0.5, py + ph*0.5);
+    const sFitOnly = Math.min(pw / WORLD.w, ph / WORLD.h);
+    ctx.scale(sFitOnly, sFitOnly);
+    ctx.translate(-WORLD.w * 0.5, -WORLD.h * 0.5);
+
+    ctx.globalAlpha = .06;
+    ctx.strokeStyle = '#666';
+
+    const stepWorld = 64; // WORLD上のマス目サイズ（お好みで）
+    for (let x = 0; x <= WORLD.w; x += stepWorld){
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, WORLD.h); ctx.stroke();
+    }
+    for (let y = 0; y <= WORLD.h; y += stepWorld){
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(WORLD.w, y); ctx.stroke();
+    }
+    ctx.restore();
+
+    // ===== ワールド変換：プレイ面の中心を原点に（WORLD基準）=====
+    ctx.save();
+
+    // 画面のプレイ枠(PLAY)に、WORLD(実寸)を等倍で入れるスケール
+    const sFit = Math.min(pw / WORLD.w, ph / WORLD.h);
+
+    // 既存のカメラズームがあれば掛け合わせ
+    const z = (typeof state?.cameraZoom === 'number') ? state.cameraZoom : 1;
+
+    // プレイ枠の中心へ → WORLDをフィット倍率×ズームでスケール → WORLD(0..w,0..h)の左上を原点へ
+    ctx.translate(px + pw*0.5, py + ph*0.5);
+    ctx.scale(sFit * z, sFit * z);
+    ctx.translate(-WORLD.w * 0.5, -WORLD.h * 0.5);
+
+    // プレイ枠外（黒帯）に描かれないよう、WORLD内でクリップ
+ctx.beginPath();
+ctx.rect(0, 0, WORLD.w, WORLD.h);
+ctx.clip();
+
+    // ▼▼ この下は既存のワールド描画（items, enemies, bullets など） ▼▼
 
 // ▼▼ ここからプレイヤー／敵／弾／床など“ワールド”の描画（既存） ▼▼
 
@@ -2930,6 +4279,23 @@ for (const b of state.bullets){
       if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
     }
     ctx.closePath(); ctx.fill(); ctx.restore();
+
+    } else if (b.type === 'slash') {
+      // 三日月っぽい斬撃
+      ctx.save();
+      ctx.translate(b.x, b.y);
+      ctx.rotate(b.ang || Math.atan2(b.vy, b.vx));
+      const outer = b.r * 1.2;
+      const inner = Math.max(outer * 0.45, 8);
+      ctx.beginPath();
+      ctx.arc(0, 0, outer, -0.6, 0.6);
+      ctx.arc(0, 0, inner, 0.6, -0.6, true);
+      ctx.closePath();
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
 
   } else if (b.type === 'homing'){
     // 既存そのまま
@@ -3195,6 +4561,48 @@ for (const ef of state.effects) {
     ctx.fill();
     ctx.restore();
 
+} else if (ef.type === 'slash') {
+  const a = Math.max(0, ef.life / (ef.life0 || 0.18));
+  ctx.save();
+  ctx.translate(ef.x, ef.y);
+  ctx.rotate(ef.ang);
+
+  const R    = (ef.outer + ef.inner) * 0.5;
+  // ★ 太さの基準：1/3（既に適用しているならそのまま）
+  const Wbase = (ef.outer - ef.inner) * 0.33;
+
+  // ★ 連撃の段に応じて少しだけ“強調”
+  const boost = ef.comboIdx ? Math.min(0.12 * ef.comboIdx, 0.24) : 0; // 2段目=+0.12
+  const W = Wbase * (1.0 + boost);          // 少しだけ太く
+  const span = ef.span;
+  const LAYERS = 6;
+
+  // --- 外側ブルーグロー ---
+  ctx.globalAlpha = (0.45 + boost*0.6) * a;  // 2段目は少し明るく
+  ctx.strokeStyle = '#4cc3ff';
+  ctx.lineCap     = 'round';
+  ctx.shadowBlur  = 18;
+  ctx.shadowColor = '#9fd3ff';
+  for (let i = 0; i < LAYERS; i++) {
+    const t = i / (LAYERS - 1);
+    const lw   = W * (0.52 - 0.36 * t);
+    const trim = span * (0.06 + boost*0.02) * t; // 端を少し多めに削って切れ味UP
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    ctx.arc(0, 0, R, -span * 0.5 + trim, span * 0.5 - trim);
+    ctx.stroke();
+  }
+
+  // --- 白ハイライト ---
+  ctx.shadowBlur  = 0;
+  ctx.globalAlpha = (0.88 + boost*0.1) * a;
+  ctx.strokeStyle = '#e8fbff';
+  ctx.lineWidth   = Math.max(2, W * 0.18);
+  ctx.beginPath();
+  ctx.arc(0, 0, R, -span * 0.5 + span * (0.08 + boost*0.02), span * 0.5 - span * (0.08 + boost*0.02));
+  ctx.stroke();
+
+  ctx.restore();
 } else if (ef.type === 'poisonField') {
   ctx.save();
   const a = Math.max(0, ef.life / (ef.life0 || 5));
@@ -3325,29 +4733,30 @@ for (const ef of state.effects) {
     ctx.stroke();
     ctx.restore();
 
-  } else if (ef.type === 'megaNova') {
-    // 本爆発：でかい光輪＋淡い塗り、少し長め
-    ctx.save();
-    const a = Math.max(0, ef.life); // 0.9 → 0
-    const R = ef.r * (1 - a * 0.5);
+} else if (ef.type === 'megaNova') {
+  // 本爆発：でかい光輪＋淡い塗り、少し長め
+  ctx.save();
+  const a = Math.max(0, ef.life); // 0.9 → 0
+  const R = ef.r * (1 - a * 0.5);
 
-    // 外輪（強発光）
-    ctx.globalAlpha = 0.95 * a;
-    ctx.strokeStyle = '#fff4c1';
-    ctx.lineWidth = 12;
-    ctx.shadowBlur = 36;
-    ctx.shadowColor = '#fffbe3';
-    ctx.beginPath();
-    ctx.arc(ef.x, ef.y, R, 0, Math.PI * 2);
-    ctx.stroke();
+  // 外輪（強発光）
+  ctx.globalAlpha = 0.95 * a;
+  ctx.strokeStyle = '#fff4c1';
+  ctx.lineWidth = 12;
+  ctx.shadowBlur = 36;
+  ctx.shadowColor = '#fffbe3';
+  ctx.beginPath();
+  ctx.arc(ef.x, ef.y, R, 0, Math.PI * 2);
+  ctx.stroke();
 
-    // 塗り
-    ctx.globalAlpha = 0.28 * a;
-    ctx.fillStyle = '#fff1b3';
-    ctx.beginPath();
-    ctx.arc(ef.x, ef.y, R * 0.95, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+  // 塗り
+  ctx.globalAlpha = 0.28 * a;
+  ctx.fillStyle = '#fff1b3';
+  ctx.beginPath();
+  ctx.arc(ef.x, ef.y, R * 0.95, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
 
 } else if (ef.type === 'whitePulse') {
   // 予備パルス：小さく白く光る玉（charge_boomで使用）
@@ -3700,6 +5109,29 @@ updateEndScore('clear');
   }
 }
 
+// === Compatibility shim: safeKillEnemy ===
+function safeKillEnemy(idxOrEnemy){
+  // idx(数値)でもオブジェクトでもOKにする
+  let e = (typeof idxOrEnemy === 'number') ? (state.enemies && state.enemies[idxOrEnemy]) : idxOrEnemy;
+  if (!e || e.dead) return;
+
+  try { if (typeof addEffect === 'function') addEffect('pop', {x:e.x, y:e.y}); } catch(_){}
+
+  // XPドロップ（dropGem が無ければフェイルセーフ）
+  try {
+    if (typeof dropGem === 'function') dropGem(e.x, e.y, 1);
+    else if (Array.isArray(state.gems)) state.gems.push({x:e.x, y:e.y, v:1});
+  } catch(_){}
+
+  e.dead = true; e.hp = 0;
+  try {
+    const i = state.enemies ? state.enemies.indexOf(e) : -1;
+    if (i >= 0) state.enemies.splice(i, 1);
+  } catch(_){}
+}
+
+function schedule(fn, delaySec){ (state._q || (state._q=[])).push({fn, t: Math.max(0, delaySec||0)}); }
+
 
 function gameOver(){
   state.paused = true;
@@ -3760,19 +5192,14 @@ function spawnFinalBoss(){
 
 
 </script>
-<div id="hcBadges" class="hc-badges">
-  <span class="badge">XP 75%</span>
-  <span class="badge">敵 自動回復</span>
-    <span class="badge">攻撃&体力×1.5</span>
 
-</div>
 
 <!-- Floating Joystick -->
 <div id="joyBase"></div>
 <div id="joyKnob"></div>
 
-<!-- hidden stub for legacy fixed joystick -->
-<div id="joy" style="display:none"><i></i></div>
+
+
 
 </body>
 
