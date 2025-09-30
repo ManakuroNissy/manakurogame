@@ -478,6 +478,27 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
 
 // === Audio Core =========================================================
 
+// === Audio Unlock (desktop autoplay対策・一度だけ) =======================
+(function(){
+  let done = false;
+  function unlock(){
+    if (done) return; done = true;
+    try{
+      if (window.initAudioOnce) initAudioOnce();
+      if (window.AC && AC.state === 'suspended') AC.resume();
+      // すでにBGMが読めていてミュートでなければ再生
+      if (window.bgm && bgm.isReady && bgm.isReady() && !window.AUDIO_MUTED){
+        const p = bgm.play(); if (p && p.catch) p.catch(()=>{});
+      }
+    }catch(_){}
+    ['pointerdown','keydown','touchstart','visibilitychange']
+      .forEach(ev=>window.removeEventListener(ev, unlock, true));
+  }
+  ['pointerdown','keydown','touchstart','visibilitychange']
+    .forEach(ev=>window.addEventListener(ev, unlock, true));
+})();
+
+
 // === BGM (file-based, loop, SOUNDに連動) ================================
 (function(){
   function AC_(){
