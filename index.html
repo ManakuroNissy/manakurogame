@@ -205,12 +205,22 @@ padding-left:  var(--hud-lpad);
   padding-right: var(--hud-rpad);
   margin-top:    var(--hud-tpad);
   box-sizing:    border-box; /* 念のため */
+  /* HUD上段がノッチにかぶらないよう安全領域分だけ下げる */
+#hudTop, .hud{
+  padding-top: calc(8px + var(--safe-top));
+}
 }
 
 :root{
   --hud-lpad: calc(env(safe-area-inset-left, 0px) + 12px);  /* 左余白（初期） */
   --hud-rpad: calc(env(safe-area-inset-right,0px) + 12px);  /* 右余白（初期） */
   --hud-tpad: 0px;                                          /* 上マージン（初期） */
+  
+    /* iOS等のノッチ安全領域をCSS変数化 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 /* === LevelUp layout === */
@@ -3414,18 +3424,6 @@ if (b.type === 'rock') {
   continue;
 }
 
-// === Safe enemy kill (drop() が無い環境でも落ちない) ===
-function safeKillEnemy(index){
-  const e = state.enemies && state.enemies[index];
-  if (!e) return;
-  try { if (typeof addEffect === 'function') addEffect('pop', {x:e.x, y:e.y}); } catch(_){}
-  // drop() が無ければ簡易XPドロップ
-  try {
-    if (typeof drop === 'function') drop(e);
-    else if (Array.isArray(state.gems)) state.gems.push({x:e.x, y:e.y, v:1});
-  } catch(_){}
-  try { state.enemies.splice(index, 1); } catch(_){}
-}
 
 
  // 敵との当たり判定
@@ -3448,6 +3446,35 @@ for(let j=state.enemies.length-1;j>=0;j--){
     }
     e.hp -= dmg;
     e.hitFlash = Math.max(e.hitFlash, 0.12);
+    
+// ★ 即死チェック：ヒット直後に確定ドロップ（finalは既存ルートに任せる）
+if (e.hp <= 0) {
+  if (e.type === 'final') {
+    // ラスボスは従来の処理に任せる（演出や遷移があるため）
+  } else if (e.type === 'mid' || e.type === 'big') {
+    // 中/大型ボスは宝箱ドロップ
+    state.items.push({ kind:'chest', x:e.x, y:e.y, r:14, t:0 });
+    if (typeof addEffect === 'function') addEffect('pop', {x:e.x, y:e.y});
+    state.killScore = (state.killScore||0) + 1;
+    state.enemies.splice(j, 1);
+    break;
+  } else {
+    // 通常ザコは安全即死関数に寄せる（XPドロップ保証）
+    if (typeof safeKillEnemy === 'function') {
+      safeKillEnemy(j);
+    } else if (typeof dropGem === 'function') {
+      dropGem(e.x, e.y, 1);
+      state.enemies.splice(j, 1);
+    } else {
+      (state.gems||(state.gems=[])).push({x:e.x, y:e.y, r:6, val:1});
+      state.enemies.splice(j, 1);
+    }
+    state.killScore = (state.killScore||0) + 1;
+    break;
+  }
+}
+
+    
     spark(b.x,b.y, b.type==='rock'? 5 : 4);
 
     if(b.type==='homing'){
