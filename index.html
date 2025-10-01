@@ -3017,7 +3017,7 @@ const R = baseR * (1.35 + 0.12*(lv-1)) * (this.awaken ? 1.20 : 1.00);
           
 // ★敵ループの“直後”に 3% 回復（1回のノヴァにつき一度）
 if (hits > 0){
-  const gained = healPlayerPercent(3); // 3% 固定
+const gained = healPlayerPercent(getNovaHitHealPercent()); // レベル/覚醒で 2/3/4%
   if (gained > 0){
     addEffect('text', {
       text: `+${gained.toFixed(gained < 1 ? 1 : 0)}`,
@@ -5465,6 +5465,8 @@ if (!e._counted) {
 }
 
 
+
+
 // ---- Heal helpers (robust, single source of truth) ----
 function _getPlayer() {
   // どちらかから確実に取る（今後のリファクタでも壊れにくく）
@@ -5498,6 +5500,28 @@ function healPlayerPercent(percent){
   return healPlayer(maxHp * pct);
 }
 
+// === NOVA 回復レート ===
+function _getNovaLevel(){
+  return (state?.weapons?.nova?.lv)
+      ?? (state?.wlv?.nova)
+      ?? (state?.wepLevel?.nova)
+      ?? (state?.wep?.nova?.lv)
+      ?? 1; // 見つからなければLV1扱い
+}
+function _isNovaAwakened(){
+  return !!((state?.weapons?.nova?.awakened)
+         || (state?.weapons?.nova?.isAwaken)
+         || (state?.awaken?.nova)
+         || (state?.wep?.nova?.awakened));
+}
+/** ノヴァの“ヒット時”に使う回復％（整数％を返す） */
+function getNovaHitHealPercent(){
+  if (_isNovaAwakened()) return 4; // 覚醒：ヒット時は4%
+  const lv = _getNovaLevel();
+  if (lv >= 3) return 4;  // LV3
+  if (lv === 2) return 3; // LV2
+  return 2;               // LV1
+}
 
 
 // === Unified final explosion & clear ===
