@@ -3054,9 +3054,9 @@ for (const e of state.enemies){
 }
 
 
-// ★覚醒オーラ：命中1件ごとに 0.1% 回復（仕様）
+// ★覚醒オーラ：命中1件ごとに 0.05% 回復（仕様）
 if (auraHits > 0){
-  const gained = healPlayerPercent(0.1 * auraHits);
+  const gained = healPlayerPercent(0.05 * auraHits);
   if (gained > 0){
     addEffect('text', {
       text: `+${gained.toFixed(1)}`,
@@ -3624,7 +3624,10 @@ if (e.hp <= 0) {
     // ラスボスは従来の処理に任せる（演出や遷移があるため）
   } else if (e.type === 'mid' || e.type === 'big') {
     // 中/大型ボスは宝箱ドロップ
-state.items.push({ kind:'chest', picks:1, x:e.x, y:e.y, r:14, t:0 }); // ← 中ボスは1つ選択
+// big（大型ボス）
+state.items.push({ kind:'chest', x: e.x, y: e.y, r: 16, t: 0, picks: 2 });
+// mid（中ボス）
+state.items.push({ kind:'chest', x: e.x, y: e.y, r: 14, t: 0, picks: 1 });
     if (typeof addEffect === 'function') addEffect('pop', {x:e.x, y:e.y});
     state.killScore = (state.killScore||0) + 1;
     state.enemies.splice(j, 1);
@@ -5516,10 +5519,10 @@ function _isNovaAwakened(){
 }
 /** ノヴァの“ヒット時”に使う回復％（整数％を返す） */
 function getNovaHitHealPercent(){
-  if (_isNovaAwakened()) return 4; // 覚醒：ヒット時は4%
+  if (_isNovaAwakened()) return 3; // 覚醒：ヒット時は4%
   const lv = _getNovaLevel();
-  if (lv >= 3) return 4;  // LV3
-  if (lv === 2) return 3; // LV2
+  if (lv >= 3) return 3;  // LV3
+  if (lv === 2) return 2.5; // LV2
   return 2;               // LV1
 }
 
