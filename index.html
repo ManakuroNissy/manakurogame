@@ -117,6 +117,20 @@ canvas {
   .btn:hover { filter:brightness(1.05); }
   #gameover h2 { font-size: clamp(24px, 5vw, 44px); margin:.25rem 0 .75rem; }
   #gameover .sub { opacity:.85; margin-bottom:1rem; }
+  
+  /* SNS共有ボタン */
+  .share-buttons { display:flex; gap:.75rem; margin-top:1rem; flex-wrap:wrap; justify-content:center; }
+  .share-btn { 
+    background:#fff; color:#000; border:none; padding:.65rem 1.2rem; 
+    border-radius:.5rem; font-weight:700; cursor:pointer; 
+    box-shadow:0 4px 12px rgba(0,0,0,.25); 
+    display:flex; align-items:center; gap:.5rem;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .share-btn:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.35); }
+  .share-btn.twitter { background:#1DA1F2; color:#fff; }
+  .share-btn.line { background:#06C755; color:#fff; }
+  .share-btn.copy { background:#6c757d; color:#fff; }
   /* 縦持ちのときはHUDを少し縮小 */
 @media (orientation:portrait){
   .hud { transform: scale(.9); transform-origin: top center; opacity:.9; }
@@ -430,16 +444,38 @@ padding-left:  var(--hud-lpad);
   
   <div id="gameover" style="display:none;">
     <h2>ゲームオーバー</h2>
-    <div class="sub">もう一度挑戦しよう！</div>
-    <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center;">
+    <div class="sub">もう一度挑戦しよう!</div>
+    <div class="share-buttons">
+      <button class="share-btn twitter" onclick="shareToTwitter('gameover')">
+        <span>𝕏</span> Xでシェア
+      </button>
+      <button class="share-btn line" onclick="shareToLine('gameover')">
+        <span>📱</span> LINEで送る
+      </button>
+      <button class="share-btn copy" onclick="copyShareText('gameover')">
+        <span>📋</span> コピー
+      </button>
+    </div>
+    <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center; margin-top:1rem;">
       <button id="retryBtn" class="btn">やり直す</button>
       <button id="titleBtnGameover" class="btn" style="background:#64748b;">タイトルに戻る</button>
     </div>
     </div> <!-- ← ここで閉じる -->
 <!-- クリア画面 -->
 <div id="gameclear" style="display:none;">
-  <h2 style="font-size:clamp(28px,6vw,64px); margin:0 0 .75rem;">GAME CLEAR</h2>
-  <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center;">
+  <h2 style="font-size:clamp(28px,6vw,64px); margin:0 0 .75rem;">🎉 GAME CLEAR 🎉</h2>
+  <div class="share-buttons">
+    <button class="share-btn twitter" onclick="shareToTwitter('clear')">
+      <span>𝕏</span> Xでシェア
+    </button>
+    <button class="share-btn line" onclick="shareToLine('clear')">
+      <span>📱</span> LINEで送る
+    </button>
+    <button class="share-btn copy" onclick="copyShareText('clear')">
+      <span>📋</span> コピー
+    </button>
+  </div>
+  <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center; margin-top:1rem;">
     <button id="replayBtn" class="btn">もう一度遊ぶ</button>
     <button id="titleBtn" class="btn" style="background:#64748b;">タイトルに戻る</button>
     <button id="hardcoreBtn" class="btn" style="display:none;background:#8b5cf6;">Hardcoreで再挑戦</button>
@@ -7184,6 +7220,137 @@ function spawnFinalBoss(){
   requestAnimationFrame(loop);
 
 })();
+
+// ============================================================
+// SNS共有機能
+// ============================================================
+
+function getShareText(resultType) {
+  const score = Math.floor(state.score || 0).toLocaleString();
+  const kills = (state.kills || 0).toLocaleString();
+  const bossKills = state.bossKills || 0;
+  const timeSec = state.timeSec || 0;
+  const minutes = Math.floor(timeSec / 60);
+  const seconds = Math.floor(timeSec % 60);
+  const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  
+  let text = '';
+  const gameTitle = "10min's Survivor";
+  const gameUrl = window.location.href.split('?')[0]; // クエリパラメータを除去
+  
+  if (resultType === 'clear') {
+    text = `🎉 ${gameTitle} クリア！\n\n`;
+    text += `⏱️ タイム: ${timeStr}\n`;
+    text += `💯 スコア: ${score}点\n`;
+    text += `⚔️ 討伐数: ${kills}体\n`;
+    text += `👑 ボス討伐: ${bossKills}体\n\n`;
+    if (state.mode.hardcore) {
+      text += `🔥 ハードコアモードでクリア！\n\n`;
+    }
+    text += `#10minsSurvivor #ゲームクリア\n`;
+  } else {
+    text = `${gameTitle} に挑戦！\n\n`;
+    text += `⏱️ 生存時間: ${timeStr}\n`;
+    text += `💯 スコア: ${score}点\n`;
+    text += `⚔️ 討伐数: ${kills}体\n`;
+    text += `👑 ボス討伐: ${bossKills}体\n\n`;
+    text += `#10minsSurvivor\n`;
+  }
+  
+  text += gameUrl;
+  
+  return text;
+}
+
+function shareToTwitter(resultType) {
+  const text = getShareText(resultType);
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank', 'width=550,height=420');
+}
+
+function shareToLine(resultType) {
+  const text = getShareText(resultType);
+  const url = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank', 'width=550,height=420');
+}
+
+function copyShareText(resultType) {
+  const text = getShareText(resultType);
+  
+  // クリップボードにコピー
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      showCopyNotification();
+    }).catch(() => {
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  
+  try {
+    document.execCommand('copy');
+    showCopyNotification();
+  } catch (err) {
+    alert('コピーできませんでした');
+  }
+  
+  document.body.removeChild(textarea);
+}
+
+function showCopyNotification() {
+  // 既存の通知があれば削除
+  const existing = document.getElementById('copyNotification');
+  if (existing) existing.remove();
+  
+  const notification = document.createElement('div');
+  notification.id = 'copyNotification';
+  notification.textContent = '📋 クリップボードにコピーしました！';
+  notification.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(16, 185, 129, 0.95);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    z-index: 99999;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    animation: fadeInOut 2s ease-in-out;
+  `;
+  
+  // アニメーション定義
+  if (!document.getElementById('copyNotificationStyle')) {
+    const style = document.createElement('style');
+    style.id = 'copyNotificationStyle';
+    style.textContent = `
+      @keyframes fadeInOut {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        85% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 2000);
+}
 
 
 
