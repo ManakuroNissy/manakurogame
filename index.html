@@ -1512,29 +1512,25 @@ function visibleBounds(radius = 0){
   }
 
   function createScoreData(result) {
-    // state.scoreをベースに
-    let score = state.score || 0;
+    // state.scoreはupdateEndScoreで既にボーナス加算済み
+    const score = state.score || 0;
     
-    // クリア時のボーナス
+    // ボーナスの記録用（表示のため）
     let timeBonus = 0;
     let clearBonus = 0;
     
     if (result === 'clear') {
-      // クリアボーナス
       clearBonus = 10000;
       
-      // タイムボーナス（1000点/秒）
       const clearTime = state.timeSec;
-      const targetTime = 780; // 13分
+      const targetTime = 780;
       if (clearTime < targetTime) {
         timeBonus = Math.floor((targetTime - clearTime) * 1000);
       }
-      
-      score += clearBonus + timeBonus;
     }
     
     return {
-      score: score,
+      score: score, // 既にボーナス加算済み
       kills: state.kills || 0,
       bossKills: state.bossKills || 0,
       time: state.timeSec,
@@ -1645,10 +1641,17 @@ function visibleBounds(radius = 0){
     awaken_rock: { id: 'awaken_rock', name: 'ロックマスター', desc: 'Rock覚醒でクリア', icon: '🪨', tier: 'silver' },
     awaken_orbit: { id: 'awaken_orbit', name: 'オービットマスター', desc: 'Orbit覚醒でクリア', icon: '🔄', tier: 'silver' },
     awaken_poison: { id: 'awaken_poison', name: 'ポイズンマスター', desc: 'Poison覚醒でクリア', icon: '🧪', tier: 'silver' },
-    all_awaken: { id: 'all_awaken', name: 'グランドマスター', desc: '累計で全9種類覚醒', icon: '🌟🌟🌟', tier: 'platinum' },
+    all_awaken: { id: 'all_awaken', name: 'グランドマスター', desc: '累計で全10種類覚醒', icon: '🌟🌟🌟', tier: 'platinum' },
+    
+    // ステータスMAX系
+    max_hp_clear: { id: 'max_hp_clear', name: 'タンクマスター', desc: 'HP MAXでクリア', icon: '💪', tier: 'gold' },
+    max_damage_clear: { id: 'max_damage_clear', name: 'パワーハウス', desc: '球のダメージMAXでクリア', icon: '💥', tier: 'gold' },
+    max_rate_clear: { id: 'max_rate_clear', name: 'マシンガンナー', desc: '攻撃速度MAXでクリア', icon: '⚡', tier: 'gold' },
+    max_speed_clear: { id: 'max_speed_clear', name: 'スピードデーモン', desc: '移動速度MAXでクリア', icon: '🏃', tier: 'gold' },
+    
     hardcore_2weapon: { id: 'hardcore_2weapon', name: 'ハードコアミニマリスト', desc: 'Hardcore + 武器2種類以下', icon: '🔥⚔️', tier: 'platinum' },
     blaster_speed: { id: 'blaster_speed', name: 'ブラスター速攻', desc: 'Blasterのみ + 11分以内', icon: '🚀🔫', tier: 'platinum' },
-    all_weapon_master: { id: 'all_weapon_master', name: '真の武器マスター', desc: '全9種類の覚醒クリア達成', icon: '🏆', tier: 'platinum' },
+    all_weapon_master: { id: 'all_weapon_master', name: '真の武器マスター', desc: '全10種類の覚醒クリア達成', icon: '🏆', tier: 'platinum' },
 
     // 縛りプレイ
     no_upgrade: { id: 'no_upgrade', name: '原始人', desc: 'アップグレードなしでクリア', icon: '🚫', tier: 'platinum' },
@@ -1849,10 +1852,10 @@ function visibleBounds(radius = 0){
     
     // 全覚醒実績
     const awakenedCount = Object.keys(achievementProgress.awakenedWeapons).length;
-    if (awakenedCount >= 9) unlockAchievement('all_awaken');
+    if (awakenedCount >= 10) unlockAchievement('all_awaken'); // 9 → 10
     
     // 全武器覚醒クリア実績
-    const allAwakenCleared = Object.keys(achievementProgress.awakenClearCount).length >= 9;
+    const allAwakenCleared = Object.keys(achievementProgress.awakenClearCount).length >= 10; // 9 → 10
     if (allAwakenCleared) unlockAchievement('all_weapon_master');
     
     // 複合実績
@@ -1872,6 +1875,20 @@ function visibleBounds(radius = 0){
     }
     if (sessionTracking.upgradesTaken === 0 && sessionTracking.itemsCollected === 0) {
       unlockAchievement('stoic');
+    }
+    
+    // ステータスMAX実績
+    if (state.player.maxHp >= 220) { // CAPS.hpMax
+      unlockAchievement('max_hp_clear');
+    }
+    if (state.mods.dmgMul >= 1.5) { // CAPS.dmgMulMax
+      unlockAchievement('max_damage_clear');
+    }
+    if (state.mods.rateMul <= 0.60) { // CAPS.rateMulMin（小さいほど速い）
+      unlockAchievement('max_rate_clear');
+    }
+    if (state.player.speed >= 340) { // CAPS.speedMax
+      unlockAchievement('max_speed_clear');
     }
     
     saveProgress();
@@ -3350,7 +3367,8 @@ if(it.kind==='magnet'){
   let killed = 0, gained = 0;
   for (let i = state.enemies.length - 1; i >= 0; i--) {
     const e = state.enemies[i];
-    if (e.type === 'minion' || e.type === 'shooter') {
+    // minion, shooter, warper, laser, bomを倒す
+    if (e.type === 'minion' || e.type === 'shooter' || e.type === 'warper' || e.type === 'laser' || e.type === 'bom') {
       // 少額スコア（上限あり）
       if (gained < NUKE_SCORE_CAP) {
         gained += NUKE_KILL_SCORE;
@@ -4202,10 +4220,10 @@ function dealSlashDamage(cx, cy, ang, span, inner, outer, dmg){
 
 // ===== 上限テーブル（U定義の前に置く）=====
 const CAPS = {
-  speedMax: 320,   // player.speed 上限（初期170）
-  hpMax: 350,      // 最大HP上限（初期110）
-  dmgMulMax: 3.0,  // ダメージ倍率上限（初期1.0）
-  rateMulMin: 0.45,// 攻撃間隔倍率の下限（小さいほど速い／初期1.0）
+  speedMax: 340,   // player.speed 上限（初期170、×1.15^5）
+  hpMax: 220,      // 最大HP上限（初期110、×1.15^5）
+  dmgMulMax: 1.5,  // ダメージ倍率上限（初期1.0、×1.08^5）
+  rateMulMin: 0.60,// 攻撃間隔倍率の下限（小さいほど速い、初期1.0、×0.90^5）
   sizeMulMax: 2.2  // サイズ倍率上限（初期1.0）
 };
 
@@ -4240,7 +4258,12 @@ const U = {
   speed: {
     id: 'speed+',
     name: '移動速度アップ',
-    desc: '+15%移動速度（上限あり）',
+    get desc() {
+      const current = state.player.speed;
+      const max = CAPS.speedMax;
+      const pct = Math.floor((current / max) * 100);
+      return `+15%移動速度 [${Math.floor(current)}/${max}] (${pct}%)`;
+    },
     can: () => state.player.speed < CAPS.speedMax - 1,
     apply: () => {
       const before = state.player.speed;
@@ -4254,11 +4277,16 @@ const U = {
   maxhp: {
     id: 'maxhp+',
     name: '最大HPアップ',
-    desc: '+10%最大HP（上限あり）',
+    get desc() {
+      const current = state.player.maxHp;
+      const max = CAPS.hpMax;
+      const pct = Math.floor((current / max) * 100);
+      return `+15%最大HP [${Math.floor(current)}/${max}] (${pct}%)`;
+    },
     can: () => state.player.maxHp < CAPS.hpMax - 1,
     apply: () => {
       const before = state.player.maxHp;
-      state.player.maxHp = Math.min(CAPS.hpMax, Math.round(state.player.maxHp * 1.10));
+      state.player.maxHp = Math.min(CAPS.hpMax, Math.round(state.player.maxHp * 1.15));
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + Math.round(state.player.maxHp * 0.15));
       if (state.player.maxHp === before) {
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
@@ -4295,7 +4323,12 @@ const U = {
   atkRate: {
     id: 'rate+',
     name: '攻撃速度アップ',
-    desc: 'クールダウン -10%（下限あり）',
+    get desc() {
+      const current = state.mods.rateMul;
+      const max = CAPS.rateMulMin;
+      const pct = Math.floor((1 - current) / (1 - max) * 100);
+      return `クールダウン -10% [${current.toFixed(2)}→${max}] (${pct}%)`;
+    },
     can: () => state.mods.rateMul > CAPS.rateMulMin + 1e-6,
     apply: () => {
       state.mods.rateMul = Math.max(CAPS.rateMulMin, state.mods.rateMul * 0.90);
@@ -4308,7 +4341,12 @@ const U = {
   atkDmg: {
     id: 'dmg+',
     name: '与ダメージアップ',
-    desc: 'ダメージ +8%（上限あり）',
+    get desc() {
+      const current = state.mods.dmgMul;
+      const max = CAPS.dmgMulMax;
+      const pct = Math.floor((current / max) * 100);
+      return `ダメージ +8% [×${current.toFixed(2)}/${max}] (${pct}%)`;
+    },
     can: () => state.mods.dmgMul < CAPS.dmgMulMax - 1e-6,
     apply: () => {
       const before = state.mods.dmgMul;
