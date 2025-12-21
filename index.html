@@ -1482,6 +1482,7 @@ function visibleBounds(radius = 0){
     spawnTimer:0, difficulty:1, timeSec:0, finalSpawned:false,
     mods:{ sizeMul:1.0, rateMul:1.0, dmgMul:1.0 },
     pickupLv: 0,
+    regenLv: 0, // 自然回復レベル
     bossTimer: 9999, bigBossTimer: 9999,
         gather:{ active:false, time:0, dur:0.5, totalXP:0 },
         gather:{ active:false, time:0, dur:0.5, totalXP:0 },
@@ -1921,6 +1922,7 @@ state.player.aimAngle = 0; // 初期向き（右向き相当）
 state.player.kbx = 0;
 state.player.kby = 0;
 state.pickupLv = 0;
+state.regenLv = 0; // 自然回復レベルリセット
     // Reset meta
     state.manualPaused = false;
     state.mods.sizeMul = 1.0;
@@ -2186,8 +2188,64 @@ function spawnEnemy(){
   }
 
   const shooterProb = state.timeSec > 150 ? 0.04 : 0.0;
+  const warperProb = state.timeSec > 240 ? 0.025 : 0.0;  // 4分以降
+  const laserProb = state.timeSec > 180 ? 0.015 : 0.0;   // 3分以降
+  
+  const roll = Math.random();
 
-  if (Math.random() < shooterProb) {
+  if (roll < warperProb) {
+    // ワープする敵（紫の縦長四角）
+    let hp = (28 + state.difficulty*3) * 3.9; // 1.3 → 3.9 (3倍硬く)
+    if (state.mode.hardcore) hp *= 1.5;
+
+    // 画面内のランダムな位置に出現
+    const B = worldBounds();
+    const spawnX = rnd(B.minX + 80, B.maxX - 80);
+    const spawnY = rnd(B.minI + 80, B.maxY - 80);
+
+    state.enemies.push({
+      x: spawnX, y: spawnY, size:22, sizeH:40, hp, maxHp:hp, type:'warper', // サイズ拡大 16→22, 28→40
+      phase:'visible', phaseTimer:rnd(4.0, 5.0), // 見える時間延長 2.5-3.5 → 4.0-5.0
+      fadeTimer:0, cd:rnd(0.3, 0.7), hitFlash:0, kbx:0, kby:0,
+      spawnFlash: 0.5 // 出現時の白フラッシュ
+    });
+    
+    // 出現エフェクト強化
+    addEffect('flash', { life: 0.1 }); // 0.03 → 0.1 (長く)
+    addEffect('nova', { x: spawnX, y: spawnY, r: 80, life: 0.3 }); // r:60→80, life:0.2→0.3
+    // 追加の白リング
+    for(let i=0; i<3; i++){
+      setTimeout(() => {
+        addEffect('nova', { x: spawnX, y: spawnY, r: 50 + i*15, life: 0.15 });
+      }, i * 50);
+    }
+  } else if (roll < warperProb + laserProb) {
+    // レーザー敵（黄色い横長四角）
+    let hp = (24 + state.difficulty*2.8) * 2.5; // 1.8 → 2.5 (さらに硬く)
+    if (state.mode.hardcore) hp *= 1.5;
+
+    // 時間経過で出現数が増える
+    let spawnCount = 1; // デフォルト1体
+    if (state.timeSec >= 420) spawnCount = 3; // 7分以降は3体
+    else if (state.timeSec >= 300) spawnCount = 2; // 5分以降は2体
+
+    // 左右どちらかの端に配置（画面内側に少し入れる）
+    const B = worldBounds();
+    
+    for (let i = 0; i < spawnCount; i++) {
+      const isLeft = Math.random() < 0.5;
+      const offset = 60; // 画面内側に60pxずらす
+      const spawnX = isLeft ? B.minX + offset : B.maxX - offset;
+      const spawnY = rnd(B.minY + 50, B.maxY - 50);
+
+      state.enemies.push({
+        x: spawnX, y: spawnY, size:12, sizeW:32, hp, maxHp:hp, type:'laser',
+        phase:'move', side: isLeft ? 'left' : 'right',
+        yTarget: rnd(B.minY + 50, B.maxY - 50), moveSpeed:80,
+        cd:rnd(1.5, 2.0), hitFlash:0, kbx:0, kby:0
+      });
+    }
+  } else if (roll < warperProb + laserProb + shooterProb) {
     // 射撃タイプ
     let hp = (20 + state.difficulty*2.5) * 1.5;
     if (state.mode.hardcore) hp *= 1.5;
@@ -2446,7 +2504,9 @@ function openChest(pickCount = 2) {
   for (const u of choices) {
     const c = document.createElement('button');
     c.className = 'card';
-    c.innerHTML = `<h3>${u.name}</h3><p>${u.desc || ''}</p>`;
+    // descが関数の場合は実行、そうでなければそのまま使用
+    const descText = typeof u.desc === 'function' ? u.desc() : (u.desc || '');
+    c.innerHTML = `<h3>${u.name}</h3><p>${descText}</p>`;
 
     c.onclick = () => {
       if (picksLeft <= 0 || chosen.has(u)) return;
@@ -2544,7 +2604,9 @@ function showLevelUp(choices){
   for (const u of choices) {
     const c = document.createElement('button');
     c.className = 'card';
-    c.innerHTML = `<h3>${u.name}</h3><p>${u.desc || ''}</p>`;
+    // descが関数の場合は実行、そうでなければそのまま使用
+    const descText = typeof u.desc === 'function' ? u.desc() : (u.desc || '');
+    c.innerHTML = `<h3>${u.name}</h3><p>${descText}</p>`;
     c.onclick = () => {
       // 能力を適用して閉じる
       u.apply();
@@ -2806,7 +2868,7 @@ blade:{
   // 調整しやすい基礎値
   short:'BD', name:'ブレード', lv:0, awaken:false, cd:0,
   baseRate: 1.10,     // ← 発生は少し遅め（近接リスクのご褒美に）
-  baseDmg:  55,       // ← 威力UP（元:26）
+  baseDmg:  68,       // ← 威力UP（元:55→68、ノックバック削除の代わり）
   span:     Math.PI * 0.62, // 横に広い
   inner:    10,             // 足元の当たり開始
   outer:    130,            // 最大到達（基礎）
@@ -2973,7 +3035,7 @@ poison:{
 
     
     
-    nova:{ short:'NV', name:'ノヴァ', lv:0, awaken:false, cd:0, baseRate:3.2, baseDmg:22, baseR:96, auraT:0,
+    nova:{ short:'NV', name:'ノヴァ', lv:0, awaken:false, cd:0, baseRate:3.2, baseDmg:28, baseR:96, auraT:0,
       update(dt){
         if(this.lv<=0) return;
         this.cd -= dt; if(this.cd<=0){
@@ -2995,10 +3057,10 @@ const R = baseR * (1.35 + 0.12*(lv-1)) * (this.awaken ? 1.20 : 1.00);
     const m = Math.hypot(dx, dy) || 1;
     const nx = dx / m, ny = dy / m;
     const baseKB =
-      (e.type === 'final') ? 260 :
-      (e.type === 'big')   ? 340 :
-      (e.type === 'mid')   ? 420 :
-                             520 ;
+      (e.type === 'final') ? 130 :  // 260 → 130 (半分)
+      (e.type === 'big')   ? 170 :  // 340 → 170 (半分)
+      (e.type === 'mid')   ? 210 :  // 420 → 210 (半分)
+                             260 ;  // 520 → 260 (半分)
     const edge = Math.min(1, Math.max(0, d / R));
     const falloff = 0.55 + 0.45*(1 - edge);
     const kb = baseKB * falloff;
@@ -3015,23 +3077,7 @@ const R = baseR * (1.35 + 0.12*(lv-1)) * (this.awaken ? 1.20 : 1.00);
           }
           
           
-// ★敵ループの“直後”に 3% 回復（1回のノヴァにつき一度）
-if (hits > 0){
-const gained = healPlayerPercent(getNovaHitHealPercent()); // レベル/覚醒で 2/3/4%
-  if (gained > 0){
-    addEffect('text', {
-      text: `+${gained.toFixed(gained < 1 ? 1 : 0)}`,
-      x: state.player.x,
-      y: state.player.y - 18,
-      life: 0.8,
-      color: '#7CFF7C'
-    });
-    addEffect('healSparkles', { x: state.player.x, y: state.player.y, r: 46, life: 0.7, life0: 0.7, count: 14 });
-  }
-}
-
-
-
+          // ※ ノヴァの回復効果は削除（バランス調整）
 
           
           
@@ -3047,27 +3093,13 @@ const gained = healPlayerPercent(getNovaHitHealPercent()); // レベル/覚醒�
 for (const e of state.enemies){
   const d = Math.hypot(e.x - state.player.x, e.y - state.player.y);
   if (d < R2){
-    e.hp -= (14 + 3*(this.lv-1)) * state.mods.dmgMul * dt;
+    e.hp -= (18 + 3*(this.lv-1)) * state.mods.dmgMul * dt;
     e.hitFlash = Math.max(e.hitFlash, 0.05);
     auraHits++;
   }
 }
 
 
-// ★覚醒オーラ：命中1件ごとに 0.05% 回復（仕様）
-if (auraHits > 0){
-  const gained = healPlayerPercent(0.05 * auraHits);
-  if (gained > 0){
-    addEffect('text', {
-      text: `+${gained.toFixed(1)}`,
-      x: state.player.x,
-      y: state.player.y - 18,
-      life: 0.6,
-      color: '#7CFF7C'
-    });
-    addEffect('healSparkles', { x: state.player.x, y: state.player.y, r: 40, life: 0.6, life0: 0.6, count: 10 });
-  }
-}
 
 
 
@@ -3251,11 +3283,18 @@ const U = {
   regen: {
     id: 'regen',
     name: '自然回復',
-    desc: '毎秒 最大HPの0.8% 回復',
-    can: () => !state.upgradesTaken.has('regen'),
+    desc: () => {
+      const lv = state.regenLv || 0;
+      if (lv === 0) return 'Lv1: 毎秒 最大HPの0.4% 回復';
+      if (lv === 1) return 'Lv2: 毎秒 最大HPの0.8% 回復';
+      if (lv === 2) return 'Lv3: 毎秒 最大HPの1.2% 回復';
+      return '最大レベル';
+    },
+    can: () => (state.regenLv || 0) < 3,
     apply: () => {
-      state.upgradesTaken.add('regen');
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: 'リジェネ+' });
+      state.regenLv = (state.regenLv || 0) + 1;
+      const lv = state.regenLv;
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: `リジェネ Lv${lv}` });
     }
   },
 
@@ -3342,8 +3381,9 @@ if (typeof window.schedule !== 'function') {
 // ==== メインループ ====
 
 // 安全に表示/非表示を切る小ヘルパ
-function hideById(id){ const el=document.getElementById(id); if(el) el.style.display='none'; }
-function showById(id, display='block'){ const el=document.getElementById(id); if(el) el.style.display=display; }
+// ※ 以下は現在未使用（将来使うかもしれないので残す）
+// function hideById(id){ const el=document.getElementById(id); if(el) el.style.display='none'; }
+// function showById(id, display='block'){ const el=document.getElementById(id); if(el) el.style.display=display; }
 
 
 // --- remove legacy HUDs & stub old notifiers ---
@@ -3497,9 +3537,15 @@ if (state.player && pm > 0) {
 
 
 
-    // regen
-    if (state.upgradesTaken.has('regen')) {
-      const healPerSec = state.player.maxHp * 0.008; // 0.8%/sec
+    // regen (3レベル制)
+    if (state.regenLv > 0) {
+      const lv = state.regenLv;
+      let healRate = 0;
+      if (lv === 1) healRate = 0.004;      // Lv1: 0.4%/sec (元の半分)
+      else if (lv === 2) healRate = 0.008; // Lv2: 0.8%/sec (元と同じ)
+      else if (lv === 3) healRate = 0.012; // Lv3: 1.2%/sec (元の1.5倍)
+      
+      const healPerSec = state.player.maxHp * healRate;
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + healPerSec * dt);
     }
 
@@ -3624,10 +3670,13 @@ if (e.hp <= 0) {
     // ラスボスは従来の処理に任せる（演出や遷移があるため）
   } else if (e.type === 'mid' || e.type === 'big') {
     // 中/大型ボスは宝箱ドロップ
-// big（大型ボス）
-state.items.push({ kind:'chest', x: e.x, y: e.y, r: 16, t: 0, picks: 2 });
-// mid（中ボス）
-state.items.push({ kind:'chest', x: e.x, y: e.y, r: 14, t: 0, picks: 1 });
+    if (e.type === 'big') {
+      // big（大型ボス）
+      state.items.push({ kind:'chest', x: e.x, y: e.y, r: 16, t: 0, picks: 2 });
+    } else {
+      // mid（中ボス）
+      state.items.push({ kind:'chest', x: e.x, y: e.y, r: 14, t: 0, picks: 1 });
+    }
     if (typeof addEffect === 'function') addEffect('pop', {x:e.x, y:e.y});
     state.killScore = (state.killScore||0) + 1;
     state.enemies.splice(j, 1);
@@ -3676,11 +3725,7 @@ state.items.push({ kind:'chest', x: e.x, y: e.y, r: 14, t: 0, picks: 1 });
           e.hp -= b.dmg;
           e.hitFlash = Math.max(e.hitFlash||0, 0.12);
 
-          // 軽いノックバック（方向＝斬撃の向き）
-          const a = b.ang || Math.atan2(b.vy, b.vx);
-          const kb = (state.weapons && state.weapons.blade && state.weapons.blade.awaken) ? 220 : 160;
-          e.kbx = (e.kbx||0) + Math.cos(a)*kb;
-          e.kby = (e.kby||0) + Math.sin(a)*kb;
+          // ヒットストップは削除（ノックバックに見えるため）
 
           b._hit.add(e);
           // （斬撃は貫通扱いなので弾は消さない）
@@ -3728,6 +3773,27 @@ if (state.weapons.orbit.lv > 0){
 for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
   const b = state.enemyBullets[i];
 
+  // ホーミング弾の追尾処理（プレイヤーが生きている場合のみ）
+  if(b.type === 'homing' && state.player && state.player.hp > 0){
+    const dx = state.player.x - b.x;
+    const dy = state.player.y - b.y;
+    const targetAngle = Math.atan2(dy, dx);
+    const currentAngle = Math.atan2(b.vy, b.vx);
+    
+    // 角度差を計算（-PI ~ PI）
+    let angleDiff = targetAngle - currentAngle;
+    while(angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    while(angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+    
+    // 徐々に向きを変える
+    const turnRate = (b.turnSpeed || 2.5) * dt;
+    const newAngle = currentAngle + Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), turnRate);
+    
+    const speed = Math.hypot(b.vx, b.vy);
+    b.vx = Math.cos(newAngle) * speed;
+    b.vy = Math.sin(newAngle) * speed;
+  }
+
   // 位置更新
   b.x += b.vx * dt;
   b.y += b.vy * dt;
@@ -3743,9 +3809,9 @@ for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
     continue;
   }
 
-  // Orbit が弾を相殺
+  // Orbit が弾を相殺（レーザーは除く）
   let canceled = false;
-  if (state.weapons.orbit.lv > 0) {
+  if (b.type !== 'laser' && state.weapons.orbit.lv > 0) {
     const count = state.weapons.orbit.awaken ? 8 : (3 + state.weapons.orbit.lv);
     for (let k = 0; k < count && !canceled; k++) {
       const ang = state.weapons.orbit.ang + k * (Math.PI * 2 / count);
@@ -3763,7 +3829,24 @@ for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
   }
 
   // プレイヤー命中
-  if (dist2(b.x, b.y, state.player.x, state.player.y) < (b.r + state.player.r) ** 2) {
+  if(b.type === 'laser'){
+    // レーザー弾は長方形の当たり判定
+    const length = Math.abs(b.vx || 0);
+    const thick = (b.r || 8) * 2;
+    const lx = b.vx > 0 ? b.x : b.x - length;
+    
+    if(state.player.x >= lx - state.player.r && 
+       state.player.x <= lx + length + state.player.r &&
+       state.player.y >= b.y - thick/2 - state.player.r &&
+       state.player.y <= b.y + thick/2 + state.player.r){
+      playerHit(b.dmg, b.x, b.y);
+      spark(b.x, b.y, 12);
+      if (state.player.hp <= 0 && !state.gameover) {
+        triggerGameOver();
+        break;
+      }
+    }
+  } else if (dist2(b.x, b.y, state.player.x, state.player.y) < (b.r + state.player.r) ** 2) {
     state.enemyBullets.splice(i, 1);
     playerHit(b.dmg, b.x, b.y);
     spark(b.x, b.y, 6);
@@ -3833,6 +3916,8 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
       const base = 0.0035;
       const byType = (e.type === 'minion') ? 0.6
                    : (e.type === 'shooter') ? 0.8
+                   : (e.type === 'warper') ? 0.9
+                   : (e.type === 'laser') ? 0.85
                    : (e.type === 'mid')    ? 1.5
                    : (e.type === 'big')    ? 1.75
                    : (e.type === 'final')  ? 2.00
@@ -4113,8 +4198,130 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
             }
           }
         }
-      }
       
+      // === Warper（ワープする敵）の処理 ===
+      } else if(e.type==='warper'){
+        // 出現フラッシュの減衰（更新ループで処理）
+        if(e.spawnFlash > 0){
+          e.spawnFlash -= dt * 2;
+          if(e.spawnFlash < 0) e.spawnFlash = 0;
+        }
+        
+        if(e.phase==='visible'){
+          // 可視状態：移動せず、ホーミング弾を撃つ
+          
+          // ホーミング弾発射
+          e.cd -= dt;
+          if(e.cd<=0){
+            // プレイヤーに向かうホーミング弾
+            const a = Math.atan2(state.player.y-e.y, state.player.x-e.x);
+            const speed = 150;
+            state.enemyBullets.push({
+              x:e.x, y:e.y,
+              vx:Math.cos(a)*speed, 
+              vy:Math.sin(a)*speed,
+              r:7, // 5 → 7 (大きく)
+              dmg: (state.mode.hardcore ? 16*1.5 : 16), 
+              life:5,
+              type:'homing', // ホーミング弾として識別
+              turnSpeed: 2.5 // 旋回速度
+            });
+            e.cd = rnd(1.5, 2.2); // 発射間隔を長く（0.8-1.2 → 1.5-2.2）
+          }
+          
+          // フェード開始判定
+          e.phaseTimer -= dt;
+          if(e.phaseTimer <= 0.8){
+            e.fadeTimer += dt;
+          }
+          
+          // ワープ（消える）
+          if(e.phaseTimer <= 0){
+            e.phase = 'invisible';
+            e.phaseTimer = 0.3; // 消えている時間を短く（0.3秒）
+            e.fadeTimer = 0;
+          }
+          
+        }else if(e.phase==='invisible'){
+          // 不可視状態：すぐ再出現
+          e.phaseTimer -= dt;
+          if(e.phaseTimer <= 0){
+            // ランダムな位置にワープ
+            const B = worldBounds();
+            e.x = rnd(B.minX + 80, B.maxX - 80);
+            e.y = rnd(B.minY + 80, B.maxY - 80);
+            
+            e.phase = 'visible';
+            e.phaseTimer = rnd(4.0, 5.0); // 2.5-3.5 → 4.0-5.0
+            e.fadeTimer = 0;
+            e.spawnFlash = 0.5; // 白フラッシュ再設定
+            
+            // 再出現エフェクト強化
+            addEffect('flash', { life: 0.1 });
+            addEffect('nova', { x: e.x, y: e.y, r: 80, life: 0.3 });
+            // 追加の白リング
+            for(let i=0; i<3; i++){
+              setTimeout(() => {
+                addEffect('nova', { x: e.x, y: e.y, r: 50 + i*15, life: 0.15 });
+              }, i * 50);
+            }
+          }
+        }
+        
+      // === Laser（レーザー敵）の処理 ===
+      } else if(e.type==='laser'){
+        if(e.phase==='move'){
+          // 画面端を縦に移動
+          const dy = e.yTarget - e.y;
+          if(Math.abs(dy) > 5){
+            e.y += Math.sign(dy) * e.moveSpeed * dt * moveMul;
+          }else{
+            e.phase = 'charge';
+            e.phaseTimer = 0.6; // チャージ時間
+          }
+          
+        }else if(e.phase==='charge'){
+          // レーザーチャージ中（予告線表示）
+          e.phaseTimer -= dt;
+          const B = worldBounds();
+          const x2 = e.side === 'left' ? B.maxX + 100 : B.minX - 100;
+          addEffect('aim', {x1:e.x, y1:e.y, x2:x2, y2:e.y, life:.06});
+          
+          if(e.phaseTimer <= 0){
+            e.phase = 'shoot';
+            e.phaseTimer = 0.8; // レーザー持続時間
+            // レーザーを生成
+            const laserDmg = state.mode.hardcore ? 25*1.5 : 25;
+            const laserLength = Math.abs(x2 - e.x);
+            state.enemyBullets.push({
+              x: e.x, y: e.y,
+              vx: e.side === 'left' ? laserLength : -laserLength,
+              vy: 0,
+              r: 8, // 太いレーザー
+              dmg: laserDmg,
+              life: 0.8,
+              type: 'laser' // レーザー弾として識別
+            });
+          }
+          
+        }else if(e.phase==='shoot'){
+          // レーザー発射中
+          e.phaseTimer -= dt;
+          if(e.phaseTimer <= 0){
+            e.phase = 'cooldown';
+            e.phaseTimer = 1.2; // 次の攻撃までの待機
+          }
+          
+        }else if(e.phase==='cooldown'){
+          // 待機後、プレイヤーの高さへ移動
+          e.phaseTimer -= dt;
+          if(e.phaseTimer <= 0){
+            // プレイヤーの現在の高さを目標にする
+            e.yTarget = state.player.y;
+            e.phase = 'move';
+          }
+        }
+      }
 
 // プレイヤー接触判定
 let touchDmg =
@@ -4124,7 +4331,11 @@ let touchDmg =
         : (e.type === 'final' ? 40 : 32))
     : (e.type === 'mid')
       ? 24
-      : 18;
+      : (e.type === 'warper')
+        ? 20
+        : (e.type === 'laser')
+          ? 16
+          : 18;
 
 if (state.mode.hardcore) touchDmg *= 1.5;
 
@@ -4164,6 +4375,8 @@ if (poisonDps > 0) {
   if (e.type === 'final') add = 5000;
   else if (e.type === 'big') add = 150;
   else if (e.type === 'mid') add = 60;
+  else if (e.type === 'warper') add = 35;
+  else if (e.type === 'laser') add = 32;
   else if (e.type === 'shooter') add = 30;
   else add = 20; // minion 等
 
@@ -4225,12 +4438,18 @@ state.paused = false;                 // ← ポーズ中でも tick が効く�
       }
     }
     // === ジェム ===
+    // 吸収範囲の基礎値
     let pickupR = 70 * (1 + 0.6 * state.pickupLv);
+    
+    // スキルのレベル3で画面の約1/3の範囲（全画面は過剰なので縮小）
     if (state.pickupLv >= 3) {
-      pickupR = Math.hypot(W / DPR, H / DPR);
+      const screenDiag = Math.hypot(W / DPR, H / DPR);
+      pickupR = screenDiag * 0.35; // スキルは約1/3に制限
     }
-        if (state.magnet?.active) {
-      pickupR = Math.hypot(W / DPR, H / DPR);
+    
+    // マグネットアイテム使用時は全画面から吸収（アイテムの価値を維持）
+    if (state.magnet?.active) {
+      pickupR = Math.hypot(W / DPR, H / DPR); // 全画面
     }
     for(let i=state.gems.length-1;i>=0;i--){
       const g=state.gems[i];
@@ -4628,6 +4847,60 @@ for (const b of state.bullets){
   // enemy bullets（視認性強化）
   for (const b of state.enemyBullets){
     const x = b.x, y = b.y;
+    
+    // NaNチェック（プレイヤー死亡時などの安全対策）
+    if(!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    
+    // === ホーミング弾の描画（warper）===
+    if(b.type === 'homing'){
+      const rPhys = b.r || 5;
+      const rVis = rPhys + 2;
+      
+      ctx.save();
+      // 紫色のホーミング弾
+      const g = ctx.createRadialGradient(x, y, 0, x, y, rVis);
+      g.addColorStop(0.00, '#e0b3ff');
+      g.addColorStop(0.60, '#9b59b6');
+      g.addColorStop(1.00, '#6c3483');
+      ctx.fillStyle = g;
+      ctx.shadowColor = '#9b59b6';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(x, y, rVis, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 軌跡エフェクト（任意）
+      ctx.globalAlpha = 0.5;
+      ctx.fillStyle = '#e0b3ff';
+      ctx.beginPath();
+      ctx.arc(x, y, rVis * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      continue;
+    }
+    
+    // === レーザー弾の描画 ===
+    if(b.type === 'laser'){
+      const length = Math.abs(b.vx || 0);
+      const thick = (b.r || 8) * 2;
+      
+      ctx.save();
+      // レーザー本体（黄色い長方形）
+      ctx.fillStyle = 'rgba(241, 196, 15, 0.7)'; // 半透明黄色
+      ctx.shadowColor = '#f1c40f';
+      ctx.shadowBlur = 12;
+      const lx = b.vx > 0 ? x : x - length;
+      ctx.fillRect(lx, y - thick/2, length, thick);
+      
+      // レーザーの縁（明るい黄色）
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(lx, y - thick/2, length, thick);
+      ctx.restore();
+      continue;
+    }
+    
+    // === 通常弾の描画 ===
     const rPhys = b.r || 5;        // 当たり判定半径（変更なし）
     const rVis  = rPhys + 2.5;     // 見た目は少し大きく
 
@@ -4794,6 +5067,84 @@ if(state.weapons.orbit.lv>0){
   // enemies with HP bars
   for(const e of state.enemies){
     const s=e.size;
+    
+    // === Warper の描画（紫の縦長四角） ===
+    if(e.type==='warper'){
+      if(e.phase==='invisible'){
+        continue; // 不可視時は描画しない
+      }
+      
+      // 出現時の白フラッシュ
+      if(e.spawnFlash > 0){
+        const flashAlpha = Math.max(0, e.spawnFlash);
+        ctx.save();
+        ctx.globalAlpha = flashAlpha;
+        ctx.fillStyle = '#ffffff';
+        const w = e.size * 1.5;
+        const h = (e.sizeH || e.size * 1.75) * 1.5;
+        ctx.fillRect(e.x - w/2, e.y - h/2, w, h);
+        ctx.restore();
+      }
+      
+      // フェードエフェクト（消える前に点滅）
+      let alpha = 1;
+      if(e.fadeTimer > 0){
+        const blinkSpeed = 12;
+        const blink = Math.sin(e.fadeTimer * blinkSpeed * Math.PI);
+        alpha = 0.3 + 0.7 * Math.max(0, blink);
+      }
+      
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#9b59b6'; // 紫色
+      const w = e.size;
+      const h = e.sizeH || e.size * 1.75;
+      ctx.fillRect(e.x - w/2, e.y - h/2, w, h);
+      
+      if(e.hitFlash>0){
+        ctx.globalAlpha = e.hitFlash * alpha;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(e.x - w/2, e.y - h/2, w, h);
+      }
+      ctx.restore();
+      
+      // HPバー
+      const ratio = Math.max(0, Math.min(1, e.hp / e.maxHp));
+      const bw = w, bh = 4; 
+      const bx = e.x - bw/2, by = e.y - h/2 - 6;
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#3a3a3a'; ctx.fillRect(bx, by, bw, bh);
+      ctx.fillStyle = ratio>0.5 ? '#2ecc71' : ratio>0.25 ? '#f1c40f' : '#e74c3c';
+      ctx.fillRect(bx, by, bw*ratio, bh);
+      ctx.strokeStyle='#111'; ctx.lineWidth=1; ctx.strokeRect(bx, by, bw, bh);
+      ctx.globalAlpha = 1;
+      
+    // === Laser の描画（黄色い横長四角） ===
+    } else if(e.type==='laser'){
+      ctx.fillStyle = '#f1c40f'; // 黄色
+      const w = e.sizeW || e.size * 2.5;
+      const h = e.size;
+      ctx.fillRect(e.x - w/2, e.y - h/2, w, h);
+      
+      if(e.hitFlash>0){
+        ctx.save(); 
+        ctx.globalAlpha = e.hitFlash; 
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(e.x - w/2, e.y - h/2, w, h);
+        ctx.restore();
+      }
+      
+      // HPバー
+      const ratio = Math.max(0, Math.min(1, e.hp / e.maxHp));
+      const bw = w, bh = 4;
+      const bx = e.x - bw/2, by = e.y - h/2 - 6;
+      ctx.fillStyle = '#3a3a3a'; ctx.fillRect(bx, by, bw, bh);
+      ctx.fillStyle = ratio>0.5 ? '#2ecc71' : ratio>0.25 ? '#f1c40f' : '#e74c3c';
+      ctx.fillRect(bx, by, bw*ratio, bh);
+      ctx.strokeStyle='#111'; ctx.lineWidth=1; ctx.strokeRect(bx, by, bw, bh);
+      
+    // === 既存の敵 ===
+    } else {
     if(e.type==='minion'){ ctx.fillStyle='#e74c3c'; }
     else if(e.type==='shooter'){ ctx.fillStyle='#f39c12'; }
     else if(e.type==='mid'){ ctx.fillStyle='#00bcd4'; }
@@ -4810,6 +5161,7 @@ if(state.weapons.orbit.lv>0){
     ctx.fillStyle = ratio>0.5 ? '#2ecc71' : ratio>0.25 ? '#f1c40f' : '#e74c3c';
     ctx.fillRect(bx, by, bw*ratio, bh);
     ctx.strokeStyle='#111'; ctx.lineWidth=1; ctx.strokeRect(bx, by, bw, bh);
+    }
   }
 
  // effects
@@ -5370,29 +5722,7 @@ function pointLineDist(px, py, x1, y1, x2, y2) {
   return Math.hypot(dx, dy);
 }
 
-function triggerFinalExplosion(x, y) {
-  // 他の敵・弾・アイテムは即時消去
-  state.enemies.length = 0;
-  state.enemyBullets.length = 0;
-  state.items.length = 0;
-  state.spawnTimer = 9999;
-
-  // 画面全体に近い大爆発を表示
-  addEffect('flash', { life: .06 });
-  addEffect('megaNova', {
-    x, y,
-    r: Math.hypot(W / DPR, H / DPR) * 0.85,
-    life: 0.9
-  });
-  for (let k = 0; k < 22; k++) {
-    spark(x + (Math.random() - 0.5) * 30, y + (Math.random() - 0.5) * 30, 18);
-  }
-
-  // 一定時間“見せる”→ クリア画面
-state.winCountdown = 1.2;
-state._winLast = performance.now();   // ← カウントの基準時刻を初期化
-state.paused = false;                 // ← ポーズ中でも tick が効くが、ここで一旦解除しておくと確実
-}
+// ※ 旧版のtriggerFinalExplosion は削除（下のfinalExplosionAndClearに統合済み）
 
 
 function showGameClear(){
