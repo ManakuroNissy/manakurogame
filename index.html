@@ -1404,6 +1404,9 @@ function ensureSoundButton(){
           bus.master.gain.setTargetAtTime(next ? 0.0001 : 1.0, t, 0.03);
         }
       }
+      // 効果音もミュート
+      soundEnabled = !next;
+      
       if (typeof saveMute === 'function') saveMute(next);
       refreshSoundIcon();
     }, {passive:true});
@@ -1470,6 +1473,191 @@ function visibleBounds(radius = 0){
   
   const dist2=(x1,y1,x2,y2)=>{const dx=x2-x1, dy=y2-y1; return dx*dx+dy*dy;}
   const pick=(arr)=>arr[(Math.random()*arr.length)|0];
+
+  // === 効果音システム ===
+  let audioCtx = null;
+  let soundEnabled = true;
+
+  function initAudio() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+  }
+
+  // 効果音：武器発射（控えめ）
+  function playShotSound(weaponType = 'blaster') {
+    if (!soundEnabled) return;
+    const ctx = initAudio();
+    const t = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    if (weaponType === 'blaster') {
+      osc.frequency.setValueAtTime(300, t);
+      osc.frequency.exponentialRampToValueAtTime(150, t + 0.05);
+      gain.gain.setValueAtTime(0.03, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    } else if (weaponType === 'shotgun') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(180, t);
+      osc.frequency.exponentialRampToValueAtTime(80, t + 0.08);
+      gain.gain.setValueAtTime(0.04, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    } else if (weaponType === 'blade') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(500, t);
+      osc.frequency.exponentialRampToValueAtTime(200, t + 0.06);
+      gain.gain.setValueAtTime(0.025, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    } else if (weaponType === 'nova') {
+      osc.frequency.setValueAtTime(400, t);
+      osc.frequency.exponentialRampToValueAtTime(250, t + 0.1);
+      gain.gain.setValueAtTime(0.02, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    } else if (weaponType === 'orbit') {
+      osc.frequency.setValueAtTime(350, t);
+      gain.gain.setValueAtTime(0.015, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    } else if (weaponType === 'ghost') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(450, t);
+      osc.frequency.exponentialRampToValueAtTime(300, t + 0.07);
+      gain.gain.setValueAtTime(0.022, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+    } else if (weaponType === 'rock') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(120, t);
+      osc.frequency.exponentialRampToValueAtTime(60, t + 0.12);
+      gain.gain.setValueAtTime(0.035, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    } else if (weaponType === 'poison') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(280, t);
+      osc.frequency.exponentialRampToValueAtTime(180, t + 0.15);
+      gain.gain.setValueAtTime(0.018, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    } else if (weaponType === 'lightning') {
+      // ライトニング：高周波でバチバチした音
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1200, t);
+      osc.frequency.exponentialRampToValueAtTime(400, t + 0.12);
+      gain.gain.setValueAtTime(0.06, t); // 音量大きめ
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    }
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.25);
+  }
+
+  // 効果音：敵撃破
+  function playKillSound(enemyType = 'normal') {
+    if (!soundEnabled) return;
+    const ctx = initAudio();
+    const t = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    if (enemyType === 'normal') {
+      // 通常敵：短く軽い
+      osc.frequency.setValueAtTime(600, t);
+      osc.frequency.exponentialRampToValueAtTime(200, t + 0.08);
+      gain.gain.setValueAtTime(0.05, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    } else if (enemyType === 'mid') {
+      // 中ボス：派手に（0.15秒 → 0.35秒）
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(900, t);
+      osc.frequency.exponentialRampToValueAtTime(120, t + 0.35);
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    } else if (enemyType === 'big') {
+      // 大ボス：かなり派手（0.25秒 → 0.6秒）
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(1200, t);
+      osc.frequency.exponentialRampToValueAtTime(80, t + 0.6);
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      
+      osc2.type = 'sawtooth';
+      osc2.frequency.setValueAtTime(900, t);
+      osc2.frequency.exponentialRampToValueAtTime(60, t + 0.6);
+      gain2.gain.setValueAtTime(0.12, t);
+      gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(t);
+      osc2.stop(t + 0.7);
+    } else if (enemyType === 'final') {
+      // ファイナルボス：超派手（0.4秒 → 1.2秒）
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(1500, t);
+      osc.frequency.exponentialRampToValueAtTime(60, t + 1.2);
+      gain.gain.setValueAtTime(0.22, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+      
+      osc2.type = 'square';
+      osc2.frequency.setValueAtTime(1000, t);
+      osc2.frequency.exponentialRampToValueAtTime(40, t + 1.2);
+      gain2.gain.setValueAtTime(0.15, t);
+      gain2.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+      
+      osc3.frequency.setValueAtTime(750, t);
+      osc3.frequency.exponentialRampToValueAtTime(30, t + 1.2);
+      gain3.gain.setValueAtTime(0.12, t);
+      gain3.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+      
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(t);
+      osc2.stop(t + 1.3);
+      
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.start(t);
+      osc3.stop(t + 1.3);
+    }
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 1.5);
+  }
+
+  // 効果音：レベルアップ
+  function playLevelUpSound() {
+    if (!soundEnabled) return;
+    const ctx = initAudio();
+    const t = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.frequency.setValueAtTime(400, t);
+    osc.frequency.setValueAtTime(600, t + 0.05);
+    osc.frequency.setValueAtTime(800, t + 0.1);
+    
+    gain.gain.setValueAtTime(0.08, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.25);
+  }
 
   const state = {
     t:0, last:performance.now(), paused:true, started:false,
@@ -2557,6 +2745,7 @@ function addXP(v){
   while (state.player.xp >= state.player.nextXp(state.player.level)) {
     state.player.xp -= state.player.nextXp(state.player.level);
     state.player.level++;
+    playLevelUpSound(); // レベルアップ効果音
     if (state.player.level === 3) {
       state.bossTimer = 60 + Math.random()*20;
       state.bigBossTimer = 140 + Math.random()*30;
@@ -2692,6 +2881,7 @@ for(const o of positions){
       });
 
 }
+playShotSound('blaster'); // 効果音
         this.cd = rate * state.mods.rateMul;
       }
     },
@@ -2740,6 +2930,7 @@ for(const o of positions){
       }
     }
 
+    playShotSound('shotgun'); // 効果音
     this.cd = Math.max(.45, this.baseRate * (1 - 0.15*(this.lv-1)))
               * (this.awaken? 0.8:1)
               * state.mods.rateMul;
@@ -2758,7 +2949,7 @@ homing:{
     for(let i=0;i<Math.ceil(count);i++){
       const ang = Math.random()*Math.PI*2;
       const power = this.baseDmg * (this.awaken? 1.4:1);
-      const life = this.awaken ? 6.0 : 8.0;
+      const life = this.awaken ? 4.0 : 5.0; // 8.0/6.0 → 5.0/4.0 に短縮
 
       state.bullets.push({
         type:'homing',
@@ -2795,6 +2986,7 @@ lightning:{ short:'LT', name:'ライトニング', lv:0, awaken:false, cd:0, bas
     for(const e of targets){
       strikeLightning(e, 1 + 0.25*(this.lv-1));
     }
+    playShotSound('lightning'); // 効果音
 
     this.cd = Math.max(0.8, this.baseRate * (1 - 0.22*(this.lv-1))) * (this.awaken? 0.65:0.9) * state.mods.rateMul;
   }
@@ -2843,6 +3035,7 @@ const addRock=(ang)=>{
     }else{
       addRock(base);
     }
+    playShotSound('rock'); // 効果音
     this.cd = Math.max(0.9, this.baseRate * (1 - 0.10*(this.lv-1))) * (this.awaken? 1.25:1);
   }
 },
@@ -2933,6 +3126,8 @@ update(dt){
     }, i * comboDelay);
   }
 
+playShotSound('blade'); // 効果音
+
 // 次発までのクールダウン（Lvで短縮、覚醒でさらに少し短縮）
 const lv = Math.max(1, this.lv);
 // 係数 0.85 = 1LvごとにCTを15%短縮（幾何減衰）。下限は 0.35s
@@ -2987,6 +3182,7 @@ ghost:{
           });
         }
       }
+      playShotSound('ghost'); // 効果音
     }
     // ゴーストの見た目は draw() 側でOK（半透明の霊体など）
   }
@@ -3027,6 +3223,7 @@ poison:{
         }
       }
 
+      playShotSound('poison'); // 効果音
       this.cd = this.baseCd * state.mods.rateMul;
     }
   }
@@ -3051,24 +3248,8 @@ const R = baseR * (1.35 + 0.12*(lv-1)) * (this.awaken ? 1.20 : 1.00);
             if(d<R) { e.hp -= dmg; e.hitFlash = Math.max(e.hitFlash, 0.12);
             hits++;
 
-
-                // === ノヴァ・ノックバック付与（ここが今回の追加） ===
-    const dx = e.x - state.player.x, dy = e.y - state.player.y;
-    const m = Math.hypot(dx, dy) || 1;
-    const nx = dx / m, ny = dy / m;
-    const baseKB =
-      (e.type === 'final') ? 130 :  // 260 → 130 (半分)
-      (e.type === 'big')   ? 170 :  // 340 → 170 (半分)
-      (e.type === 'mid')   ? 210 :  // 420 → 210 (半分)
-                             260 ;  // 520 → 260 (半分)
-    const edge = Math.min(1, Math.max(0, d / R));
-    const falloff = 0.55 + 0.45*(1 - edge);
-    const kb = baseKB * falloff;
-    e.kbx = (e.kbx || 0) + nx * kb;
-    e.kby = (e.kby || 0) + ny * kb;
-    
-      // === ここにスタン効果を追加 ===
-  const base = 0.20; // 秒
+                // === ノヴァ・ヒットストップ ===
+  const base = 0.08; // 秒（ヒットストップ程度）
   const resist = (e.type==='final') ? 0.35 : 
                  (e.type==='big'||e.type==='mid') ? 0.6 : 
                  1.0;
@@ -3079,6 +3260,7 @@ const R = baseR * (1.35 + 0.12*(lv-1)) * (this.awaken ? 1.20 : 1.00);
           
           // ※ ノヴァの回復効果は削除（バランス調整）
 
+          playShotSound('nova'); // 効果音
           
           
           
@@ -4222,7 +4404,7 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
               vy:Math.sin(a)*speed,
               r:7, // 5 → 7 (大きく)
               dmg: (state.mode.hardcore ? 16*1.5 : 16), 
-              life:5,
+              life:3.5, // 5 → 3.5 に短縮
               type:'homing', // ホーミング弾として識別
               turnSpeed: 2.5 // 旋回速度
             });
@@ -5774,6 +5956,8 @@ if (!e._counted) {
 }
 
   if (e.type === 'final') {
+    playKillSound('final'); // ファイナルボス効果音
+    state.paused = true; // 画面を一時停止
     try { finalExplosionAndClear(e.x, e.y); } catch(_){}
     try {
       state.enemies.length = 0;
@@ -5782,11 +5966,18 @@ if (!e._counted) {
       state.spawnTimer = 9999;
     } catch(_){}
   } else if (e.type === 'big') {
+    playKillSound('big'); // 大ボス効果音
+    state.paused = true; // 画面を一時停止
+    setTimeout(() => { state.paused = false; }, 800); // 0.8秒後に再開
     state.items.push({ kind:'chest', x:e.x, y:e.y, r:16, t:0, picks:2 });
     try { addEffect('text', { x:e.x, y:e.y, life:1.2, text:'宝箱×2！' }); } catch(_){}
   } else if (e.type === 'mid') {
+    playKillSound('mid'); // 中ボス効果音
+    state.paused = true; // 画面を一時停止
+    setTimeout(() => { state.paused = false; }, 500); // 0.5秒後に再開
     state.items.push({ kind:'chest', x:e.x, y:e.y, r:14, t:0, picks:1 });
   } else {
+    playKillSound('normal'); // 通常敵効果音
     try { dropGem(e.x, e.y, 1); } catch(_){}
   }
 
