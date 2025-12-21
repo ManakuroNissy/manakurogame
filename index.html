@@ -421,6 +421,10 @@ padding-left:  var(--hud-lpad);
   <h2>10分間生き延びろ！</h2>
   <p>レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
   <button id="startBtn" class="btn">スタート</button>
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    <button id="rankingBtn" class="btn" style="background:#fbbf24;">🏆 RANKING</button>
+    <button id="achievementsBtn" class="btn" style="background:#8b5cf6;">🎖️ 実績</button>
+  </div>
 </div>
 </div>
   
@@ -1474,6 +1478,497 @@ function visibleBounds(radius = 0){
   const dist2=(x1,y1,x2,y2)=>{const dx=x2-x1, dy=y2-y1; return dx*dx+dy*dy;}
   const pick=(arr)=>arr[(Math.random()*arr.length)|0];
 
+  // === スコアランキングシステム ===
+  const RANKING_KEY = 'gameRankings_v1';
+  const MAX_RANKINGS = 10;
+
+  function saveScore(scoreData) {
+    try {
+      const rankings = loadRankings();
+      rankings.push(scoreData);
+      // スコア順にソート（降順）
+      rankings.sort((a, b) => b.score - a.score);
+      // 上位10件のみ保持
+      const topRankings = rankings.slice(0, MAX_RANKINGS);
+      localStorage.setItem(RANKING_KEY, JSON.stringify(topRankings));
+      return topRankings;
+    } catch (e) {
+      console.error('Failed to save score:', e);
+      return [];
+    }
+  }
+
+  function loadRankings() {
+    try {
+      const data = localStorage.getItem(RANKING_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error('Failed to load rankings:', e);
+      return [];
+    }
+  }
+
+  function formatTime(seconds) {
+    const min = Math.floor(seconds / 60);
+    const sec = Math.floor(seconds % 60);
+    return `${min}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  function createScoreData(result) {
+    const totalKills = (state.kills || 0) + (state.bossKills || 0);
+    let score = totalKills * 100 + Math.floor(state.timeSec * 10);
+    
+    // クリア時のタイムボーナス
+    let timeBonus = 0;
+    if (result === 'clear') {
+      const clearTime = state.timeSec;
+      // 13分(780秒)を基準に、早いほどボーナス
+      // ラスボスは10:00出現なので、最速でも10:30頃
+      // 例: 11:00クリア = 120秒早い = 12,000点ボーナス
+      const targetTime = 780; // 13分
+      if (clearTime < targetTime) {
+        timeBonus = Math.floor((targetTime - clearTime) * 100);
+      }
+    }
+    
+    score += timeBonus;
+    
+    return {
+      score: score,
+      kills: state.kills || 0,
+      bossKills: state.bossKills || 0,
+      time: state.timeSec,
+      timeBonus: timeBonus,
+      level: state.player.level,
+      result: result, // 'clear' or 'gameover'
+      mode: state.mode.hardcore ? 'Hardcore' : 'Normal',
+      date: new Date().toISOString()
+    };
+  }
+
+  function showRankingModal(currentScore = null) {
+    const rankings = loadRankings();
+    
+    let html = `
+      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:10000;" id="rankingModal">
+        <div style="background:#1a1a2e;border:3px solid #4a90e2;border-radius:12px;padding:30px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;">
+          <h2 style="color:#4a90e2;text-align:center;margin:0 0 20px 0;font-size:28px;">🏆 SCORE RANKING 🏆</h2>
+    `;
+
+    if (rankings.length === 0) {
+      html += `<p style="color:#999;text-align:center;padding:40px 0;">No records yet</p>`;
+    } else {
+      html += `<div style="margin-bottom:20px;">`;
+      
+      rankings.forEach((entry, index) => {
+        const isCurrent = currentScore && entry.score === currentScore.score && 
+                         entry.date === currentScore.date;
+        const bgColor = isCurrent ? '#2a4a2e' : (index % 2 === 0 ? '#16213e' : '#1a1a2e');
+        const borderColor = isCurrent ? '#4ade80' : 'transparent';
+        
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+        const resultIcon = entry.result === 'clear' ? '✅' : '💀';
+        const modeColor = entry.mode === 'Hardcore' ? '#ef4444' : '#4a90e2';
+        const hasBo = entry.timeBonus && entry.timeBonus > 0;
+        
+        html += `
+          <div style="background:${bgColor};border:2px solid ${borderColor};border-radius:8px;padding:12px;margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:20px;font-weight:bold;color:#fff;">${medal}</span>
+              <span style="font-size:24px;font-weight:bold;color:#fbbf24;">${entry.score.toLocaleString()}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:14px;color:#aaa;">
+              <span>${resultIcon} ${entry.kills + entry.bossKills} kills (Boss: ${entry.bossKills})</span>
+              <span>⏱️ ${formatTime(entry.time)}${hasBo ? ` 🎁+${entry.timeBonus.toLocaleString()}` : ''}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-top:4px;">
+              <span style="color:${modeColor};font-weight:bold;">${entry.mode}</span>
+              <span>Lv ${entry.level}</span>
+              <span>${new Date(entry.date).toLocaleDateString()}</span>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += `</div>`;
+    }
+
+    html += `
+          <button onclick="document.getElementById('rankingModal').remove();" style="width:100%;padding:12px;background:#4a90e2;color:#fff;border:none;border-radius:8px;font-size:18px;font-weight:bold;cursor:pointer;margin-top:10px;">
+            CLOSE
+          </button>
+        </div>
+      </div>
+    `;
+
+    const modal = document.createElement('div');
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+  }
+
+  // === 実績システム ===
+  const ACHIEVEMENTS_KEY = 'gameAchievements_v1';
+  const ACHIEVEMENT_PROGRESS_KEY = 'achievementProgress_v1';
+
+  // 実績定義
+  const ACHIEVEMENTS = {
+    // 基本実績
+    first_play: { id: 'first_play', name: '初プレイ', desc: 'ゲームを開始する', icon: '🎮', tier: 'bronze' },
+    first_kill: { id: 'first_kill', name: '初撃破', desc: '敵を1体倒す', icon: '⚔️', tier: 'bronze' },
+    first_clear: { id: 'first_clear', name: '初クリア', desc: 'ゲームをクリアする', icon: '✅', tier: 'silver' },
+    kill_100: { id: 'kill_100', name: '虐殺者', desc: '敵100体撃破', icon: '💀', tier: 'bronze' },
+    kill_500: { id: 'kill_500', name: '大虐殺者', desc: '敵500体撃破', icon: '💀💀', tier: 'silver' },
+    boss_10: { id: 'boss_10', name: 'ボスハンター', desc: 'ボス10体撃破', icon: '🏰', tier: 'silver' },
+    level_20: { id: 'level_20', name: '成長株', desc: 'レベル20到達', icon: '📊', tier: 'bronze' },
+    level_30: { id: 'level_30', name: '熟練者', desc: 'レベル30到達', icon: '🎓', tier: 'silver' },
+    hardcore_clear: { id: 'hardcore_clear', name: 'ハードコアサバイバー', desc: 'Hardcoreでクリア', icon: '🔥', tier: 'gold' },
+    speed_11min: { id: 'speed_11min', name: 'スピードランナー', desc: '11分以内にクリア', icon: '⚡', tier: 'gold' },
+    hp_90_clear: { id: 'hp_90_clear', name: '完全勝利', desc: 'HP90%以上でクリア', icon: '💎', tier: 'silver' },
+    chest_10: { id: 'chest_10', name: '宝箱マニア', desc: '宝箱10個開ける', icon: '📦', tier: 'bronze' },
+    gem_500: { id: 'gem_500', name: 'ジェムコレクター', desc: 'ジェム500個取得', icon: '💎', tier: 'bronze' },
+    play_10: { id: 'play_10', name: 'ベテラン', desc: '総プレイ10回', icon: '🎮', tier: 'silver' },
+    total_kill_5000: { id: 'total_kill_5000', name: '生涯殺戮者', desc: '累計撃破5000体', icon: '💀', tier: 'gold' },
+
+    // 武器関連
+    pure_blaster: { id: 'pure_blaster', name: 'ピュアガンナー', desc: 'Blasterのみでクリア', icon: '🔫', tier: 'gold' },
+    weapon_2: { id: 'weapon_2', name: '二刀流', desc: '武器2種類のみでクリア', icon: '⚔️🔫', tier: 'silver' },
+    weapon_3: { id: 'weapon_3', name: '三銃士', desc: '武器3種類のみでクリア', icon: '🎯🔫⚔️', tier: 'silver' },
+    all_weapons: { id: 'all_weapons', name: '武器コレクター', desc: '全武器取得してクリア', icon: '🌈', tier: 'silver' },
+    awaken_blade: { id: 'awaken_blade', name: 'ブレードマスター', desc: 'Blade覚醒でクリア', icon: '⚔️', tier: 'silver' },
+    awaken_shotgun: { id: 'awaken_shotgun', name: 'ショットガンマスター', desc: 'Shotgun覚醒でクリア', icon: '💥', tier: 'silver' },
+    awaken_lightning: { id: 'awaken_lightning', name: '雷神', desc: 'Lightning覚醒でクリア', icon: '⚡', tier: 'silver' },
+    awaken_nova: { id: 'awaken_nova', name: 'ノヴァマスター', desc: 'Nova覚醒でクリア', icon: '🌟', tier: 'silver' },
+    awaken_homing: { id: 'awaken_homing', name: 'ホーミングマスター', desc: 'Homing覚醒でクリア', icon: '🎯', tier: 'silver' },
+    awaken_ghost: { id: 'awaken_ghost', name: 'ゴーストマスター', desc: 'Ghost覚醒でクリア', icon: '👻', tier: 'silver' },
+    awaken_rock: { id: 'awaken_rock', name: 'ロックマスター', desc: 'Rock覚醒でクリア', icon: '🪨', tier: 'silver' },
+    awaken_orbit: { id: 'awaken_orbit', name: 'オービットマスター', desc: 'Orbit覚醒でクリア', icon: '🔄', tier: 'silver' },
+    awaken_poison: { id: 'awaken_poison', name: 'ポイズンマスター', desc: 'Poison覚醒でクリア', icon: '🧪', tier: 'silver' },
+    all_awaken: { id: 'all_awaken', name: 'グランドマスター', desc: '累計で全9種類覚醒', icon: '🌟🌟🌟', tier: 'platinum' },
+    hardcore_2weapon: { id: 'hardcore_2weapon', name: 'ハードコアミニマリスト', desc: 'Hardcore + 武器2種類以下', icon: '🔥⚔️', tier: 'platinum' },
+    blaster_speed: { id: 'blaster_speed', name: 'ブラスター速攻', desc: 'Blasterのみ + 11分以内', icon: '🚀🔫', tier: 'platinum' },
+    all_weapon_master: { id: 'all_weapon_master', name: '真の武器マスター', desc: '全9種類の覚醒クリア達成', icon: '🏆', tier: 'platinum' },
+
+    // 縛りプレイ
+    no_upgrade: { id: 'no_upgrade', name: '原始人', desc: 'アップグレードなしでクリア', icon: '🚫', tier: 'platinum' },
+    no_item: { id: 'no_item', name: '禁欲主義者', desc: 'アイテムなしでクリア（宝箱除く）', icon: '🚷', tier: 'platinum' },
+    stoic: { id: 'stoic', name: 'ストイック', desc: 'アップグレード・アイテムなしクリア', icon: '💪', tier: 'platinum' },
+
+    // 超難関
+    speed_1030: { id: 'speed_1030', name: 'ソニック', desc: '10:30クリア', icon: '🚀', tier: 'platinum' },
+    no_damage: { id: 'no_damage', name: '無傷の勝利', desc: 'ノーダメージでクリア', icon: '🛡️', tier: 'platinum' },
+    hardcore_no_damage: { id: 'hardcore_no_damage', name: '真の実力者', desc: 'Hardcoreノーダメージクリア', icon: '🌟', tier: 'platinum' },
+    play_100: { id: 'play_100', name: '廃人', desc: '総プレイ100回', icon: '🎮🎮', tier: 'platinum' },
+    total_kill_10000: { id: 'total_kill_10000', name: '殲滅者', desc: '累計撃破10000体', icon: '💀💀💀', tier: 'platinum' },
+    all_complete: { id: 'all_complete', name: '完璧主義者', desc: '全実績コンプリート', icon: '🔮', tier: 'platinum' }
+  };
+
+  // 進捗データ（累積記録用）
+  let achievementProgress = {
+    totalPlays: 0,
+    totalKills: 0,
+    totalBossKills: 0,
+    totalGemsCollected: 0,
+    totalChestsOpened: 0,
+    totalRerolls: 0,
+    awakenedWeapons: {}, // { blade: true, shotgun: true, ... }
+    awakenClearCount: {} // { blade: 1, shotgun: 2, ... }
+  };
+
+  // 現在のプレイセッション用トラッキング
+  let sessionTracking = {
+    gemsCollected: 0,
+    chestsOpened: 0,
+    rerollCount: 0,
+    itemsCollected: 0,
+    upgradesTaken: 0,
+    attackTimer: 0, // 攻撃していない時間
+    hp10Timer: 0, // HP10以下の時間
+    maxHpReached: 0,
+    damageTaken: 0
+  };
+
+  function loadAchievements() {
+    try {
+      const data = localStorage.getItem(ACHIEVEMENTS_KEY);
+      return data ? JSON.parse(data) : {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function saveAchievements(achievements) {
+    try {
+      localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(achievements));
+    } catch (e) {
+      console.error('Failed to save achievements:', e);
+    }
+  }
+
+  function loadProgress() {
+    try {
+      const data = localStorage.getItem(ACHIEVEMENT_PROGRESS_KEY);
+      if (data) {
+        const loaded = JSON.parse(data);
+        achievementProgress = { ...achievementProgress, ...loaded };
+      }
+    } catch (e) {
+      console.error('Failed to load progress:', e);
+    }
+  }
+
+  function saveProgress() {
+    try {
+      localStorage.setItem(ACHIEVEMENT_PROGRESS_KEY, JSON.stringify(achievementProgress));
+    } catch (e) {
+      console.error('Failed to save progress:', e);
+    }
+  }
+
+  function unlockAchievement(achievementId) {
+    const achievements = loadAchievements();
+    if (achievements[achievementId]) return; // 既に解除済み
+
+    achievements[achievementId] = {
+      unlockedAt: new Date().toISOString()
+    };
+    saveAchievements(achievements);
+
+    // 通知表示
+    showAchievementNotification(achievementId);
+
+    // 全実績コンプリートチェック
+    const totalCount = Object.keys(ACHIEVEMENTS).length - 1; // all_complete除く
+    const unlockedCount = Object.keys(achievements).length;
+    if (unlockedCount === totalCount && !achievements.all_complete) {
+      unlockAchievement('all_complete');
+    }
+  }
+
+  function showAchievementNotification(achievementId) {
+    const achievement = ACHIEVEMENTS[achievementId];
+    if (!achievement) return;
+
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      z-index: 10001;
+      font-size: 14px;
+      max-width: 300px;
+      animation: slideIn 0.3s ease-out;
+    `;
+    
+    notification.innerHTML = `
+      <div style="font-size: 24px; margin-bottom: 4px;">${achievement.icon}</div>
+      <div style="font-weight: bold; margin-bottom: 4px;">実績解除！</div>
+      <div style="font-size: 16px; font-weight: bold;">${achievement.name}</div>
+      <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">${achievement.desc}</div>
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.animation = 'slideOut 0.3s ease-in';
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  }
+
+  // スタイル追加
+  const achievementStyle = document.createElement('style');
+  achievementStyle.textContent = `
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(400px); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(achievementStyle);
+
+  // 初期化
+  loadProgress();
+
+  // === 実績チェック関数 ===
+  function checkAchievementsOnClear() {
+    const totalKills = (state.kills || 0) + (state.bossKills || 0);
+    
+    // クリア実績
+    unlockAchievement('first_clear');
+    
+    // Hardcoreクリア
+    if (state.mode.hardcore) {
+      unlockAchievement('hardcore_clear');
+    }
+    
+    // タイム実績
+    const clearTime = state.timeSec;
+    if (clearTime <= 630) unlockAchievement('speed_1030'); // 10:30
+    if (clearTime <= 660) unlockAchievement('speed_11min'); // 11:00
+    
+    // HP実績
+    const hpPercent = (state.player.hp / state.player.maxHp) * 100;
+    if (hpPercent >= 90) unlockAchievement('hp_90_clear');
+    if (sessionTracking.damageTaken === 0) {
+      unlockAchievement('no_damage');
+      if (state.mode.hardcore) unlockAchievement('hardcore_no_damage');
+    }
+    
+    // 武器数実績
+    const weapons = state.weapons;
+    const weaponCount = Object.keys(weapons).filter(k => weapons[k].lv > 0).length;
+    
+    if (weaponCount === 1) {
+      unlockAchievement('pure_blaster'); // Blasterのみ
+    }
+    if (weaponCount === 2) unlockAchievement('weapon_2');
+    if (weaponCount === 3) unlockAchievement('weapon_3');
+    if (weaponCount === 10) unlockAchievement('all_weapons');
+    
+    // 覚醒実績
+    for (const key in weapons) {
+      if (weapons[key].awaken) {
+        unlockAchievement(`awaken_${key}`);
+        
+        // 累積覚醒カウント
+        if (!achievementProgress.awakenedWeapons[key]) {
+          achievementProgress.awakenedWeapons[key] = true;
+        }
+        achievementProgress.awakenClearCount[key] = (achievementProgress.awakenClearCount[key] || 0) + 1;
+      }
+    }
+    
+    // 全覚醒実績
+    const awakenedCount = Object.keys(achievementProgress.awakenedWeapons).length;
+    if (awakenedCount >= 9) unlockAchievement('all_awaken');
+    
+    // 全武器覚醒クリア実績
+    const allAwakenCleared = Object.keys(achievementProgress.awakenClearCount).length >= 9;
+    if (allAwakenCleared) unlockAchievement('all_weapon_master');
+    
+    // 複合実績
+    if (state.mode.hardcore && weaponCount <= 2) {
+      unlockAchievement('hardcore_2weapon');
+    }
+    if (weaponCount === 1 && clearTime <= 660) {
+      unlockAchievement('blaster_speed');
+    }
+    
+    // 縛りプレイ実績
+    if (sessionTracking.upgradesTaken === 0) {
+      unlockAchievement('no_upgrade');
+    }
+    if (sessionTracking.itemsCollected === 0) {
+      unlockAchievement('no_item');
+    }
+    if (sessionTracking.upgradesTaken === 0 && sessionTracking.itemsCollected === 0) {
+      unlockAchievement('stoic');
+    }
+    
+    saveProgress();
+  }
+
+  function checkKillAchievements() {
+    const totalKills = (state.kills || 0) + (state.bossKills || 0);
+    
+    // 初撃破
+    if (totalKills === 1) unlockAchievement('first_kill');
+    
+    // 撃破数実績（現在のプレイ）
+    if (totalKills >= 100) unlockAchievement('kill_100');
+    if (totalKills >= 500) unlockAchievement('kill_500');
+    
+    // ボス撃破数（現在のプレイ）
+    if (state.bossKills >= 10) unlockAchievement('boss_10');
+    
+    // 累積撃破数
+    achievementProgress.totalKills++;
+    achievementProgress.totalBossKills += (arguments[0] && (arguments[0].type === 'mid' || arguments[0].type === 'big' || arguments[0].type === 'final')) ? 1 : 0;
+    
+    if (achievementProgress.totalKills >= 5000) unlockAchievement('total_kill_5000');
+    if (achievementProgress.totalKills >= 10000) unlockAchievement('total_kill_10000');
+    
+    saveProgress();
+  }
+
+  function checkLevelAchievements() {
+    if (state.player.level >= 20) unlockAchievement('level_20');
+    if (state.player.level >= 30) unlockAchievement('level_30');
+  }
+
+  function showAchievementsModal() {
+    const achievements = loadAchievements();
+    const totalCount = Object.keys(ACHIEVEMENTS).length;
+    const unlockedCount = Object.keys(achievements).length;
+    const progress = Math.floor((unlockedCount / totalCount) * 100);
+
+    const tierOrder = { platinum: 4, gold: 3, silver: 2, bronze: 1 };
+    const sortedAchievements = Object.values(ACHIEVEMENTS).sort((a, b) => {
+      const tierDiff = tierOrder[b.tier] - tierOrder[a.tier];
+      if (tierDiff !== 0) return tierDiff;
+      return a.name.localeCompare(b.name);
+    });
+
+    let html = `
+      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:10000;overflow-y:auto;" id="achievementsModal">
+        <div style="background:#1a1a2e;border:3px solid #8b5cf6;border-radius:12px;padding:30px;max-width:700px;width:90%;max-height:85vh;overflow-y:auto;">
+          <h2 style="color:#8b5cf6;text-align:center;margin:0 0 10px 0;font-size:28px;">🎖️ 実績</h2>
+          <div style="text-align:center;margin-bottom:20px;color:#fff;">
+            <div style="font-size:18px;margin-bottom:8px;">${unlockedCount} / ${totalCount} 解除 (${progress}%)</div>
+            <div style="background:#2a2a3e;border-radius:20px;height:24px;overflow:hidden;">
+              <div style="background:linear-gradient(90deg, #8b5cf6, #a78bfa);height:100%;width:${progress}%;transition:width 0.3s;"></div>
+            </div>
+          </div>
+          <div style="margin-bottom:20px;">
+    `;
+
+    for (const achievement of sortedAchievements) {
+      const isUnlocked = !!achievements[achievement.id];
+      const tierColors = {
+        platinum: '#e5e7eb',
+        gold: '#fbbf24',
+        silver: '#94a3b8',
+        bronze: '#d97706'
+      };
+      const tierColor = tierColors[achievement.tier];
+      const bgColor = isUnlocked ? '#2a3a4e' : '#1a1a2e';
+      const opacity = isUnlocked ? '1' : '0.5';
+
+      html += `
+        <div style="background:${bgColor};border:2px solid ${tierColor};border-radius:8px;padding:12px;margin-bottom:8px;opacity:${opacity};">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="font-size:32px;">${achievement.icon}</div>
+            <div style="flex:1;">
+              <div style="font-size:16px;font-weight:bold;color:#fff;margin-bottom:4px;">${achievement.name}</div>
+              <div style="font-size:13px;color:#aaa;">${achievement.desc}</div>
+            </div>
+            ${isUnlocked ? '<div style="font-size:24px;">✅</div>' : '<div style="font-size:24px;opacity:0.3;">🔒</div>'}
+          </div>
+        </div>
+      `;
+    }
+
+    html += `
+          </div>
+          <button onclick="document.getElementById('achievementsModal').remove();" style="width:100%;padding:12px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:18px;font-weight:bold;cursor:pointer;">
+            CLOSE
+          </button>
+        </div>
+      </div>
+    `;
+
+    const modal = document.createElement('div');
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+  }
+
   // === 効果音システム ===
   let audioCtx = null;
   let soundEnabled = true;
@@ -1980,6 +2475,22 @@ if (!window.__START_BOUND) {
   } else {
     console.warn('[init] start button not found');
   }
+  
+  // RANKINGボタン
+  const rankingBtn = document.getElementById('rankingBtn');
+  if (rankingBtn) {
+    rankingBtn.onclick = () => {
+      showRankingModal();
+    };
+  }
+  
+  // 実績ボタン
+  const achievementsBtn = document.getElementById('achievementsBtn');
+  if (achievementsBtn) {
+    achievementsBtn.onclick = () => {
+      showAchievementsModal();
+    };
+  }
 }
 
 
@@ -2023,8 +2534,13 @@ function triggerGameOver(){
   // UI
   if (goEl) goEl.style.display = 'flex';
   
-ensureEndScoreNodes();
-updateEndScore('over');
+  ensureEndScoreNodes();
+  updateEndScore('over');
+
+  // スコア保存とランキング表示
+  const scoreData = createScoreData('gameover');
+  saveScore(scoreData);
+  setTimeout(() => showRankingModal(scoreData), 500);
 
   // フローティング・ジョイスティックOFF
   delete document.body.dataset.fjoy;
@@ -2089,6 +2605,32 @@ function updateEndScore(kind){ // kind: 'over' | 'clear'
 
 
   function resetGame(){
+    // セッショントラッキングリセット
+    sessionTracking = {
+      gemsCollected: 0,
+      chestsOpened: 0,
+      rerollCount: 0,
+      itemsCollected: 0,
+      upgradesTaken: 0,
+      attackTimer: 0,
+      hp10Timer: 0,
+      maxHpReached: state.player?.hp || 110,
+      damageTaken: 0
+    };
+
+    // 総プレイ回数カウント
+    achievementProgress.totalPlays++;
+    saveProgress();
+    
+    // 初プレイ実績
+    if (achievementProgress.totalPlays === 1) {
+      unlockAchievement('first_play');
+    }
+    
+    // プレイ回数実績
+    if (achievementProgress.totalPlays >= 10) unlockAchievement('play_10');
+    if (achievementProgress.totalPlays >= 100) unlockAchievement('play_100');
+
     // Clear arrays
     state.enemies.length=0; state.bullets.length=0; state.enemyBullets.length=0;
     state.gems.length=0; state.sparks.length=0; state.effects.length=0; state.items.length=0;
@@ -2598,6 +3140,9 @@ state.items.push({ kind, x, y, r:rByKind, t:0 });
 
   function applyItem(it){
 if(it.kind==='magnet'){
+  // アイテムカウント（宝箱除く）
+  sessionTracking.itemsCollected++;
+  
   // ポーズ無し・全XP高速吸引（必達）
   state.magnet.active = true;
   state.magnet.time   = 0;
@@ -2607,6 +3152,9 @@ if(it.kind==='magnet'){
   // 見た目（任意）：オーラの寿命を効果時間に合わせる
   addEffect('aura', { x: state.player.x, y: state.player.y, r: 60, life: state.magnet.dur, life0: state.magnet.dur });
 }else if(it.kind==='nuke'){
+  // アイテムカウント（宝箱除く）
+  sessionTracking.itemsCollected++;
+  
   // 演出：白い光の円が素早く広がる
   const R = Math.hypot(cv.width / DPR, cv.height / DPR) * 0.85;
   addEffect('whiteCharge', { x: state.player.x, y: state.player.y, r0: 22, r1: 120, life: 0.08 });
@@ -2638,16 +3186,27 @@ if(it.kind==='magnet'){
   }
   addEffect('text', { x: state.player.x, y: state.player.y, life: 1.2, text: `一掃(${killed})` });
 }else if(it.kind==='heal'){
-      const amount = Math.round(state.player.maxHp * 0.35);
-      state.player.hp = Math.min(state.player.maxHp, state.player.hp + amount);
-      addEffect('text',{x:state.player.x,y:state.player.y,life:1.2,text:`回復 +${amount}`});
-    addEffect('healSparkles', { x: state.player.x, y: state.player.y, r: 46, life: 0.7, life0: 0.7, count: 14 });
-    }else if(it.kind==='chest'){
-      openChest(it.picks||2);
-    }
+  // アイテムカウント（宝箱除く）
+  sessionTracking.itemsCollected++;
+  
+  const amount = Math.round(state.player.maxHp * 0.35);
+  state.player.hp = Math.min(state.player.maxHp, state.player.hp + amount);
+  addEffect('text',{x:state.player.x,y:state.player.y,life:1.2,text:`回復 +${amount}`});
+  addEffect('healSparkles', { x: state.player.x, y: state.player.y, r: 46, life: 0.7, life0: 0.7, count: 14 });
+}else if(it.kind==='chest'){
+  // 宝箱はカウントしない
+  openChest(it.picks||2);
+}
   }
 function openChest(pickCount = 2) {
   state.paused = true;
+
+  // 宝箱開封カウント
+  sessionTracking.chestsOpened++;
+  achievementProgress.totalChestsOpened++;
+  
+  // 宝箱実績チェック
+  if (sessionTracking.chestsOpened >= 10) unlockAchievement('chest_10');
 
   // オーバーレイ表示
   chestEl.style.display = 'flex';
@@ -2703,6 +3262,11 @@ function openChest(pickCount = 2) {
         const ret = (typeof u.apply === 'function') ? u.apply() : true;
         if (ret === false) return;
 
+        // アップグレードカウント（武器以外）
+        if (!u.isWeapon) {
+          sessionTracking.upgradesTaken++;
+        }
+
         chosen.add(u);
         c.classList.add('selected');
         picksLeft--;
@@ -2746,6 +3310,10 @@ function addXP(v){
     state.player.xp -= state.player.nextXp(state.player.level);
     state.player.level++;
     playLevelUpSound(); // レベルアップ効果音
+    
+    // レベル実績チェック
+    checkLevelAchievements();
+    
     if (state.player.level === 3) {
       state.bossTimer = 60 + Math.random()*20;
       state.bigBossTimer = 140 + Math.random()*30;
@@ -2797,6 +3365,11 @@ function showLevelUp(choices){
     const descText = typeof u.desc === 'function' ? u.desc() : (u.desc || '');
     c.innerHTML = `<h3>${u.name}</h3><p>${descText}</p>`;
     c.onclick = () => {
+      // アップグレードカウント（武器以外）
+      if (!u.isWeapon) {
+        sessionTracking.upgradesTaken++;
+      }
+      
       // 能力を適用して閉じる
       u.apply();
       state.paused = false;
@@ -2830,6 +3403,14 @@ function showLevelUp(choices){
   rr.onclick = () => {
     if (window._rerollUsedThisLevel) return;
     window._rerollUsedThisLevel = true;
+    
+    // リロールカウント
+    sessionTracking.rerollCount++;
+    achievementProgress.totalRerolls++;
+    
+    // リロール実績チェック
+    if (sessionTracking.rerollCount >= 20) unlockAchievement('reroll_20');
+    
     // 新しい3択を作り直して、同じUIに差し替え
     const newChoices = pickUpgradeChoices(3);
     showLevelUp(newChoices);
@@ -4643,7 +5224,14 @@ state.paused = false;                 // ← ポーズ中でも tick が効く�
         g.x += ax * sp * dt; g.y += ay * sp * dt;
       }
       if(dist2(g.x,g.y,state.player.x,state.player.y) < (state.player.r+g.r)**2){
-        addXP(g.val*5); state.gems.splice(i,1);
+        addXP(g.val*5); 
+        sessionTracking.gemsCollected++;
+        achievementProgress.totalGemsCollected++;
+        
+        // ジェム実績チェック
+        if (sessionTracking.gemsCollected >= 500) unlockAchievement('gem_500');
+        
+        state.gems.splice(i,1);
       }
     }
 
@@ -5918,7 +6506,15 @@ function showGameClear(){
     state.paused = true;
     
     ensureEndScoreNodes();
-updateEndScore('clear');
+    updateEndScore('clear');
+
+    // 実績チェック
+    checkAchievementsOnClear();
+
+    // スコア保存とランキング表示
+    const scoreData = createScoreData('clear');
+    saveScore(scoreData);
+    setTimeout(() => showRankingModal(scoreData), 500);
 
     // ハードコアボタンを表示
     if (hardcoreBtn){
@@ -5953,6 +6549,9 @@ if (!e._counted) {
     state.kills = (state.kills|0) + 1;
   }
   e._counted = true; // 弾・即死・多経路でも二重加算を防ぐ
+  
+  // 実績チェック
+  checkKillAchievements(e);
 }
 
   if (e.type === 'final') {
