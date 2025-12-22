@@ -437,11 +437,19 @@ padding-left:  var(--hud-lpad);
   <h1>10min's Survivor</h1>
   <h2>10分間生き延びろ！</h2>
   <p>レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
+  
+  <!-- バージョン情報 -->
+  <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
+    <span style="opacity:0.7;">Ver 1.4.1</span> - 
+    <span style="opacity:0.6; font-size:0.8rem;">ハードコア難易度調整</span>
+  </div>
+  
   <button id="startBtn" class="btn">スタート</button>
   <button id="startHardcoreBtn" class="btn" style="background:#8b5cf6;">🔥 ハードコアで挑戦</button>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button id="rankingBtn" class="btn" style="background:#fbbf24;">🏆 RANKING</button>
     <button id="achievementsBtn" class="btn" style="background:#8b5cf6;">🎖️ 実績</button>
+    <button id="updateLogBtn" class="btn" style="background:#10b981;">📝 更新履歴</button>
   </div>
 </div>
 </div>
@@ -501,6 +509,111 @@ padding-left:  var(--hud-lpad);
 </div>
   
   <canvas id="cv"></canvas>
+  
+  <!-- 更新履歴モーダル -->
+  <div id="updateLogModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
+    <div style="max-width:700px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <h2 style="margin:0; color:#fff; font-size:1.8rem;">📝 更新履歴</h2>
+        <button onclick="document.getElementById('updateLogModal').style.display='none'" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">閉じる</button>
+      </div>
+      
+      <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 1.4.1 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(14,165,233,0.1); border-left:4px solid #0ea5e9; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#38bdf8; font-size:1.3rem;">Ver 1.4.1 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/22</span></h3>
+          <h4 style="margin:0.5rem 0; color:#7dd3fc;">⚖️ ハードコア難易度調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>経験値減少ペナルティを削除（0.75倍→1.0倍）</li>
+            <li>敵の攻撃力を削減（1.5倍→1.3倍）</li>
+            <li>より適正な難易度に調整</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.4.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.1); border-left:4px solid #10b981; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#10b981; font-size:1.3rem;">Ver 1.4.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/22</span></h3>
+          <h4 style="margin:0.5rem 0; color:#a7f3d0;">🎯 出現予告システム実装</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ボム敵・ワープ敵の出現前に予告マーカーを表示</li>
+            <li>突然出現による理不尽な死を解消</li>
+            <li>予告時間：ボム0.8秒、ワープ0.6秒</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#a7f3d0;">⚖️ 難易度バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>レーザー予告時間延長（0.6秒→1.0秒）</li>
+            <li>ハードコア敵の自動回復を削除</li>
+            <li>ハードコアボスHP倍率削減（1.5倍→1.3倍）</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#a7f3d0;">🎖️ UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>クリア・ゲームオーバー時に解除した実績を表示</li>
+            <li>実績のティアカラー表示</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.3.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(139,92,246,0.1); border-left:4px solid #8b5cf6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#a78bfa; font-size:1.3rem;">Ver 1.3.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/21</span></h3>
+          <h4 style="margin:0.5rem 0; color:#c4b5fd;">🔥 ハードコアモード強化</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>敵HP：2倍</li>
+            <li>敵の数：1.5倍</li>
+            <li>敵の攻撃力：1.5倍</li>
+            <li>敵の攻撃頻度：2倍</li>
+            <li>タイトル画面から選択可能に</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#c4b5fd;">⚔️ 武器バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ラバーショット：ダメージ減少、球数調整</li>
+            <li>ロック：ダメージ0.55倍に減少</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#c4b5fd;">🎮 新機能</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>レベルアップ時に能力をとらない選択肢（縛りプレイ用）</li>
+            <li>スキップボーナス：+5,000点</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.2.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(251,191,36,0.1); border-left:4px solid #fbbf24; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 1.2.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/20</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>武器説明文を追加（全11武器）</li>
+            <li>レベルアップ時の説明を強化</li>
+            <li>覚醒時の特別効果説明</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.1.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.1); border-left:4px solid #3b82f6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 1.1.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/19</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>SNS共有機能実装（X/LINE/コピー）</li>
+            <li>ランキングシステム</li>
+            <li>実績システム（50種類以上）</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.0.0 -->
+        <div style="padding:1rem; background:rgba(100,116,139,0.1); border-left:4px solid #64748b; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#94a3b8; font-size:1.3rem;">Ver 1.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/18</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>初回リリース</li>
+            <li>11種類の武器システム</li>
+            <li>ボス戦システム</li>
+            <li>レベルアップシステム</li>
+          </ul>
+        </div>
+        
+      </div>
+    </div>
+  </div>
   
   <!-- 上部HUD（プレイ領域に被せず上に固定） -->
 <div id="hudTop" aria-label="top hud"></div>
@@ -2689,6 +2802,15 @@ if (!window.__START_BOUND) {
       showAchievementsModal();
     };
   }
+  
+  // 更新履歴ボタン
+  const updateLogBtn = document.getElementById('updateLogBtn');
+  if (updateLogBtn) {
+    updateLogBtn.onclick = () => {
+      const modal = document.getElementById('updateLogModal');
+      if (modal) modal.style.display = 'block';
+    };
+  }
 }
 
 
@@ -3605,8 +3727,7 @@ if (pickCount > 1) {
 function addXP(v){
   // 時間倍率
   v = Math.round(v * xpMulByTime());
-  // Hardcore補正（例：取得 -25%）
-  if (state.mode.hardcore) v = Math.round(v * 0.75);
+  // Hardcore補正は削除（難易度調整）
 
   state.player.xp += v;
   while (state.player.xp >= state.player.nextXp(state.player.level)) {
@@ -5171,7 +5292,7 @@ e.x += e.dir.x * step; e.y += e.dir.y * step; e.moved += step;
           e.cd -= dt;
           if(e.cd<=0){
             const angS = Math.atan2(state.player.y-e.y, state.player.x-e.x);
-            state.enemyBullets.push({ x:e.x, y:e.y, vx:Math.cos(angS)*200, vy:Math.sin(angS)*200, r:4, dmg: (state.mode.hardcore ? 10*1.5 : 10), life:60 });
+            state.enemyBullets.push({ x:e.x, y:e.y, vx:Math.cos(angS)*200, vy:Math.sin(angS)*200, r:4, dmg: (state.mode.hardcore ? 10*1.3 : 10), life:60 }); // 1.5 → 1.3
             e.cd = state.mode.hardcore ? rnd(0.95, 1.05) : rnd(1.9, 2.1); // ハードコアで半分の間隔
           }
         }
@@ -5185,7 +5306,7 @@ e.y += Math.sin(a)*e.speed*dt*0.9*moveMul;
           const n = 8;
           for(let k=0;k<n;k++){
             const ang = (Math.PI*2*k)/n;
-            state.enemyBullets.push({ x:e.x,y:e.y, vx:Math.cos(ang)*120, vy:Math.sin(ang)*120, r:4, dmg:(state.mode.hardcore ? 12*1.5 : 12), life:3 });
+            state.enemyBullets.push({ x:e.x,y:e.y, vx:Math.cos(ang)*120, vy:Math.sin(ang)*120, r:4, dmg:(state.mode.hardcore ? 12*1.3 : 12), life:3 }); // 1.5 → 1.3
           }
           e.cd = 7.0;
         }
@@ -5213,7 +5334,7 @@ if(e.phase === 'shoot'){
       state.enemyBullets.push({
         x:e.x, y:e.y,
         vx:Math.cos(a2)*180, vy:Math.sin(a2)*180, // 少し速く
-        r:4, dmg: (state.mode.hardcore ? 18*1.5 : 18), life:3.8
+        r:4, dmg: (state.mode.hardcore ? 18*1.3 : 18), life:3.8 // 1.5 → 1.3
       });
     }
     e.shootCD = 1.8; // ★ 2.6→1.8
@@ -5392,7 +5513,7 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
                 state.enemyBullets.push({
                   x:e.x, y:e.y,
                   vx:Math.cos(a2)*160, vy:Math.sin(a2)*160,
-                  r:4, dmg:(state.mode.hardcore ? 14*1.5 : 14), life:3.5
+                  r:4, dmg:(state.mode.hardcore ? 14*1.3 : 14), life:3.5 // 1.5 → 1.3
                 });
               }
               e.cd = 3.0;
@@ -5504,7 +5625,7 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
               vx:Math.cos(a)*speed, 
               vy:Math.sin(a)*speed,
               r:7, // 5 → 7 (大きく)
-              dmg: (state.mode.hardcore ? 16*1.5 : 16), 
+              dmg: (state.mode.hardcore ? 16*1.3 : 16), // 1.5 → 1.3
               life:3.5, // 5 → 3.5 に短縮
               type:'homing', // ホーミング弾として識別
               turnSpeed: 2.5 // 旋回速度
@@ -5574,7 +5695,7 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
             e.phase = 'shoot';
             e.phaseTimer = 0.8; // レーザー持続時間
             // レーザーを生成
-            const laserDmg = state.mode.hardcore ? 25*1.5 : 25;
+            const laserDmg = state.mode.hardcore ? 25*1.3 : 25; // 1.5 → 1.3
             const laserLength = Math.abs(x2 - e.x);
             state.enemyBullets.push({
               x: e.x, y: e.y,
@@ -5620,7 +5741,7 @@ let touchDmg =
           ? 16
           : 18;
 
-if (state.mode.hardcore) touchDmg *= 1.5;
+if (state.mode.hardcore) touchDmg *= 1.3; // 1.5 → 1.3（難易度調整）
 
 
       if (dist2(e.x, e.y, state.player.x, state.player.y) < (state.player.r + e.size * 0.6) ** 2) {
