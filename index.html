@@ -449,6 +449,13 @@ padding-left:  var(--hud-lpad);
   <div id="gameover" style="display:none;">
     <h2>ゲームオーバー</h2>
     <div class="sub">もう一度挑戦しよう!</div>
+    
+    <!-- 解除された実績表示エリア -->
+    <div id="gameoverAchievements" style="display:none; margin:1rem 0; padding:1rem; background:rgba(102,126,234,0.15); border-radius:8px; max-width:600px;">
+      <h3 style="margin:0 0 0.5rem; font-size:1.1rem; color:#a78bfa;">🎖️ 実績解除！</h3>
+      <div id="gameoverAchievementsList" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+    </div>
+    
     <div class="share-buttons">
       <button class="share-btn twitter" onclick="shareToTwitter('gameover')">
         <span>𝕏</span> Xでシェア
@@ -468,6 +475,13 @@ padding-left:  var(--hud-lpad);
 <!-- クリア画面 -->
 <div id="gameclear" style="display:none;">
   <h2 style="font-size:clamp(28px,6vw,64px); margin:0 0 .75rem;">🎉 GAME CLEAR 🎉</h2>
+  
+  <!-- 解除された実績表示エリア -->
+  <div id="clearAchievements" style="display:none; margin:1rem 0; padding:1rem; background:rgba(102,126,234,0.15); border-radius:8px; max-width:600px;">
+    <h3 style="margin:0 0 0.5rem; font-size:1.1rem; color:#a78bfa;">🎖️ 実績解除！</h3>
+    <div id="clearAchievementsList" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+  </div>
+  
   <div class="share-buttons">
     <button class="share-btn twitter" onclick="shareToTwitter('clear')">
       <span>𝕏</span> Xでシェア
@@ -1780,6 +1794,10 @@ function visibleBounds(radius = 0){
 
     // 通知表示
     showAchievementNotification(achievementId);
+    
+    // クリア時の実績を記録（クリア画面で表示するため）
+    if (!window._unlockedThisSession) window._unlockedThisSession = [];
+    window._unlockedThisSession.push(achievementId);
 
     // 全実績コンプリートチェック
     const totalCount = Object.keys(ACHIEVEMENTS).length - 1; // all_complete除く
@@ -2838,6 +2856,9 @@ function updateEndScore(kind){ // kind: 'over' | 'clear'
 
 
   function resetGame(){
+    // このセッションの実績リストをリセット
+    window._unlockedThisSession = [];
+    
     // セッショントラッキングリセット
     sessionTracking = {
       gemsCollected: 0,
@@ -7065,8 +7086,14 @@ function showGameClear(){
     ensureEndScoreNodes();
     updateEndScore('clear');
 
+    // このセッションで解除された実績をリセット
+    window._unlockedThisSession = [];
+    
     // 実績チェック
     checkAchievementsOnClear();
+    
+    // 解除された実績を表示
+    displayUnlockedAchievements();
 
     // スコア保存とランキング表示
     const scoreData = createScoreData('clear');
@@ -7091,6 +7118,60 @@ function showGameClear(){
   }else{
     state.paused = true;
     alert('GAME CLEAR');
+  }
+}
+
+// 解除された実績を表示する関数
+function displayUnlockedAchievements() {
+  const unlockedList = window._unlockedThisSession || [];
+  const achievementsArea = document.getElementById('clearAchievements');
+  const achievementsList = document.getElementById('clearAchievementsList');
+  
+  if (!achievementsArea || !achievementsList) return;
+  
+  if (unlockedList.length === 0) {
+    achievementsArea.style.display = 'none';
+    return;
+  }
+  
+  // 表示エリアを表示
+  achievementsArea.style.display = 'block';
+  achievementsList.innerHTML = '';
+  
+  // 各実績を表示
+  for (const achId of unlockedList) {
+    const achievement = ACHIEVEMENTS[achId];
+    if (!achievement) continue;
+    
+    const item = document.createElement('div');
+    item.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      font-size: 0.9rem;
+    `;
+    
+    // ティアに応じた色
+    const tierColors = {
+      bronze: '#cd7f32',
+      silver: '#c0c0c0',
+      gold: '#ffd700',
+      platinum: '#e5e4e2'
+    };
+    const color = tierColors[achievement.tier] || '#fff';
+    
+    item.innerHTML = `
+      <span style="font-size:1.5rem;">${achievement.icon}</span>
+      <div style="flex:1;">
+        <div style="font-weight:700; color:${color};">${achievement.name}</div>
+        <div style="font-size:0.85rem; opacity:0.9;">${achievement.desc}</div>
+      </div>
+    `;
+    
+    achievementsList.appendChild(item);
   }
 }
 
@@ -7262,7 +7343,71 @@ if (gatherEl) gatherEl.style.display='none';
   // ▼ ノックバック＆無敵も停止
   state.player.kbx = state.player.kby = 0;
   state.player.iTime = 0;
+  
+  // このセッションで解除された実績をリセット
+  window._unlockedThisSession = [];
+  
+  // ゲームオーバー時の実績チェック（討伐数など）
+  checkKillAchievements();
+  
+  // 解除された実績を表示（ゲームオーバー版）
+  displayUnlockedAchievementsGameover();
+  
   goEl.style.display='flex';
+}
+
+// ゲームオーバー時の実績表示
+function displayUnlockedAchievementsGameover() {
+  const unlockedList = window._unlockedThisSession || [];
+  const achievementsArea = document.getElementById('gameoverAchievements');
+  const achievementsList = document.getElementById('gameoverAchievementsList');
+  
+  if (!achievementsArea || !achievementsList) return;
+  
+  if (unlockedList.length === 0) {
+    achievementsArea.style.display = 'none';
+    return;
+  }
+  
+  // 表示エリアを表示
+  achievementsArea.style.display = 'block';
+  achievementsList.innerHTML = '';
+  
+  // 各実績を表示
+  for (const achId of unlockedList) {
+    const achievement = ACHIEVEMENTS[achId];
+    if (!achievement) continue;
+    
+    const item = document.createElement('div');
+    item.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      font-size: 0.9rem;
+    `;
+    
+    // ティアに応じた色
+    const tierColors = {
+      bronze: '#cd7f32',
+      silver: '#c0c0c0',
+      gold: '#ffd700',
+      platinum: '#e5e4e2'
+    };
+    const color = tierColors[achievement.tier] || '#fff';
+    
+    item.innerHTML = `
+      <span style="font-size:1.5rem;">${achievement.icon}</span>
+      <div style="flex:1;">
+        <div style="font-weight:700; color:${color};">${achievement.name}</div>
+        <div style="font-size:0.85rem; opacity:0.9;">${achievement.desc}</div>
+      </div>
+    `;
+    
+    achievementsList.appendChild(item);
+  }
 }
 
 // Final Boss spawn
