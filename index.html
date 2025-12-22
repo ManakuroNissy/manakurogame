@@ -85,7 +85,8 @@ canvas {
 }
 
 .chestHUD .badge,
-.chestHUD .pickMode {
+.chestHUD .pickMode,
+.chestHUD .passBtn {
   pointer-events: auto;            /* 必要なら子はクリック可 */
 }
 
@@ -115,6 +116,23 @@ canvas {
   #start p { font-size: clamp(14px, 3vw, 22px); margin:0 0 1rem; opacity:.9;}
   .btn { background:#1f6feb; color:#fff; border:none; padding:.7rem 1.1rem; border-radius:.6rem; font-weight:700; cursor:pointer; box-shadow:0 6px 20px rgba(31,111,235,.35); }
   .btn:hover { filter:brightness(1.05); }
+  
+  .passBtn { 
+    background:#64748b; 
+    color:#fff; 
+    border:none; 
+    padding:.5rem 1rem; 
+    border-radius:.5rem; 
+    font-weight:700; 
+    cursor:pointer; 
+    font-size:.9rem;
+    box-shadow:0 4px 12px rgba(100,116,139,.3);
+  }
+  .passBtn:hover { 
+    background:#475569; 
+    transform:translateY(-1px);
+    box-shadow:0 6px 16px rgba(100,116,139,.4);
+  }
   #gameover h2 { font-size: clamp(24px, 5vw, 44px); margin:.25rem 0 .75rem; }
   #gameover .sub { opacity:.85; margin-bottom:1rem; }
   
@@ -440,8 +458,8 @@ padding-left:  var(--hud-lpad);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 1.4.1</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;">ハードコア難易度調整</span>
+    <span style="opacity:0.7;">Ver 1.5.0</span> - 
+    <span style="opacity:0.6; font-size:0.8rem;">バランス調整＋新能力</span>
   </div>
   
   <button id="startBtn" class="btn">スタート</button>
@@ -520,13 +538,46 @@ padding-left:  var(--hud-lpad);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
+        <!-- Ver 1.5.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(168,85,247,0.1); border-left:4px solid #a855f7; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#c084fc; font-size:1.3rem;">Ver 1.5.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/22</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#e9d5ff;">⚔️ 武器バランス大幅調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ホーミング：威力1.4倍、弾速1.2倍に強化</li>
+            <li>ショットガン：威力1.8倍に強化（近距離最強に）</li>
+            <li>ブレード：威力1.5倍、スタン時間1.5倍に強化</li>
+            <li>ポイズン：鈍足効果強化（45%→60%減速）</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#e9d5ff;">🛡️ 新能力追加</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>耐久力アップ（全5段階）：受けるダメージを最大30%軽減</li>
+            <li>防御特化ビルドが可能に</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#e9d5ff;">🎁 宝箱パス機能</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>宝箱でも「パス」ボタンを追加（縛りプレイ完全対応）</li>
+            <li>パスボーナス：+3,000点</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#e9d5ff;">🔥 ハードコア難易度調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>敵の攻撃力：1.3倍→1.5倍に戻す</li>
+            <li>耐久力軽減：最大40%→30%に調整</li>
+            <li>適正な難易度バランスに</li>
+          </ul>
+        </div>
+        
         <!-- Ver 1.4.1 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(14,165,233,0.1); border-left:4px solid #0ea5e9; border-radius:8px;">
           <h3 style="margin:0 0 0.5rem; color:#38bdf8; font-size:1.3rem;">Ver 1.4.1 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/22</span></h3>
-          <h4 style="margin:0.5rem 0; color:#7dd3fc;">⚖️ ハードコア難易度調整</h4>
+          <h4 style="margin:0.5rem 0; color:#7dd3fc;">⚖️ ハードコア難易度調整＋BGM修正</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
             <li>経験値減少ペナルティを削除（0.75倍→1.0倍）</li>
             <li>敵の攻撃力を削減（1.5倍→1.3倍）</li>
+            <li>ハードコアモードでBGMが再生されないバグ修正</li>
             <li>より適正な難易度に調整</li>
           </ul>
         </div>
@@ -636,7 +687,10 @@ padding-left:  var(--hud-lpad);
   <button id="btnPause" class="hud-btn" aria-label="Pause">⏸</button>
   <div id="levelup"><div id="cardRow"></div></div>
   <div id="chest"><div id="chestRow"></div></div>
-  <div class="chestHUD" id="chestHUD"><span class="badge">宝箱：<b id="pickLeft">2</b>つ選択</span></div>
+  <div class="chestHUD" id="chestHUD">
+    <span class="badge">宝箱：<b id="pickLeft">2</b>つ選択</span>
+    <button id="chestPassBtn" class="passBtn" style="margin-left:auto;">✖️ パス</button>
+  </div>
   </div>
 
 <!-- removed: duplicate boss approaching -->
@@ -3748,6 +3802,25 @@ if (pickCount > 1) {
   pickModeEl.animate([{ transform: 'translateY(-2px) scale(1.0)' }, { transform: 'translateY(-2px) scale(1.06)' }, { transform: 'translateY(-2px) scale(1.0)' }], { duration: 380, easing: 'ease-out' });
 }
 
+  // パスボタンのイベントハンドラ
+  const chestPassBtn = document.getElementById('chestPassBtn');
+  if (chestPassBtn) {
+    // 既存のイベントリスナーを削除（複数回呼ばれる対策）
+    const newBtn = chestPassBtn.cloneNode(true);
+    chestPassBtn.parentNode.replaceChild(newBtn, chestPassBtn);
+    
+    newBtn.onclick = () => {
+      // 宝箱パススコアボーナス: +3,000点
+      state.score += 3000;
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.4, text: '宝箱パス +3,000' });
+      
+      // 宝箱を閉じる
+      chestEl.style.display = 'none';
+      chestHUD.style.display = 'none';
+      state.paused = false;
+    };
+  }
+
 }
 
 
@@ -4638,19 +4711,19 @@ const U = {
     name: '耐久力アップ',
     desc: () => {
       const lv = state.defenseLv || 0;
-      const reduction = lv * 8;
-      if (lv === 0) return 'Lv1: 受けるダメージを8%軽減';
-      if (lv === 1) return 'Lv2: 受けるダメージを16%軽減（現在8%）';
-      if (lv === 2) return 'Lv3: 受けるダメージを24%軽減（現在16%）';
-      if (lv === 3) return 'Lv4: 受けるダメージを32%軽減（現在24%）';
-      if (lv === 4) return 'Lv5: 受けるダメージを40%軽減（現在32%）';
-      return '最大レベル（40%軽減）';
+      const reduction = lv * 6;
+      if (lv === 0) return 'Lv1: 受けるダメージを6%軽減';
+      if (lv === 1) return 'Lv2: 受けるダメージを12%軽減（現在6%）';
+      if (lv === 2) return 'Lv3: 受けるダメージを18%軽減（現在12%）';
+      if (lv === 3) return 'Lv4: 受けるダメージを24%軽減（現在18%）';
+      if (lv === 4) return 'Lv5: 受けるダメージを30%軽減（現在24%）';
+      return '最大レベル（30%軽減）';
     },
     can: () => (state.defenseLv || 0) < 5,
     apply: () => {
       state.defenseLv = (state.defenseLv || 0) + 1;
       const lv = state.defenseLv;
-      state.mods.damageMul = 1 - (lv * 0.08); // 8%ずつ軽減
+      state.mods.damageMul = 1 - (lv * 0.06); // 6%ずつ軽減
       addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: `耐久力 Lv${lv}` });
     }
   },
@@ -5341,7 +5414,7 @@ e.x += e.dir.x * step; e.y += e.dir.y * step; e.moved += step;
           e.cd -= dt;
           if(e.cd<=0){
             const angS = Math.atan2(state.player.y-e.y, state.player.x-e.x);
-            state.enemyBullets.push({ x:e.x, y:e.y, vx:Math.cos(angS)*200, vy:Math.sin(angS)*200, r:4, dmg: (state.mode.hardcore ? 10*1.3 : 10), life:60 }); // 1.5 → 1.3
+            state.enemyBullets.push({ x:e.x, y:e.y, vx:Math.cos(angS)*200, vy:Math.sin(angS)*200, r:4, dmg: (state.mode.hardcore ? 10*1.5 : 10), life:60 }); // 1.3 → 1.5
             e.cd = state.mode.hardcore ? rnd(0.95, 1.05) : rnd(1.9, 2.1); // ハードコアで半分の間隔
           }
         }
@@ -5355,7 +5428,7 @@ e.y += Math.sin(a)*e.speed*dt*0.9*moveMul;
           const n = 8;
           for(let k=0;k<n;k++){
             const ang = (Math.PI*2*k)/n;
-            state.enemyBullets.push({ x:e.x,y:e.y, vx:Math.cos(ang)*120, vy:Math.sin(ang)*120, r:4, dmg:(state.mode.hardcore ? 12*1.3 : 12), life:3 }); // 1.5 → 1.3
+            state.enemyBullets.push({ x:e.x,y:e.y, vx:Math.cos(ang)*120, vy:Math.sin(ang)*120, r:4, dmg:(state.mode.hardcore ? 12*1.5 : 12), life:3 }); // 1.3 → 1.5
           }
           e.cd = 7.0;
         }
@@ -5383,7 +5456,7 @@ if(e.phase === 'shoot'){
       state.enemyBullets.push({
         x:e.x, y:e.y,
         vx:Math.cos(a2)*180, vy:Math.sin(a2)*180, // 少し速く
-        r:4, dmg: (state.mode.hardcore ? 18*1.3 : 18), life:3.8 // 1.5 → 1.3
+        r:4, dmg: (state.mode.hardcore ? 18*1.5 : 18), life:3.8 // 1.3 → 1.5
       });
     }
     e.shootCD = 1.8; // ★ 2.6→1.8
@@ -5563,7 +5636,7 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
                 state.enemyBullets.push({
                   x:e.x, y:e.y,
                   vx:Math.cos(a2)*160, vy:Math.sin(a2)*160,
-                  r:4, dmg:(state.mode.hardcore ? 14*1.3 : 14), life:3.5 // 1.5 → 1.3
+                  r:4, dmg:(state.mode.hardcore ? 14*1.5 : 14), life:3.5 // 1.3 → 1.5
                 });
               }
               e.cd = 3.0;
@@ -5676,7 +5749,7 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
               vx:Math.cos(a)*speed, 
               vy:Math.sin(a)*speed,
               r:7, // 5 → 7 (大きく)
-              dmg: (state.mode.hardcore ? 16*1.3 : 16), // 1.5 → 1.3
+              dmg: (state.mode.hardcore ? 16*1.5 : 16), // 1.3 → 1.5
               life:3.5, // 5 → 3.5 に短縮
               type:'homing', // ホーミング弾として識別
               turnSpeed: 2.5 // 旋回速度
@@ -5746,7 +5819,7 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
             e.phase = 'shoot';
             e.phaseTimer = 0.8; // レーザー持続時間
             // レーザーを生成
-            const laserDmg = state.mode.hardcore ? 25*1.3 : 25; // 1.5 → 1.3
+            const laserDmg = state.mode.hardcore ? 25*1.5 : 25; // 1.3 → 1.5
             const laserLength = Math.abs(x2 - e.x);
             state.enemyBullets.push({
               x: e.x, y: e.y,
@@ -5792,7 +5865,7 @@ let touchDmg =
           ? 16
           : 18;
 
-if (state.mode.hardcore) touchDmg *= 1.3; // 1.5 → 1.3（難易度調整）
+if (state.mode.hardcore) touchDmg *= 1.5; // 1.3 → 1.5に戻す
 
 
       if (dist2(e.x, e.y, state.player.x, state.player.y) < (state.player.r + e.size * 0.6) ** 2) {
