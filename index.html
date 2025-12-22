@@ -2432,8 +2432,9 @@ function visibleBounds(radius = 0){
     weapons:{}, upgradesTaken:new Set(), owned:new Set(['blaster']),
     spawnTimer:0, difficulty:1, timeSec:0, finalSpawned:false,
     score:0, kills:0, bossKills:0, killScore:0, bossBonus:0, // スコア関連
-    mods:{ sizeMul:1.0, rateMul:1.0, dmgMul:1.0 },
+    mods:{ sizeMul:1.0, rateMul:1.0, dmgMul:1.0, damageMul:1.0 },  // damageMul: 被ダメージ倍率（1.0=通常、0.6=40%軽減）
     pickupLv: 0,
+    defenseLv: 0, // 耐久力レベル（新能力）
     regenLv: 0, // 自然回復レベル
     bossTimer: 9999, bigBossTimer: 9999,
         gather:{ active:false, time:0, dur:0.5, totalXP:0 },
@@ -2478,6 +2479,28 @@ if (!startBtn) {
 // Start押下でBGMを読み込み＆再生（1回だけ）
 (function(){
   const btn = document.getElementById('startBtn');
+  if (!btn || !window.bgm) return;
+
+  btn.addEventListener('click', ()=>{
+    try{
+      // AudioContext を確実に用意＆再開
+      if (window.initAudioOnce) initAudioOnce();
+      if (window.AC && AC.state === 'suspended') AC.resume();
+
+      // BGM を必ずロード→音量設定→再生
+      bgm.load('main.mp3');      // index.html と同じ階層のファイル名
+      bgm.setVolume(0.09);       // 初期音量（0.18の50%）
+      const p = bgm.play();
+      if (p && p.catch) p.catch(e=>console.warn('BGM play blocked:', e));
+    }catch(e){
+      console.warn('BGM start error:', e);
+    }
+  }, {once:true});
+})();
+
+// ハードコアスタート押下でもBGMを読み込み＆再生（1回だけ）
+(function(){
+  const btn = document.getElementById('startHardcoreBtn');
   if (!btn || !window.bgm) return;
 
   btn.addEventListener('click', ()=>{
@@ -3028,10 +3051,12 @@ state.player.aimAngle = 0; // 初期向き（右向き相当）
 state.player.kbx = 0;
 state.player.kby = 0;
 state.pickupLv = 0;
+state.defenseLv = 0; // 耐久力レベルリセット
 state.regenLv = 0; // 自然回復レベルリセット
     // Reset meta
     state.manualPaused = false;
     state.mods.sizeMul = 1.0;
+    state.mods.damageMul = 1.0; // 被ダメージ倍率リセット
     state.spawnTimer = 0;
     state.difficulty = 1;
     state.timeSec = 0;
@@ -3517,7 +3542,9 @@ function flashBossMsg(ms = 2000, text = '!! BOSS APPROACHING !!') {
   // すでに無敵なら無視
   if (state.player.iTime > 0) return;
 
-  state.player.hp -= dmg;
+  // 耐久力による被ダメージ軽減
+  const finalDmg = Math.round(dmg * state.mods.damageMul);
+  state.player.hp -= finalDmg;
   state.player.iTime = 1.0; // 無敵1.0秒
 
   // ノックバック：被弾元→プレイヤーの逆方向へ
@@ -3913,7 +3940,7 @@ playShotSound('blaster'); // 効果音
     shotgun:{
   short:'SG', name:'ショットガン',
   lv:0, awaken:false, cd:0,
-  baseRate:1.2, baseDmg:20, baseSpeed:340, // ★ 基礎ダメージUP（12→15）
+  baseRate:1.2, baseDmg:36, baseSpeed:340, // 20 → 36（1.8倍）
   update(dt){
     if(this.lv<=0) return;
     this.cd -= dt; if(this.cd>0) return;
@@ -3923,7 +3950,7 @@ playShotSound('blaster'); // 効果音
 
     const count = 5 + (this.lv-1)*2;                // 弾数は今のまま
     const spread = 0.2 - 0.02*(this.lv-1);           // 拡散も今のまま
-    const dmg = (this.baseDmg + 3*(this.lv-1))      // ★ 伸び率を+3に強化（+2→+3）
+    const dmg = (this.baseDmg + 5.4*(this.lv-1))    // 3 → 5.4（1.8倍）
                  * state.mods.dmgMul;
 
     for(let i=0;i<count;i++){
@@ -3973,14 +4000,14 @@ homing:{
     const count = (2 + (this.lv-1)) * (this.awaken? 1.5:1);
     for(let i=0;i<Math.ceil(count);i++){
       const ang = Math.random()*Math.PI*2;
-      const power = this.baseDmg * (this.awaken? 1.4:1) * 0.80; // 80%に減少
+      const power = this.baseDmg * (this.awaken? 1.4:1) * 1.12; // 0.80 → 1.12（1.4倍強化）
       const life = this.awaken ? 4.0 : 5.0;
 
       state.bullets.push({
         type:'homing',
         x: state.player.x, y: state.player.y,
-        vx: Math.cos(ang)*170,
-        vy: Math.sin(ang)*170,
+        vx: Math.cos(ang)*204, // 170 → 204（1.2倍）
+        vy: Math.sin(ang)*204, // 170 → 204（1.2倍）
         r: 6*state.mods.sizeMul,
         dmg: power * state.mods.dmgMul,
         life: life,
@@ -4086,7 +4113,7 @@ blade:{
   // 調整しやすい基礎値
   short:'BD', name:'ブレード', lv:0, awaken:false, cd:0,
   baseRate: 1.10,     // ← 発生は少し遅め（近接リスクのご褒美に）
-  baseDmg:  70,       // ← 威力調整（85→70）
+  baseDmg:  105,      // 70 → 105（1.5倍強化）
   span:     Math.PI * 0.62, // 横に広い
   inner:    10,             // 足元の当たり開始
   outer:    130,            // 最大到達（基礎）
@@ -4436,7 +4463,7 @@ function dealSlashDamage(cx, cy, ang, span, inner, outer, dmg){
       e.hitFlash = Math.max(e.hitFlash || 0, 0.12);
       
       // 短いスタン追加
-      const base = 0.15; // 0.15秒
+      const base = 0.225; // 0.15 → 0.225秒（1.5倍）
       const resist = (e.type==='final') ? 0.3 : 
                      (e.type==='big'||e.type==='mid') ? 0.5 : 
                      1.0;
@@ -4606,6 +4633,28 @@ const U = {
     }
   },
 
+  defense: {
+    id: 'defense+',
+    name: '耐久力アップ',
+    desc: () => {
+      const lv = state.defenseLv || 0;
+      const reduction = lv * 8;
+      if (lv === 0) return 'Lv1: 受けるダメージを8%軽減';
+      if (lv === 1) return 'Lv2: 受けるダメージを16%軽減（現在8%）';
+      if (lv === 2) return 'Lv3: 受けるダメージを24%軽減（現在16%）';
+      if (lv === 3) return 'Lv4: 受けるダメージを32%軽減（現在24%）';
+      if (lv === 4) return 'Lv5: 受けるダメージを40%軽減（現在32%）';
+      return '最大レベル（40%軽減）';
+    },
+    can: () => (state.defenseLv || 0) < 5,
+    apply: () => {
+      state.defenseLv = (state.defenseLv || 0) + 1;
+      const lv = state.defenseLv;
+      state.mods.damageMul = 1 - (lv * 0.08); // 8%ずつ軽減
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: `耐久力 Lv${lv}` });
+    }
+  },
+
   pickup: {
     id: 'pickup+',
     name: '吸引範囲アップ',
@@ -4687,7 +4736,7 @@ const ALL_UPGRADES = [
     U.weaponAdd('blade'), U.weaponUp('blade'), U.weaponAwaken('blade'),
   U.weaponAdd('rubber'), U.weaponUp('rubber'), U.weaponAwaken('rubber'),
   U.weaponUp('blaster'),    U.weaponAwaken('blaster'), // 既存武器の強化/覚醒
-  U.speed, U.maxhp, U.regen, U.pickup, U.atkRate, U.atkDmg, U.sizeUp ,U.doubleItem
+  U.speed, U.maxhp, U.regen, U.defense, U.pickup, U.atkRate, U.atkDmg, U.sizeUp ,U.doubleItem
 ];
 
 // --- tiny per-frame scheduler (global & safe) ---
@@ -5246,7 +5295,7 @@ e.stun = Math.max(0, (e.stun||0) - dt);
 
 // --- ポイズン減速の取得（その敵が“今”毒に触れているなら遅くする）---
 let slowMul = 1;                 // 1=等速（遅くするほど小さく）
-const SLOW_IN_FIELD = 0.55;      // フィールド中の移動倍率（=45%低下）
+const SLOW_IN_FIELD = 0.40;      // 0.55 → 0.40（60%減速に強化）
 for(const ef of state.effects){
   if(ef.type !== 'poisonField') continue;
   const dx = e.x - ef.x, dy = e.y - ef.y;
@@ -5411,7 +5460,8 @@ if(e.phase === 'shoot'){
   const DPS  = state.mode.hardcore ? 75 : 50; // 体感強化
 
   if (d < hitR){
-    state.player.hp -= DPS * dt;            // 直接HPを削る（ノックバックなし）
+    const finalDPS = DPS * state.mods.damageMul; // 耐久力による軽減
+    state.player.hp -= finalDPS * dt;            // 直接HPを削る（ノックバックなし）
     if (state.player.hp <= 0) { gameOver(); return; }
   }
 
@@ -5585,7 +5635,8 @@ e.y += Math.sin(ang)*e.speed*dt*0.6*moveMul;
           // プレイヤーへのダメージ
           const distToPlayer = Math.hypot(e.x - state.player.x, e.y - state.player.y);
           if(distToPlayer < R){
-            state.player.hp -= e.explodeDamage;
+            const finalDmg = Math.round(e.explodeDamage * state.mods.damageMul); // 耐久力による軽減
+            state.player.hp -= finalDmg;
             state.player.iTime = Math.max(state.player.iTime, 0.8);
           }
           
