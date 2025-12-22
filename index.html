@@ -168,11 +168,12 @@ canvas {
   gap: .35rem;
 }
 
-/* === Hardcore badge（ボタンに追従：CSS変数で位置制御） === */
+/* === Hardcore badge（左側配置でタイマーと被らない） === */
 body[data-hc]::after{
   content:"HARDCORE";
   position: fixed;
-  right: var(--hc-right);
+  left: var(--hc-left);
+  right: auto;
   top:   var(--hc-top);
   background:#8b5cf6; color:#fff; font-weight:700;
   padding:.2rem .5rem; border-radius:.4rem; opacity:.95;
@@ -184,7 +185,8 @@ body[data-hc]::after{
 /* 追加の条件バッジを出す場合は、その「さらに下」に固定 */
 .hc-badges{
   position: fixed;
-  right: var(--hc-right);
+  left: var(--hc-left);
+  right: auto;
   top:   calc(var(--hc-top) + 32px); /* ラベルの下へ */
   z-index: 12005;
   display: none;
@@ -262,7 +264,8 @@ padding-left:  var(--hud-lpad);
 
 :root{
   --hc-top:   calc(44px + 8px + env(safe-area-inset-top, 0px)); /* デフォルトは Pause の下あたり */
-  --hc-right: calc(12px + env(safe-area-inset-right, 0px));
+  --hc-right: auto; /* 右側配置を解除 */
+  --hc-left:  calc(12px + env(safe-area-inset-left, 0px)); /* 左側に配置 */
 
   --hud-lpad: calc(env(safe-area-inset-left, 0px) + 12px);  /* 左余白（初期） */
   --hud-rpad: calc(env(safe-area-inset-right,0px) + 12px);  /* 右余白（初期） */
@@ -435,6 +438,7 @@ padding-left:  var(--hud-lpad);
   <h2>10分間生き延びろ！</h2>
   <p>レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
   <button id="startBtn" class="btn">スタート</button>
+  <button id="startHardcoreBtn" class="btn" style="background:#8b5cf6;">🔥 ハードコアで挑戦</button>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button id="rankingBtn" class="btn" style="background:#fbbf24;">🏆 RANKING</button>
     <button id="achievementsBtn" class="btn" style="background:#8b5cf6;">🎖️ 実績</button>
@@ -2623,6 +2627,7 @@ if (!window.__START_BOUND) {
     startBtn.onclick = async () => {
       ensureEndScoreNodes();
       await tryFullscreenAndLandscape();
+      state.mode.hardcore = false; // 通常モード
       resetGame();                     // ゲーム初期化
       state.started = true;
       state.paused  = false;
@@ -2632,6 +2637,23 @@ if (!window.__START_BOUND) {
     };
   } else {
     console.warn('[init] start button not found');
+  }
+  
+  // ハードコアスタートボタン
+  const startHardcoreBtn = document.getElementById('startHardcoreBtn');
+  if (startHardcoreBtn) {
+    startHardcoreBtn.onclick = async () => {
+      ensureEndScoreNodes();
+      await tryFullscreenAndLandscape();
+      state.mode.hardcore = true; // ハードコアモード
+      resetGame();
+      state.started = true;
+      state.paused = false;
+      document.getElementById('start').style.display = 'none';
+      state.last = performance.now();
+      syncPauseButton();
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.4, text: 'HARDCORE START' });
+    };
   }
   
   // RANKINGボタン
@@ -3138,7 +3160,7 @@ function spawnEnemy(){
   if (roll < bomProb) {
     // BOM敵（自爆型）
     let hp = (40 + state.difficulty*3) * 4.8; // 1.2 → 4.8（4倍）
-    if (state.mode.hardcore) hp *= 1.5;
+    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
 
     // 画面内のランダムな位置にふらふら出現
     const B = worldBounds();
@@ -3161,7 +3183,7 @@ function spawnEnemy(){
   } else if (roll < bomProb + warperProb) {
     // ワープする敵（紫の縦長四角）
     let hp = (28 + state.difficulty*3) * 3.9; // 1.3 → 3.9 (3倍硬く)
-    if (state.mode.hardcore) hp *= 1.5;
+    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
 
     // 画面内のランダムな位置に出現
     const B = worldBounds();
@@ -3187,7 +3209,7 @@ function spawnEnemy(){
   } else if (roll < bomProb + warperProb + laserProb) {
     // レーザー敵（黄色い横長四角）
     let hp = (24 + state.difficulty*2.8) * 2.5; // 1.8 → 2.5 (さらに硬く)
-    if (state.mode.hardcore) hp *= 1.5;
+    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
 
     // 時間経過で出現数が増える
     let spawnCount = 1; // デフォルト1体
@@ -3213,7 +3235,7 @@ function spawnEnemy(){
   } else if (roll < bomProb + warperProb + laserProb + shooterProb) {
     // 射撃タイプ
     let hp = (20 + state.difficulty*2.5) * 1.5;
-    if (state.mode.hardcore) hp *= 1.5;
+    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
 
     // ねらい：プレイヤー（※画面中心にしたいなら (B.minX+B.maxX)/2 などでも可）
     const tx = state.player.x, ty = state.player.y;
@@ -3228,7 +3250,7 @@ function spawnEnemy(){
   } else {
     // 近接タイプ
     let hp = 16 + state.difficulty*2.2;
-    if (state.mode.hardcore) hp *= 1.5;
+    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
     if (state.timeSec >= 360) hp *= 2.0;
 
     const dForSpeed = Math.min(state.difficulty, 16);
@@ -3584,7 +3606,7 @@ function xpMulByTime(){
   return 1.0 + t * 0.8;                            // 10:00で最大1.8倍（例）
 }
 
-// ==== 修正版 showLevelUp（リロール対応） ====
+// ==== 修正版 showLevelUp（リロール対応＋能力をとらない選択肢） ====
 function showLevelUp(choices){
   // 参照は毎回取り直し（スコープ差異・重複定義対策）
   const levelupEl = document.getElementById('levelup');
@@ -3621,6 +3643,26 @@ function showLevelUp(choices){
     };
     cardRow.appendChild(c);
   }
+  
+  // ===== 「能力をとらない」選択肢を追加 =====
+  const skipCard = document.createElement('button');
+  skipCard.className = 'card';
+  skipCard.style.background = '#2d2d2d';
+  skipCard.style.borderColor = '#666';
+  skipCard.innerHTML = `<h3>🚫 能力をとらない</h3><p>縛りプレイ用。スコア +5000</p>`;
+  skipCard.onclick = () => {
+    // スコアボーナス
+    state.score = (state.score || 0) + 5000;
+    addEffect('text', { x: state.player.x, y: state.player.y, life: 1.2, text: 'スキップボーナス +5000' });
+    
+    state.paused = false;
+    levelupEl.style.display = 'none';
+    cardRow.innerHTML = '';
+    window._rerollUsedThisLevel = false;
+    const btn = document.getElementById('rerollBtn');
+    if (btn) btn.disabled = true;
+  };
+  cardRow.appendChild(skipCard);
 
   // ===== リロール・ボタン（このレベルアップ中は1回だけ） =====
   let rr = document.getElementById('rerollBtn');
@@ -3829,7 +3871,7 @@ rock:{
 
     const sizeBase = (24 + (this.lv-1)*7) * state.mods.sizeMul;
     const speed    = 190;
-    const baseDmg  = (25 + 10*(this.lv-1)) * state.mods.dmgMul * 0.6; // 60%に調整
+    const baseDmg  = (25 + 10*(this.lv-1)) * state.mods.dmgMul * 0.55; // 0.6 → 0.55 に減少
     const bossMul  = 1.1;
 
 const addRock=(ang)=>{
@@ -4110,12 +4152,13 @@ for (const e of state.enemies){
     
     rubber:{
       short:'RB', name:'ラバーショット', lv:0, awaken:false, cd:0,
-      baseRate:2.0, baseDmg:18, ballSpeed:540, // 450 → 540（1.2倍）
+      baseRate:2.0, baseDmg:12, ballSpeed:540, // ダメージ 18 → 12 に減少
       update(dt){
         if(this.lv<=0) return;
         this.cd -= dt; if(this.cd>0) return;
 
-        const count = this.awaken ? 8 : (1 + this.lv);
+        // レベルごとの球数: Lv1=1, Lv2=2, Lv3=3, 覚醒=8
+        const count = this.awaken ? 8 : this.lv;
         const power = this.baseDmg * (this.awaken? 1.3:1);
         
         for(let i=0; i<count; i++){
@@ -4266,29 +4309,80 @@ const CAPS = {
 
 // ===== U（上限付きアップグレード定義）=====
 const U = {
-  weaponAdd: (key) => ({
-    id: `add:${key}`,
-    name: `新武器: ${weapons[key].name}`,
-    desc: '入手（最大Lv3まで強化可能）',
-    can: () => weapons[key].lv === 0,
-    apply: () => { weapons[key].lv = 1; state.owned.add(key); }
-  }),
+  weaponAdd: (key) => {
+    // 武器ごとの説明文
+    const weaponDescs = {
+      blaster: '基本武器。強化で弾数アップ。',
+      shotgun: '近距離で拡散弾。密集した敵に有効。',
+      homing: '敵を自動追尾。確実にヒット。',
+      lightning: '複数の敵を同時攻撃。連鎖ダメージ。',
+      rock: '大きな岩を投げる。貫通して複数ヒット。',
+      orbit: '周囲を常時回転。接触でダメージ＋敵の弾を防ぐ。',
+      blade: '前方広範囲を斬撃。高威力の近接攻撃。',
+      ghost: '周囲の霊体が3方向に射撃。',
+      poison: '毒の沼を生成。継続ダメージ＋敵を鈍足化。',
+      nova: '周囲の敵にスタンとダメージ。強化で範囲拡大。',
+      rubber: 'ランダム方向に跳弾。壁で反射。'
+    };
+    
+    return {
+      id: `add:${key}`,
+      name: `新武器: ${weapons[key].name}`,
+      desc: weaponDescs[key] || '入手（最大Lv3まで強化可能）',
+      can: () => weapons[key].lv === 0,
+      apply: () => { weapons[key].lv = 1; state.owned.add(key); }
+    };
+  },
 
-  weaponUp: (key) => ({
-    id: `up:${key}`,
-    name: `${weapons[key].name}強化`,
-    desc: '武器レベル+1（最大Lv3）',
-    can: () => weapons[key].lv > 0 && weapons[key].lv < 3,
-    apply: () => { weapons[key].lv++; }
-  }),
+  weaponUp: (key) => {
+    // 武器強化時の詳細説明
+    const weaponUpDescs = {
+      blaster: 'Lv2で2連射、Lv3で3連射に強化。',
+      shotgun: '弾数と集弾率が向上。',
+      homing: '追尾弾の数が増加。',
+      lightning: '同時攻撃数が増加。Lv3で3体同時。',
+      rock: 'サイズと威力が大幅アップ。',
+      orbit: '回転速度と威力が向上。防御範囲も拡大。',
+      blade: '範囲と威力が大幅強化。',
+      ghost: '霊体の数が増加。Lv3で3体。',
+      poison: '毒沼の範囲と持続時間が延長。鈍足効果UP。',
+      nova: '範囲が大きく拡大。スタン時間延長。',
+      rubber: '跳弾の数が増加。'
+    };
+    
+    return {
+      id: `up:${key}`,
+      name: `${weapons[key].name}強化`,
+      desc: weaponUpDescs[key] || '武器レベル+1（最大Lv3）',
+      can: () => weapons[key].lv > 0 && weapons[key].lv < 3,
+      apply: () => { weapons[key].lv++; }
+    };
+  },
 
-  weaponAwaken: (key) => ({
-    id: `aw:${key}`,
-    name: `${weapons[key].name} 覚醒`,
-    desc: '特別な性能を解放！',
-    can: () => weapons[key].lv === 3 && !weapons[key].awaken,
-    apply: () => { weapons[key].awaken = true; }
-  }),
+  weaponAwaken: (key) => {
+    // 覚醒時の特別効果説明
+    const awakenDescs = {
+      blaster: '超高速連射＋射程延長！',
+      shotgun: '全方位24発の弾幕追加！',
+      homing: '追尾弾が1.5倍に増加＋爆発範囲2倍！',
+      lightning: '同時7体攻撃＋発射速度アップ！',
+      rock: '3方向同時発射＋サイズ2倍！',
+      orbit: '回転速度倍増＋範囲拡大！完全防御壁に。',
+      blade: '範囲・威力・速度すべて強化！',
+      ghost: '霊体が6体に増加＋射撃速度アップ！',
+      poison: '毒沼が3枚同時展開！広範囲を鈍足地帯に。',
+      nova: '常時オーラで継続ダメージ！',
+      rubber: '跳弾8発＋反射回数25回！'
+    };
+    
+    return {
+      id: `aw:${key}`,
+      name: `${weapons[key].name} 覚醒`,
+      desc: awakenDescs[key] || '特別な性能を解放！',
+      can: () => weapons[key].lv === 3 && !weapons[key].awaken,
+      apply: () => { weapons[key].awaken = true; }
+    };
+  },
 
   // ---- ステータス系（上限付き） ----
   speed: {
@@ -4643,6 +4737,8 @@ state.spawnTimer -= dt;
 let spawnRate = Math.max(0.38, 1.20 - state.timeSec * 0.004);
 // 後半(6分〜)は少し加速
 if (state.timeSec >= 360) spawnRate = Math.max(0.34, spawnRate * 0.85);
+// ハードコアモードでは敵の数を1.5倍（生成間隔を2/3に短縮）
+if (state.mode.hardcore) spawnRate *= 0.67;
 
 if (state.spawnTimer <= 0) {
   // いまの雑魚数と上限
@@ -5050,7 +5146,7 @@ e.x += e.dir.x * step; e.y += e.dir.y * step; e.moved += step;
           if(e.cd<=0){
             const angS = Math.atan2(state.player.y-e.y, state.player.x-e.x);
             state.enemyBullets.push({ x:e.x, y:e.y, vx:Math.cos(angS)*200, vy:Math.sin(angS)*200, r:4, dmg: (state.mode.hardcore ? 10*1.5 : 10), life:60 });
-            e.cd = rnd(1.9, 2.1);
+            e.cd = state.mode.hardcore ? rnd(0.95, 1.05) : rnd(1.9, 2.1); // ハードコアで半分の間隔
           }
         }
 
