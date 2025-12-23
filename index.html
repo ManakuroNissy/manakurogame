@@ -5008,12 +5008,15 @@ for (const e of state.enemies){
             }
           }
           
-          // 継続レーザーエフェクト（極太表示）
-          addEffect('playerLaser', {
-            x: state.player.x, y: state.player.y,
-            angle: this.beamAngle, length: this.beamRange, width: this.beamWidth,
-            life: 0.15, awaken: true  // ★lifeを固定値に
-          });
+          // 継続レーザーエフェクト（頻度を下げて軽量化）
+          if (!this._lastEffectTime || (performance.now() - this._lastEffectTime) > 50) {
+            addEffect('playerLaser', {
+              x: state.player.x, y: state.player.y,
+              angle: this.beamAngle, length: this.beamRange, width: this.beamWidth,
+              life: 0.08, awaken: true
+            });
+            this._lastEffectTime = performance.now();
+          }
           
           if(this.beamTimer <= 0){
             this.beamActive = false;
@@ -5041,10 +5044,10 @@ for (const e of state.enemies){
           this.beamActive = true;
           this.beamTimer = 0.8; // 0.8秒間継続
           this.beamAngle = angle;
-          this.beamDmg = dmg * 2; // 毎秒ダメージ（継続なので高め）
+          this.beamDmg = dmg * 2.5; // ★毎秒ダメージ（貫通あるので控えめ）
           this.beamWidth = width;
           this.beamRange = range;
-          playShotSound('laser'); // ★重厚なレーザー音
+          playShotSound('laser');
           return;
         }
         
@@ -9363,25 +9366,21 @@ for (const ef of state.effects) {
   ctx.save();
   
   if(ef.awaken){
-    // 覚醒時：シンプルで軽量な描画（2層のみ）
+    // 覚醒時：超軽量な描画（shadowなし）
     
     // 外側グロー（シアン）
     ctx.strokeStyle = '#00ffff';
-    ctx.lineWidth = ef.width * 2; // ★1.5→2（少し太く）
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#00ffff';
-    ctx.globalAlpha = a * 0.4;
+    ctx.lineWidth = ef.width * 2;
+    ctx.globalAlpha = a * 0.5;
     ctx.beginPath();
     ctx.moveTo(ef.x, ef.y);
     ctx.lineTo(endX, endY);
     ctx.stroke();
     
-    // メインビーム（白、半透明）
+    // メインビーム（白）
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = ef.width * 0.9; // ★0.6→0.9（太く）
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#ffffff';
-    ctx.globalAlpha = a * 0.65; // 半透明
+    ctx.lineWidth = ef.width * 0.8;
+    ctx.globalAlpha = a * 0.7;
     ctx.beginPath();
     ctx.moveTo(ef.x, ef.y);
     ctx.lineTo(endX, endY);
