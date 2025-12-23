@@ -2836,6 +2836,10 @@ const scoreVal = document.getElementById('scoreVal');
     setTimeout(()=>{ t.style.opacity = '0'; }, 900);
   }
 
+  // ★デバッグコマンド（文字列入力方式）
+  let debugBuffer = '';
+  let debugTimer = null;
+  
   document.addEventListener('keydown', (ev)=>{
     // タイトル表示中のみ有効
     const s = document.getElementById('start');
@@ -2843,30 +2847,37 @@ const scoreVal = document.getElementById('scoreVal');
     window.state = window.state || {};
     state.mode = state.mode || {};
 
-    const k = ev.key;
-    if (k === 'h' || k === 'H') {
-      state.mode.hardcore = true;
-      document.body.dataset.hc = state.mode.hardcore ? '1' : '';
-      state._debugSkipToFinal = false;
-      state._didSkipFinal = false;
-      showStartToast('HARDCORE: ON');
-    } else if (k === 'n' || k === 'N') {
-      state.mode.hardcore = false;
-      document.body.dataset.hc = state.mode.hardcore ? '1' : '';
-      state._debugSkipToFinal = false;
-      state._didSkipFinal = false;
-      showStartToast('NORMAL: ON');
-    } else if (k === 'f' || k === 'F') {
-      // 次のゲーム開始時に最終戦へスキップ
-      state._debugSkipToFinal = true;
-      state._didSkipFinal = false;
-      const startBtn = document.getElementById('startBtn') || s.querySelector('button');
-      if (startBtn) startBtn.click();
-      showStartToast('Skip to FINAL BOSS');
-    } else if (k === 'p' || k === 'P') {
-      // ★全武器フルパワー（覚醒）でスタート
-      state._debugFullPower = true;
-      showStartToast('FULL POWER MODE!');
+    const k = ev.key.toLowerCase();
+    if (k.length === 1 && /[a-z0-9]/.test(k)) {
+      debugBuffer += k;
+      
+      // 3秒後にバッファをクリア
+      if (debugTimer) clearTimeout(debugTimer);
+      debugTimer = setTimeout(() => { debugBuffer = ''; }, 3000);
+      
+      // コマンドチェック
+      if (debugBuffer.endsWith('powerup')) {
+        // 全武器フルパワー（覚醒）でスタート
+        state._debugFullPower = true;
+        showStartToast('🔥 FULL POWER MODE!');
+        debugBuffer = '';
+      } else if (debugBuffer.endsWith('fboss')) {
+        // ファイナルボス戦（ステージ選択へ）
+        state._debugSkipToFinal = true;
+        state._didSkipFinal = false;
+        showStartToast('👹 FINAL BOSS MODE!');
+        debugBuffer = '';
+      } else if (debugBuffer.endsWith('debug2')) {
+        // ステージ1クリア済みにする
+        const saveData = loadSaveData();
+        if (!saveData.stageProgress) saveData.stageProgress = {};
+        if (!saveData.stageProgress.stage1) saveData.stageProgress.stage1 = {};
+        saveData.stageProgress.stage1.cleared = true;
+        saveSaveData(saveData);
+        STAGES.stage2.unlocked = true;
+        showStartToast('🔓 STAGE 2 UNLOCKED!');
+        debugBuffer = '';
+      }
     }
   }, {passive:true});
 })();
@@ -5580,6 +5591,7 @@ if (state._debugSkipToFinal && !state._didSkipFinal){
 
   // ★最終ボスは正規のスポーン関数で出す
   if (typeof spawnFinalBoss === 'function') spawnFinalBoss();
+  state.finalSpawned = true; // ★これがないと2体出る！
 
   state.paused = false;
   state._didSkipFinal = true;
