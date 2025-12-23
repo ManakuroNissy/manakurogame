@@ -2377,6 +2377,15 @@ function visibleBounds(radius = 0){
       osc.frequency.exponentialRampToValueAtTime(400, t + 0.12);
       gain.gain.setValueAtTime(0.06, t); // 音量大きめ
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    } else if (weaponType === 'laser') {
+      // ★レーザー：低く柔らかいビーム音
+      osc.type = 'sine';  // ★sawtooth→sine（柔らかく）
+      osc.frequency.setValueAtTime(60, t);   // ★80→60（より低く）
+      osc.frequency.linearRampToValueAtTime(80, t + 0.15);
+      osc.frequency.linearRampToValueAtTime(70, t + 0.4);
+      gain.gain.setValueAtTime(0.04, t);     // ★0.08→0.04（音量控えめ）
+      gain.gain.linearRampToValueAtTime(0.03, t + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
     }
     
     osc.connect(gain);
@@ -2854,9 +2863,39 @@ const scoreVal = document.getElementById('scoreVal');
       const startBtn = document.getElementById('startBtn') || s.querySelector('button');
       if (startBtn) startBtn.click();
       showStartToast('Skip to FINAL BOSS');
+    } else if (k === 'p' || k === 'P') {
+      // ★全武器フルパワー（覚醒）でスタート
+      state._debugFullPower = true;
+      showStartToast('FULL POWER MODE!');
     }
   }, {passive:true});
 })();
+
+// ★デバッグ用：全武器フルパワー化
+function applyDebugFullPower() {
+  if (!state._debugFullPower) return;
+  state._debugFullPower = false;
+  
+  // 全武器をLv3 + 覚醒
+  if (state.weapons) {
+    for (const key in state.weapons) {
+      const w = state.weapons[key];
+      if (w && typeof w.lv !== 'undefined') {
+        w.lv = 3;
+        w.awaken = true;
+      }
+    }
+  }
+  
+  // プレイヤー強化
+  state.player.maxHp = 300;
+  state.player.hp = 300;
+  state.player.speed = 280;
+  state.mods.dmgMul = 2.0;
+  state.mods.rateMul = 0.5;
+  
+  console.log('DEBUG: Full Power Applied!');
+}
 
 
 // クリックで再スタート
@@ -3265,6 +3304,21 @@ async function startStage(stageId, hardcore) {
   try {
     ensureEndScoreNodes();
     await tryFullscreenAndLandscape();
+    
+    // ★BGM再生処理を追加
+    try {
+      if (window.initAudioOnce) initAudioOnce();
+      if (window.AC && AC.state === 'suspended') AC.resume();
+      if (window.bgm) {
+        bgm.load('main.mp3');
+        bgm.setVolume(0.09);
+        const p = bgm.play();
+        if (p && p.catch) p.catch(e => console.warn('BGM play blocked:', e));
+      }
+    } catch(e) {
+      console.warn('BGM start error:', e);
+    }
+    
     state.currentStage = stageId;
     state.mode.hardcore = hardcore;
     resetGame();
@@ -3431,6 +3485,8 @@ computeCameraZoom();
 
 state.records = JSON.parse(localStorage.getItem('vs_records') || '[]'); // [{score,timeSec,date,hardcore}]
 
+    // ★デバッグ：フルパワーモード適用
+    if (typeof applyDebugFullPower === 'function') applyDebugFullPower();
 
   }
 
@@ -4974,21 +5030,11 @@ for (const e of state.enemies){
       update(dt){
         if(this.lv<=0) return;
         
-        // ★覚醒時：継続レーザー処理
+        // ★覚醒時：継続レーザー処理（追尾なし、固定方向）
         if(this.awaken && this.beamActive){
           this.beamTimer -= dt;
           
-          // ビーム継続中はダメージを与え続ける
-          const target = nearestEnemy(state.player.x, state.player.y);
-          if(target){
-            // ターゲットを追尾（ゆっくり）
-            const targetAngle = Math.atan2(target.y - state.player.y, target.x - state.player.x);
-            let angleDiff = targetAngle - this.beamAngle;
-            while(angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-            while(angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-            this.beamAngle += angleDiff * 0.8 * dt; // ★5→0.8（ゆっくり追尾）
-          }
-          
+          // ビーム継続中はダメージを与え続ける（追尾なし）
           const endX = state.player.x + Math.cos(this.beamAngle) * this.beamRange;
           const endY = state.player.y + Math.sin(this.beamAngle) * this.beamRange;
           
@@ -5047,7 +5093,7 @@ for (const e of state.enemies){
           this.beamDmg = dmg * 2; // 毎秒ダメージ（継続なので高め）
           this.beamWidth = width;
           this.beamRange = range;
-          playShotSound('lightning');
+          playShotSound('laser'); // ★重厚なレーザー音
           return;
         }
         
@@ -9356,7 +9402,7 @@ for (const ef of state.effects) {
 
 } else if (ef.type === 'playerLaser') {
   // プレイヤーのレーザービーム
-  const lifeMax = ef.awaken ? 0.18 : 0.12;
+  const lifeMax = ef.awaken ? 0.15 : 0.12;
   const a = Math.max(0, ef.life / lifeMax);
   
   const endX = ef.x + Math.cos(ef.angle) * ef.length;
@@ -9365,45 +9411,25 @@ for (const ef of state.effects) {
   ctx.save();
   
   if(ef.awaken){
-    // 覚醒時：極太の虹色グラデーション
-    
-    // 最外層グロー（紫）
-    ctx.strokeStyle = '#ff00ff';
-    ctx.lineWidth = ef.width * 3;
-    ctx.shadowBlur = 40;
-    ctx.shadowColor = '#ff00ff';
-    ctx.globalAlpha = a * 0.3;
-    ctx.beginPath();
-    ctx.moveTo(ef.x, ef.y);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
+    // 覚醒時：シンプルで軽量な描画（2層のみ）
     
     // 外側グロー（シアン）
     ctx.strokeStyle = '#00ffff';
-    ctx.lineWidth = ef.width * 2;
-    ctx.shadowBlur = 30;
+    ctx.lineWidth = ef.width * 2; // ★1.5→2（少し太く）
+    ctx.shadowBlur = 15;
     ctx.shadowColor = '#00ffff';
-    ctx.globalAlpha = a * 0.5;
+    ctx.globalAlpha = a * 0.4;
     ctx.beginPath();
     ctx.moveTo(ef.x, ef.y);
     ctx.lineTo(endX, endY);
     ctx.stroke();
     
-    // メインビーム（白）
+    // メインビーム（白、半透明）
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = ef.width;
-    ctx.shadowBlur = 20;
+    ctx.lineWidth = ef.width * 0.9; // ★0.6→0.9（太く）
+    ctx.shadowBlur = 10;
     ctx.shadowColor = '#ffffff';
-    ctx.globalAlpha = a;
-    ctx.beginPath();
-    ctx.moveTo(ef.x, ef.y);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-    
-    // コア（超明るい）
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = ef.width * 0.5;
-    ctx.globalAlpha = a;
+    ctx.globalAlpha = a * 0.65; // 半透明
     ctx.beginPath();
     ctx.moveTo(ef.x, ef.y);
     ctx.lineTo(endX, endY);
