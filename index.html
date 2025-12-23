@@ -2286,11 +2286,12 @@ function visibleBounds(radius = 0){
   }
 
   // === ゲームセーブデータ（ステージ進行状況） ===
-  const SAVE_DATA_KEY = '10min-survivor-save-v1';
+  window.SAVE_DATA_KEY = '10min-survivor-save-v1';
 
-  function loadSaveData() {
+  // グローバルに公開
+  window.loadSaveData = function() {
     try {
-      const data = localStorage.getItem(SAVE_DATA_KEY);
+      const data = localStorage.getItem(window.SAVE_DATA_KEY);
       return data ? JSON.parse(data) : {};
     } catch (e) {
       console.error('Failed to load save data:', e);
@@ -2298,13 +2299,17 @@ function visibleBounds(radius = 0){
     }
   }
 
-  function saveSaveData(data) {
+  window.saveSaveData = function(data) {
     try {
-      localStorage.setItem(SAVE_DATA_KEY, JSON.stringify(data));
+      localStorage.setItem(window.SAVE_DATA_KEY, JSON.stringify(data));
     } catch (e) {
       console.error('Failed to save data:', e);
     }
   }
+  
+  // 即時関数内からも参照できるようにローカル変数にも代入
+  const loadSaveData = window.loadSaveData;
+  const saveSaveData = window.saveSaveData;
 
   // === 効果音システム ===
   let audioCtx = null;
@@ -3004,73 +3009,6 @@ if (!window.__START_BOUND) {
     };
   }
   
-  // === デバッグ用隠しコマンド ===
-  // タイトル画面で "debug2" と入力するとステージ2を即座に解放
-  let debugInput = '';
-  let debugTimeout = null;
-  
-  document.addEventListener('keydown', (e) => {
-    // ゲーム中は無効
-    if (state.started && !state.paused) return;
-    
-    // タイトル画面またはゲームオーバー画面でのみ有効
-    const startScreen = document.getElementById('start');
-    const isOnTitle = startScreen && startScreen.style.display !== 'none';
-    if (!isOnTitle) return;
-    
-    // 文字入力を蓄積
-    if (e.key.length === 1) {
-      debugInput += e.key.toLowerCase();
-      
-      // 10文字以上溜まったら古いのを削除
-      if (debugInput.length > 10) {
-        debugInput = debugInput.slice(-10);
-      }
-      
-      // タイムアウトをリセット（3秒間入力がないとリセット）
-      clearTimeout(debugTimeout);
-      debugTimeout = setTimeout(() => {
-        debugInput = '';
-      }, 3000);
-      
-      // "debug2" と入力したらステージ2を解放
-      if (debugInput.includes('debug2')) {
-        const saveData = loadSaveData();
-        if (!saveData.stageProgress) saveData.stageProgress = {};
-        if (!saveData.stageProgress.stage1) saveData.stageProgress.stage1 = {};
-        saveData.stageProgress.stage1.cleared = true;
-        saveSaveData(saveData);
-        STAGES.stage2.unlocked = true;
-        
-        // ビジュアルフィードバック
-        const feedback = document.createElement('div');
-        feedback.style.cssText = `
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: rgba(236, 72, 153, 0.95);
-          color: white;
-          padding: 20px 40px;
-          border-radius: 12px;
-          font-size: 24px;
-          font-weight: bold;
-          z-index: 10001;
-          animation: fadeInOut 2s ease-in-out;
-        `;
-        feedback.textContent = '🔓 ステージ2 解放！';
-        document.body.appendChild(feedback);
-        
-        setTimeout(() => {
-          feedback.remove();
-        }, 2000);
-        
-        debugInput = ''; // リセット
-        console.log('[DEBUG] Stage 2 unlocked!');
-      }
-    }
-  });
-  
   // 実績ボタン
   const achievementsBtn = document.getElementById('achievementsBtn');
   if (achievementsBtn) {
@@ -3256,7 +3194,8 @@ function updateEndScore(kind){ // kind: 'over' | 'clear'
 function showStageSelect() {
   const modal = document.getElementById('stageSelectModal');
   const cardsContainer = document.getElementById('stageCards');
-  const saveData = loadSaveData();
+  const saveData = window.loadSaveData();  // ★グローバル関数を使用
+  console.log('[DEBUG] showStageSelect - saveData:', JSON.stringify(saveData));
   const isHardcore = window._pendingHardcore || false;
   
   cardsContainer.innerHTML = '';
@@ -3428,9 +3367,10 @@ state.bossKills = 0;
       // 基準: 960x540 → 小さい画面では柱も小さく
       const baseWidth = 960;
       const baseHeight = 540;
+      const cvs = document.getElementById('c');  // ★canvasを取得
       const screenScale = Math.min(
-        canvas.width / baseWidth,
-        canvas.height / baseHeight,
+        (cvs ? cvs.width : baseWidth) / baseWidth,
+        (cvs ? cvs.height : baseHeight) / baseHeight,
         1.0  // 最大1.0（大画面でも柱は大きくしすぎない）
       );
       const minScale = 0.5; // 最小50%
@@ -10030,11 +9970,11 @@ function showGameClear(){
     // ステージ1クリアでステージ2解放
     if (state.currentStage === 'stage1') {
       console.log('[DEBUG] Stage 1 cleared, unlocking Stage 2');
-      const saveData = loadSaveData();
+      const saveData = window.loadSaveData();  // ★グローバル関数を使用
       if (!saveData.stageProgress) saveData.stageProgress = {};
       if (!saveData.stageProgress.stage1) saveData.stageProgress.stage1 = {};
       saveData.stageProgress.stage1.cleared = true;
-      saveSaveData(saveData);
+      window.saveSaveData(saveData);  // ★グローバル関数を使用
       STAGES.stage2.unlocked = true;
       console.log('[DEBUG] Stage 2 unlocked, saveData:', saveData);
     }
@@ -10042,11 +9982,11 @@ function showGameClear(){
     // ステージ2クリアも記録
     if (state.currentStage === 'stage2') {
       console.log('[DEBUG] Stage 2 cleared');
-      const saveData = loadSaveData();
+      const saveData = window.loadSaveData();  // ★グローバル関数を使用
       if (!saveData.stageProgress) saveData.stageProgress = {};
       if (!saveData.stageProgress.stage2) saveData.stageProgress.stage2 = {};
       saveData.stageProgress.stage2.cleared = true;
-      saveSaveData(saveData);
+      window.saveSaveData(saveData);  // ★グローバル関数を使用
     }
 
     el.style.display = 'flex';
