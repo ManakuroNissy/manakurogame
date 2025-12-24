@@ -566,8 +566,8 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 1.8.2</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;">ポーズメニュー追加</span>
+    <span style="opacity:0.7;">Ver 1.8.4</span> - 
+    <span style="opacity:0.6; font-size:0.8rem;">ラスボス演出強化</span>
   </div>
   
   <button id="startBtn" class="btn">スタート</button>
@@ -645,6 +645,55 @@ document.head.appendChild(link);
       </div>
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 1.8.4 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(147,51,234,0.15); border-left:4px solid #9333ea; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#a855f7; font-size:1.3rem;">Ver 1.8.4 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/24</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">👹 ステージ2 ラスボス演出強化</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ボスの色を強い紫色に変更、オーラエフェクト追加</li>
+            <li>ホーミング光球：スピード130、寿命5.5秒に調整</li>
+            <li>回転突進の演出改善：
+              <ul style="margin:0.3rem 0; padding-left:1rem;">
+                <li>点滅→高速回転しながらフェードアウト＆サイズアップで消失</li>
+                <li>突進中はボス本体とバリア三角が白く光る</li>
+                <li>バリアも高速回転して接触面積UP</li>
+                <li>突進スピード700に調整</li>
+              </ul>
+            </li>
+            <li>回転突進中は他の攻撃（光球・爆撃・柱・回転弾幕）を発動しない</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.3 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(239,68,68,0.15); border-left:4px solid #ef4444; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#f87171; font-size:1.3rem;">Ver 1.8.3 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/24</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#fecaca;">🎮 UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトルに戻った時のリセット処理を改善</li>
+            <li>一時停止ボタンはゲームプレイ中のみ表示</li>
+            <li>ランキング表示の無限ループバグを修正</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fecaca;">👹 ステージ2 大ボス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>体当たりが主人公を正確に追尾するように改善</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fecaca;">👹 ステージ2 ラスボス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ホーミング光球：オービットで消えない、スピード控えめに調整</li>
+            <li>爆撃攻撃：重ならないよう分散配置に改善</li>
+            <li>回転突進：2秒の点滅予告→画面外から突進→画面内で停止</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fecaca;">⚔️ 敵調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ピラートラップのダメージを2倍に増加（20→40/秒）</li>
+          </ul>
+        </div>
         
         <!-- Ver 1.8.2 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(99,102,241,0.15); border-left:4px solid #6366f1; border-radius:8px;">
@@ -2964,6 +3013,8 @@ function ensureTopHud(){
 
 
 const pauseBtn = document.getElementById('btnPause'); 
+// 初期状態でポーズボタンを非表示（ゲーム開始時に表示）
+if (pauseBtn) pauseBtn.style.display = 'none';
 
 // === Floating Joystick listeners ===
 let joyBase = document.getElementById('joyBase');
@@ -3078,10 +3129,11 @@ const scoreVal = document.getElementById('scoreVal');
         showStartToast('🔥 FULL POWER MODE!');
         debugBuffer = '';
       } else if (debugBuffer.endsWith('fboss')) {
-        // ファイナルボス戦（ステージ選択へ）
+        // ファイナルボス戦（ステージ選択へ）+ 主人公無敵
         state._debugSkipToFinal = true;
         state._didSkipFinal = false;
-        showStartToast('👹 FINAL BOSS MODE!');
+        state._debugInvincible = true; // ★主人公無敵
+        showStartToast('👹 FINAL BOSS MODE! (無敵)');
         debugBuffer = '';
       } else if (debugBuffer.endsWith('debug2')) {
         // ステージ1クリア済みにする
@@ -3139,6 +3191,9 @@ replayBtn.onclick = () => {
 const titleBtn = document.getElementById('titleBtn');
 if (titleBtn) {
   titleBtn.onclick = () => {
+    // すべてのモーダルを閉じる
+    closeAllModals();
+    
     // ランキング消去
     const rankingModal = document.getElementById('rankingModal');
     if (rankingModal) rankingModal.remove();
@@ -3150,8 +3205,27 @@ if (titleBtn) {
     const startEl = document.getElementById('start');
     if (startEl) startEl.style.display = 'flex';
     
-    // ゲームをリセット（表示はしない）
+    // ゲームを完全にリセット
+    state.started = false;
+    state.gameover = false;
     state.paused = true;
+    state.manualPaused = false;
+    state._pendingRanking = null; // ランキング表示をキャンセル
+    state._debugInvincible = false; // デバッグ無敵をリセット
+    state._debugSkipToFinal = false; // デバッグモードをリセット
+    state._didSkipFinal = false;
+    
+    // 配列をクリア
+    state.enemies.length = 0;
+    state.bullets.length = 0;
+    state.enemyBullets.length = 0;
+    state.gems.length = 0;
+    state.items.length = 0;
+    state.effects.length = 0;
+    state.sparks.length = 0;
+    
+    // ポーズボタンを非表示
+    if (pauseBtn) pauseBtn.style.display = 'none';
   };
 }
 
@@ -3268,6 +3342,9 @@ const titleBtnGameover = document.getElementById('titleBtnGameover');
 const gameoverEl = document.getElementById('gameover');
 if (titleBtnGameover && gameoverEl) {
   titleBtnGameover.onclick = () => {
+    // すべてのモーダルを閉じる
+    closeAllModals();
+    
     // ランキング消去
     const rankingModal = document.getElementById('rankingModal');
     if (rankingModal) rankingModal.remove();
@@ -3279,8 +3356,27 @@ if (titleBtnGameover && gameoverEl) {
     const startEl = document.getElementById('start');
     if (startEl) startEl.style.display = 'flex';
     
-    // ゲームをリセット（表示はしない）
+    // ゲームを完全にリセット
+    state.started = false;
+    state.gameover = false;
     state.paused = true;
+    state.manualPaused = false;
+    state._pendingRanking = null; // ランキング表示をキャンセル
+    state._debugInvincible = false; // デバッグ無敵をリセット
+    state._debugSkipToFinal = false; // デバッグモードをリセット
+    state._didSkipFinal = false;
+    
+    // 配列をクリア
+    state.enemies.length = 0;
+    state.bullets.length = 0;
+    state.enemyBullets.length = 0;
+    state.gems.length = 0;
+    state.items.length = 0;
+    state.effects.length = 0;
+    state.sparks.length = 0;
+    
+    // ポーズボタンを非表示
+    if (pauseBtn) pauseBtn.style.display = 'none';
   };
 }
 
@@ -3454,6 +3550,8 @@ function showPauseMenu() {
   retireBtn.onclick = () => {
     modal.remove();
     state.manualPaused = false;
+    // すべてのモーダルを閉じる
+    closeAllModals();
     triggerGameOver();
   };
   buttonArea.appendChild(retireBtn);
@@ -3480,6 +3578,26 @@ function closePauseMenu() {
     state.manualPaused = false;
     syncPauseButton();
   }
+}
+
+// すべてのモーダルを閉じる（タイトルに戻る・リタイア時用）
+function closeAllModals() {
+  const modalIds = [
+    'pauseMenuModal',
+    'startBonusModal', 
+    'rankingModal',
+    'achievementsModal',
+    'updateLogModal',
+    'stageSelectModal'
+  ];
+  for (const id of modalIds) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+  // レベルアップ・宝箱画面も閉じる
+  if (levelupEl) levelupEl.style.display = 'none';
+  if (chestEl) chestEl.style.display = 'none';
+  if (chestHUD) chestHUD.style.display = 'none';
 }
 
 
@@ -3524,7 +3642,14 @@ function triggerGameOver(){
   // スコア保存とランキング表示
   const scoreData = createScoreData('gameover');
   saveScore(scoreData);
-  setTimeout(() => showRankingModal(scoreData), 500);
+  // ゲームオーバー状態の時のみランキング表示
+  state._pendingRanking = scoreData;
+  setTimeout(() => {
+    if (state.gameover && state._pendingRanking) {
+      showRankingModal(state._pendingRanking);
+      state._pendingRanking = null;
+    }
+  }, 500);
 
   // フローティング・ジョイスティックOFF
   delete document.body.dataset.fjoy;
@@ -3700,6 +3825,8 @@ async function startStage(stageId, hardcore) {
     document.getElementById('stageSelectModal').style.display = 'none';
     state.last = performance.now();
     syncPauseButton();
+    // ポーズボタンを表示
+    if (pauseBtn) pauseBtn.style.display = '';
   } catch(e) {
     console.warn('startStage error:', e);
   }
@@ -4234,9 +4361,10 @@ function spawnEnemy(){
     });
   } else if (roll < spinnerProb + dasherProb + sniperProb) {
     // スナイパー（狙撃三角）
-    // ★同時に最大3体まで
+    // ★同時に最大3体まで（8分以降は5体）
+    const sniperLimit = state.timeSec >= 480 ? 5 : 3;
     const existingSnipers = state.enemies.filter(en => en.type === 'sniper').length;
-    if (existingSnipers >= 3) return; // 3体以上は出現しない
+    if (existingSnipers >= sniperLimit) return;
     
     let hp = 35 + state.difficulty * 2;
     if (state.mode.hardcore) hp *= 2.0;
@@ -4342,7 +4470,7 @@ function spawnEnemy(){
             rotation: Math.random() * Math.PI * 2,
             rotationSpeed: 1.5,   // 回転速度
             laserLength: 250,     // レーザーの長さ
-            laserDamage: 20,      // ダメージ/秒
+            laserDamage: 40,      // ダメージ/秒（20→40に増加）
             lifeTime: 6.0,        // 存在時間
             timer: 6.0,
             hitFlash: 0, kbx: 0, kby: 0
@@ -4592,6 +4720,9 @@ function flashBossMsg(ms = 2000, text = '!! BOSS APPROACHING !!') {
   }
   
   function playerHit(dmg, sx, sy, enemy){
+  // デバッグ無敵モード
+  if (state._debugInvincible) return;
+  
   // すでに無敵なら無視
   if (state.player.iTime > 0) return;
 
@@ -6526,7 +6657,8 @@ for(let j=state.enemies.length-1;j>=0;j--){
     }
     
     // ピラートラップは無敵（弾が当たっても無視）
-    if(e.invincible){
+    // ★回転突進中のラスボスも無敵
+    if(e.invincible || e.chargeInvincible){
       continue;
     }
     
@@ -6758,7 +6890,8 @@ for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
 
   // Orbit が弾を相殺（レーザーは除く）
   let canceled = false;
-  if (b.type !== 'laser' && state.weapons.orbit.lv > 0) {
+  // ★ignoreOrbitフラグがある弾はオービットで消えない
+  if (b.type !== 'laser' && !b.ignoreOrbit && state.weapons.orbit.lv > 0) {
     const count = state.weapons.orbit.awaken ? 8 : (3 + state.weapons.orbit.lv);
     for (let k = 0; k < count && !canceled; k++) {
       const ang = state.weapons.orbit.ang + k * (Math.PI * 2 / count);
@@ -7069,7 +7202,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             if(distToLaser < state.player.r + e.laserWidth){
               // ヒット
               const finalDmg = Math.round(e.laserDamage * state.mods.damageMul);
-              if(state.player.iTime <= 0){
+              if(state.player.iTime <= 0 && !state._debugInvincible){
                 state.player.hp -= finalDmg;
                 state.player.iTime = 0.5;
                 addEffect('flash', { life: 0.05 });
@@ -7219,7 +7352,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             
             if(distToLaser < state.player.r + 8){
               // 継続ダメージ
-              if(state.player.iTime <= 0){
+              if(state.player.iTime <= 0 && !state._debugInvincible){
                 const dmg = e.laserDamage * dt * state.mods.damageMul;
                 state.player.hp -= dmg;
                 
@@ -7306,7 +7439,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             
             // プレイヤーへのダメージ
             const distToExplosion = Math.hypot(state.player.x - e.x, state.player.y - e.y);
-            if (distToExplosion < e.explodeRadius) {
+            if (distToExplosion < e.explodeRadius && !state._debugInvincible) {
               const dmg = e.explodeDamage * state.mods.damageMul;
               state.player.hp -= dmg;
               addEffect('text', { x: state.player.x, y: state.player.y - 20, life: 0.8, text: `-${Math.floor(dmg)}` });
@@ -7454,7 +7587,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
                 const bx = e.x + Math.cos(e.beamAngle)*t;
                 const by = e.y + Math.sin(e.beamAngle)*t;
                 const d = Math.hypot(state.player.x-bx, state.player.y-by);
-                if(d < state.player.r + 15 && state.player.iTime <= 0){ // ★当たり判定も太く
+                if(d < state.player.r + 15 && state.player.iTime <= 0 && !state._debugInvincible){ // ★当たり判定も太く
                   state.player.hp -= 40;
                   state.player.iTime = 0.5;
                   break;
@@ -7604,7 +7737,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             e.x += Math.cos(e.dashAngle) * 1000 * dt; // より高速
             e.y += Math.sin(e.dashAngle) * 1000 * dt;
             const d = Math.hypot(state.player.x - e.x, state.player.y - e.y);
-            if(d < state.player.r + e.size/2 && state.player.iTime <= 0){
+            if(d < state.player.r + e.size/2 && state.player.iTime <= 0 && !state._debugInvincible){
               state.player.hp -= 35;
               state.player.iTime = 0.8;
             }
@@ -7631,33 +7764,48 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
           }
           
           // ★攻撃1：ホーミング光球（3発、バラバラの方向）
-          if(e.orbCd <= 0 && e.pillarPhase === 'idle'){
+          if(e.orbCd <= 0 && e.pillarPhase === 'idle' && e.chargePhase === 'idle'){
             for(let i=0; i<3; i++){
               const orbAng = Math.random() * Math.PI * 2; // ★完全ランダム方向
-              const speed = 180; // ★120→180（さらに1.5倍）
+              const speed = 130; // ★スピード130
               state.enemyBullets.push({ 
                 x: e.x, y: e.y, 
                 vx: Math.cos(orbAng) * speed, vy: Math.sin(orbAng) * speed,
-                r: 25, dmg: 20, life: 10,
+                r: 25, dmg: 30, life: 5.5, // ★ダメージ30
                 type: 'homingOrb', 
                 speed: speed,
-                glowing: true
+                glowing: true,
+                ignoreOrbit: true // ★オービットで消えない
               });
             }
             e.orbCd = e.orbInterval;
           }
           
-          // ★攻撃2：15箇所ランダム爆撃
-          if(e.bombPhase === 'idle' && e.bombCd <= 0 && e.pillarPhase === 'idle'){
+          // ★攻撃2：15箇所ランダム爆撃（重ならないよう分散配置）
+          if(e.bombPhase === 'idle' && e.bombCd <= 0 && e.pillarPhase === 'idle' && e.chargePhase === 'idle'){
             e.bombPhase = 'warn';
             e.bombWarnTime = 2.0;
             e.bombTargets = [];
             const B = worldBounds();
-            for(let i=0; i<15; i++){ // ★12→15に増加
-              e.bombTargets.push({ 
-                x: rnd(B.minX + 50, B.maxX - 50), 
-                y: rnd(B.minY + 50, B.maxY - 50) 
-              });
+            const bombRadius = 86; // 爆撃の半径
+            const minDist = bombRadius * 2.2; // 最小間隔
+            
+            // グリッドベースの分散配置
+            const cols = 5;
+            const rows = 3;
+            const cellW = (B.maxX - B.minX - 100) / cols;
+            const cellH = (B.maxY - B.minY - 100) / rows;
+            
+            for(let row = 0; row < rows; row++){
+              for(let col = 0; col < cols; col++){
+                // 各セル内でランダムな位置
+                const baseX = B.minX + 50 + col * cellW;
+                const baseY = B.minY + 50 + row * cellH;
+                e.bombTargets.push({ 
+                  x: baseX + rnd(cellW * 0.2, cellW * 0.8), 
+                  y: baseY + rnd(cellH * 0.2, cellH * 0.8) 
+                });
+              }
             }
           }
           if(e.bombPhase === 'warn'){
@@ -7666,7 +7814,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             if(e.bombWarnTime <= 0){
               for(const t of e.bombTargets){
                 const d = Math.hypot(state.player.x - t.x, state.player.y - t.y);
-                if(d < state.player.r + 86 && state.player.iTime <= 0){ state.player.hp -= 35; state.player.iTime = 0.8; } // ★86
+                if(d < state.player.r + 86 && state.player.iTime <= 0 && !state._debugInvincible){ state.player.hp -= 50; state.player.iTime = 0.8; } // ★ダメージ50
                 addEffect('explosion', { x:t.x, y:t.y, r:115, life:0.4 }); // ★さらに1.2倍
               }
               e.bombPhase = 'idle';
@@ -7675,7 +7823,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
           }
           
           // ★攻撃3：柱飛ばし
-          if(e.pillarPhase === 'idle' && e.pillarCd <= 0 && state.obstacles.length > 0){
+          if(e.pillarPhase === 'idle' && e.pillarCd <= 0 && state.obstacles.length > 0 && e.chargePhase === 'idle'){
             e.pillarPhase = 'charge';
             e.pillarChargeTime = 1.5;
             // 柱を光らせるフラグと方向を事前計算
@@ -7736,8 +7884,8 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
                    state.player.x < obs.x + halfSize + state.player.r &&
                    state.player.y > obs.y - halfSize - state.player.r && 
                    state.player.y < obs.y + halfSize + state.player.r){
-                  if(state.player.iTime <= 0){
-                    state.player.hp -= 30;
+                  if(state.player.iTime <= 0 && !state._debugInvincible){
+                    state.player.hp -= 40; // ★ダメージ40
                     state.player.iTime = 0.5;
                   }
                 }
@@ -7758,7 +7906,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
           
           // ★攻撃4：回転弾幕（中ボスと同じ球を大量にばら撒く）
           if(e.spinCd !== undefined) e.spinCd -= dt;
-          if(e.spinPhase === 'idle' && e.spinCd <= 0 && e.pillarPhase === 'idle'){
+          if(e.spinPhase === 'idle' && e.spinCd <= 0 && e.pillarPhase === 'idle' && e.chargePhase === 'idle'){
             e.spinPhase = 'spinning';
             e.spinAngle = 0;
             e.spinDuration = 2.0; // 2秒間回転
@@ -7786,6 +7934,102 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             if(e.spinDuration <= 0){
               e.spinPhase = 'idle';
               e.spinCd = e.spinInterval;
+            }
+          }
+          
+          // ★攻撃5：回転突進攻撃
+          if(e.chargeCd !== undefined) e.chargeCd -= dt;
+          if(e.chargePhase === 'idle' && e.chargeCd <= 0 && e.pillarPhase === 'idle' && e.spinPhase === 'idle'){
+            e.chargePhase = 'blink';
+            e.chargeBlinkTime = 2.0; // 2秒点滅（わかりやすい予告）
+          }
+          if(e.chargePhase === 'blink'){
+            e.chargeBlinkTime -= dt;
+            // 最初の1秒：動きを止めて点滅
+            if(e.chargeBlinkTime > 1.0){
+              e.alpha = 0.3 + Math.abs(Math.sin(e.chargeBlinkTime * 12)) * 0.7;
+              // 警告エフェクト
+              if(Math.floor(e.chargeBlinkTime * 12) % 2 === 0){
+                addEffect('chargeWarn', { x: e.x, y: e.y, r: e.size, life: 0.08 });
+              }
+            } 
+            // 残り1秒：高速回転しながらフェードアウト＆サイズアップ
+            else {
+              const fadeProgress = 1.0 - e.chargeBlinkTime; // 0→1
+              e.alpha = 1.0 - fadeProgress; // 1→0にフェードアウト
+              e.rotation += 20 * dt; // 超高速回転
+              e.chargeScaleMul = 1.0 + fadeProgress * 0.5; // 1.0→1.5にサイズアップ
+            }
+            
+            if(e.chargeBlinkTime <= 0){
+              // 画面外に消える
+              e.chargePhase = 'hide';
+              e.chargeHideTime = 0.8; // 少し待つ
+              e.chargeScaleMul = 1.0; // サイズリセット
+              // 画面外に移動（見えない位置）
+              const B = worldBounds();
+              const side = Math.floor(Math.random() * 4);
+              if(side === 0){ e.chargeStartX = rnd(B.minX, B.maxX); e.chargeStartY = B.minY - 300; }
+              else if(side === 1){ e.chargeStartX = B.maxX + 300; e.chargeStartY = rnd(B.minY, B.maxY); }
+              else if(side === 2){ e.chargeStartX = rnd(B.minX, B.maxX); e.chargeStartY = B.maxY + 300; }
+              else { e.chargeStartX = B.minX - 300; e.chargeStartY = rnd(B.minY, B.maxY); }
+              e.x = e.chargeStartX;
+              e.y = e.chargeStartY;
+              e.alpha = 0; // 完全に消える
+            }
+          }
+          if(e.chargePhase === 'hide'){
+            e.chargeHideTime -= dt;
+            if(e.chargeHideTime <= 0){
+              // 画面外から出現して突進開始
+              e.chargePhase = 'rush';
+              e.chargeInvincible = true; // 突進中は無敵
+              e.alpha = 0.9;
+              // プレイヤーの現在位置に向かって突進
+              const tdx = state.player.x - e.x;
+              const tdy = state.player.y - e.y;
+              const tdist = Math.hypot(tdx, tdy) || 1;
+              e.chargeDir = { x: tdx / tdist, y: tdy / tdist };
+              // 画面内の反対側を目標に（画面内で止まる）
+              const B = worldBounds();
+              const margin = 100;
+              e.chargeTargetPos = {
+                x: clamp(e.x + e.chargeDir.x * 1200, B.minX + margin, B.maxX - margin),
+                y: clamp(e.y + e.chargeDir.y * 1200, B.minY + margin, B.maxY - margin)
+              };
+            }
+          }
+          if(e.chargePhase === 'rush'){
+            // 高速回転しながら突進
+            e.rotation += 15 * dt; // 超高速回転
+            const rushSpeed = 700; // スピード700
+            e.x += e.chargeDir.x * rushSpeed * dt;
+            e.y += e.chargeDir.y * rushSpeed * dt;
+            // 白く光らせて無敵をわかりやすく
+            e.chargeGlow = true;
+            // バリアも高速回転（接触面積を増やす）
+            if(e.shieldAngle !== undefined){
+              e.shieldAngle += 12 * dt; // 通常の約6倍速で回転
+            }
+            // プレイヤーとの接触ダメージ
+            const pdist = Math.hypot(state.player.x - e.x, state.player.y - e.y);
+            if(pdist < e.size / 2 + state.player.r && state.player.iTime <= 0 && !state._debugInvincible){
+              state.player.hp -= 60; // ★ダメージ60
+              state.player.iTime = 1.0;
+            }
+            // 目標地点に到達したら終了
+            const rx = e.chargeTargetPos.x - e.x;
+            const ry = e.chargeTargetPos.y - e.y;
+            const remainDist = Math.hypot(rx, ry);
+            if(remainDist < 50 || rx * e.chargeDir.x + ry * e.chargeDir.y <= 0){
+              // 画面内で止まる
+              e.x = e.chargeTargetPos.x;
+              e.y = e.chargeTargetPos.y;
+              e.chargePhase = 'idle';
+              e.chargeCd = e.chargeInterval;
+              e.chargeInvincible = false;
+              e.chargeGlow = false;
+              e.alpha = 0.85;
             }
           }
           
@@ -7890,8 +8134,18 @@ if(e.phase === 'shoot'){
 
 }else if(e.phase === 'dash'){
   const dashSpeed = 1200;
+  // ★主人公の現在位置に向かって方向を更新（正確に追尾）
+  const dx = state.player.x - e.x;
+  const dy = state.player.y - e.y;
+  const dist = Math.hypot(dx, dy);
+  if(dist > 10){
+    e.dashDir.x = dx / dist;
+    e.dashDir.y = dy / dist;
+  }
   e.x += e.dashDir.x * dashSpeed * dt;
   e.y += e.dashDir.y * dashSpeed * dt;
+  // ターゲットも更新
+  e.target = { x: state.player.x, y: state.player.y };
   const rx = e.target.x - e.x, ry = e.target.y - e.y;
   if(rx*e.dashDir.x + ry*e.dashDir.y <= 0){
     e.cd = 1.6;          // 2.0→1.6
@@ -7929,8 +8183,10 @@ if(e.phase === 'shoot'){
 
   if (d < hitR){
     const finalDPS = DPS * state.mods.damageMul; // 耐久力による軽減
-    state.player.hp -= finalDPS * dt;            // 直接HPを削る（ノックバックなし）
-    if (state.player.hp <= 0) { gameOver(); return; }
+    if (!state._debugInvincible) {
+      state.player.hp -= finalDPS * dt;            // 直接HPを削る（ノックバックなし）
+      if (state.player.hp <= 0) { gameOver(); return; }
+    }
   }
 
   if (e.laserDur <= 0){ e.cd = 1.8; e.phase = 'shoot'; }
@@ -8143,7 +8399,7 @@ else if(e.phase === 'charge_boom'){
           
           // プレイヤーへのダメージ
           const distToPlayer = Math.hypot(e.x - state.player.x, e.y - state.player.y);
-          if(distToPlayer < R){
+          if(distToPlayer < R && !state._debugInvincible){
             const finalDmg = Math.round(e.explodeDamage * state.mods.damageMul); // 耐久力による軽減
             state.player.hp -= finalDmg;
             state.player.iTime = Math.max(state.player.iTime, 0.8);
@@ -9555,14 +9811,57 @@ if(state.weapons.orbit.lv>0){
     
     // ステージ2の三角ボス描画
     if(e.isTriangle && (e.type === 'mid' || e.type === 'big' || e.type === 'final')){
+      
+      // ★ラスボス専用：オーラエフェクト
+      if(e.type === 'final' && !e.chargeGlow){
+        ctx.save();
+        const auraTime = performance.now() / 1000;
+        // 複数のオーラリング
+        for(let ring = 0; ring < 3; ring++){
+          const auraRadius = s * 0.7 + ring * 25 + Math.sin(auraTime * 2 + ring) * 10;
+          const auraAlpha = (0.3 - ring * 0.08) * (e.alpha || 1);
+          ctx.beginPath();
+          ctx.arc(e.x, e.y, auraRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(168, 85, 247, ${auraAlpha})`;
+          ctx.lineWidth = 4 - ring;
+          ctx.stroke();
+        }
+        // パルスオーラ
+        const pulseRadius = s * 0.6 + Math.sin(auraTime * 4) * 20;
+        const gradient = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, pulseRadius);
+        gradient.addColorStop(0, 'rgba(147, 51, 234, 0)');
+        gradient.addColorStop(0.7, 'rgba(147, 51, 234, 0.1)');
+        gradient.addColorStop(1, 'rgba(168, 85, 247, 0.3)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, pulseRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      
       ctx.save();
       ctx.translate(e.x, e.y);
       ctx.rotate(e.rotation || 0);
+      // ★フェードアウト時のサイズアップ
+      const scaleMul = e.chargeScaleMul || 1.0;
+      if(scaleMul !== 1.0) ctx.scale(scaleMul, scaleMul);
       if(e.isGhost) ctx.globalAlpha = e.alpha || 0.7;
       
       if(e.type === 'mid'){ ctx.fillStyle = '#00bcd4'; ctx.shadowBlur = 15; ctx.shadowColor = '#00bcd4'; }
       else if(e.type === 'big'){ ctx.fillStyle = '#ff6b35'; ctx.shadowBlur = 20; ctx.shadowColor = '#ff6b35'; }
-      else if(e.type === 'final'){ ctx.fillStyle = '#ff44ff'; ctx.shadowBlur = 40; ctx.shadowColor = '#ff88ff'; } // ★明るいマゼンタ
+      else if(e.type === 'final'){ 
+        // ★回転アタック中は白く光る
+        if(e.chargeGlow){
+          ctx.fillStyle = '#ffffff';
+          ctx.shadowBlur = 60;
+          ctx.shadowColor = '#ffffff';
+        } else {
+          // ★強い紫色
+          ctx.fillStyle = '#9333ea';
+          ctx.shadowBlur = 50;
+          ctx.shadowColor = '#a855f7';
+        }
+      }
       
       ctx.beginPath();
       ctx.moveTo(0, -s/2);
@@ -9595,10 +9894,18 @@ if(state.weapons.orbit.lv>0){
           ctx.translate(shieldX, shieldY);
           ctx.rotate(shieldAng + Math.PI / 2); // 外側を向く
           
-          ctx.fillStyle = '#666';
-          ctx.shadowBlur = 8;
-          ctx.shadowColor = '#888';
-          ctx.globalAlpha = 0.9;
+          // ★回転突進中は白く光る
+          if(e.chargeGlow){
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ffffff';
+            ctx.globalAlpha = 0.95;
+          } else {
+            ctx.fillStyle = '#666';
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#888';
+            ctx.globalAlpha = 0.9;
+          }
           
           ctx.beginPath();
           ctx.moveTo(0, -shieldSize/2);
@@ -9608,7 +9915,7 @@ if(state.weapons.orbit.lv>0){
           ctx.fill();
           
           // 縁取り
-          ctx.strokeStyle = '#aaa';
+          ctx.strokeStyle = e.chargeGlow ? '#fff' : '#aaa';
           ctx.lineWidth = 2;
           ctx.stroke();
           
@@ -9676,7 +9983,54 @@ if(state.weapons.orbit.lv>0){
 
  // effects
 for (const ef of state.effects) {
-  if (ef.type === 'nova') {
+  // ★ボス消失エフェクト
+  if (ef.type === 'bossVanish') {
+    const a = Math.max(0, ef.life / 0.6);
+    const t = 1 - a;
+    ctx.save();
+    // 紫の爆発リング（複数）
+    for(let ring = 0; ring < 3; ring++){
+      const ringRadius = ef.r * (0.3 + t * 0.7) + ring * 30 * t;
+      ctx.globalAlpha = (0.8 - ring * 0.2) * a;
+      ctx.strokeStyle = ring === 0 ? '#a855f7' : (ring === 1 ? '#9333ea' : '#7c3aed');
+      ctx.lineWidth = 12 - ring * 3;
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = '#a855f7';
+      ctx.beginPath();
+      ctx.arc(ef.x, ef.y, ringRadius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // 中心の白いフラッシュ
+    ctx.globalAlpha = a * a;
+    const gradient = ctx.createRadialGradient(ef.x, ef.y, 0, ef.x, ef.y, ef.r * 0.5 * a);
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.5, 'rgba(168, 85, 247, 0.5)');
+    gradient.addColorStop(1, 'rgba(147, 51, 234, 0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, ef.r * 0.5 * a, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  // ★紫スパーク
+  else if (ef.type === 'purpleSpark') {
+    const a = Math.max(0, ef.life / 0.5);
+    // 移動
+    ef.x += ef.vx * (1/60);
+    ef.y += ef.vy * (1/60);
+    ef.vx *= 0.95;
+    ef.vy *= 0.95;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#d8b4fe';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#a855f7';
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, 6 * a, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  else if (ef.type === 'nova') {
     ctx.save();
     const life0 = 0.25;                 // ef.life は 0.25 付近を想定
     const a = Math.max(0, ef.life / life0);
@@ -10542,7 +10896,14 @@ function showGameClear(){
     // スコア保存とランキング表示
     const scoreData = createScoreData('clear');
     saveScore(scoreData);
-    setTimeout(() => showRankingModal(scoreData), 500);
+    state._pendingRanking = scoreData;
+    setTimeout(() => {
+      // クリア画面が表示されている時のみランキング表示
+      if (clearEl && clearEl.style.display === 'flex' && state._pendingRanking) {
+        showRankingModal(state._pendingRanking);
+        state._pendingRanking = null;
+      }
+    }, 500);
 
     // ハードコアボタンを表示
     if (hardcoreBtn){
@@ -10894,6 +11255,9 @@ function spawnFinalBoss(){
     pillarCd: 15, pillarInterval: 20.0, pillarPhase: 'idle', pillarChargeTime: 0,
     // ★新攻撃：回転弾幕
     spinCd: 8, spinInterval: 12.0, spinPhase: 'idle', spinAngle: 0,
+    // ★新攻撃：回転突進
+    chargeCd: 20, chargeInterval: 25.0, chargePhase: 'idle', chargeBlinkTime: 0,
+    chargeStartPos: null, chargeTargetPos: null, chargeSpeed: 800,
     // ★シールド三角（弾を通さない）
     shieldAngle: 0,
     shieldCount: 3,
