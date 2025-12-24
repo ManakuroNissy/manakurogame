@@ -566,8 +566,8 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 1.6</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;">ステージ2＆新武器追加！</span>
+    <span style="opacity:0.7;">Ver 1.8.0</span> - 
+    <span style="opacity:0.6; font-size:0.8rem;">スタートボーナス＆ランキング改善</span>
   </div>
   
   <button id="startBtn" class="btn">スタート</button>
@@ -645,6 +645,42 @@ document.head.appendChild(link);
       </div>
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 1.8.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(251,191,36,0.15); border-left:4px solid #fbbf24; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 1.8.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/24</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#fef3c7;">🎁 スタートボーナス</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>通常モード開始時に6種類から能力を1つ選択可能</li>
+            <li>ハードコアモードでは無効（チャレンジ性維持）</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">🏆 ランキング改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ステージ1とステージ2のランキングを分離</li>
+            <li>タブで切り替え可能に</li>
+            <li>CLOSEボタンを上部に配置（スマホで押しやすく）</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">⚖️ 難易度調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>プレイヤー初期HP: 110→120</li>
+            <li>プレイヤー初期速度: 170→180</li>
+            <li>ブラスター初期攻撃力: 12→15</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">📡 レーザー説明文追加</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>入手時・強化時・覚醒時の説明を完備</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">📱 PWA対応</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>スマホブラウザで「ホーム画面に追加」バナー表示</li>
+            <li>PWAとして起動でフルスクリーンプレイ可能</li>
+          </ul>
+        </div>
         
         <!-- Ver 1.6 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(236,72,153,0.15); border-left:4px solid #ec4899; border-radius:8px;">
@@ -1869,33 +1905,41 @@ function visibleBounds(radius = 0){
   const pick=(arr)=>arr[(Math.random()*arr.length)|0];
 
   // === スコアランキングシステム ===
-  const RANKING_KEY = 'gameRankings_v1';
+  const RANKING_KEY = 'gameRankings_v2';  // ★v2に変更（ステージ別対応）
   const MAX_RANKINGS = 10;
 
   function saveScore(scoreData) {
     try {
-      const rankings = loadRankings();
-      rankings.push(scoreData);
+      const allRankings = loadAllRankings();
+      const stage = scoreData.stage || 'stage1';  // ★ステージ別
+      
+      if (!allRankings[stage]) allRankings[stage] = [];
+      allRankings[stage].push(scoreData);
       // スコア順にソート（降順）
-      rankings.sort((a, b) => b.score - a.score);
+      allRankings[stage].sort((a, b) => b.score - a.score);
       // 上位10件のみ保持
-      const topRankings = rankings.slice(0, MAX_RANKINGS);
-      localStorage.setItem(RANKING_KEY, JSON.stringify(topRankings));
-      return topRankings;
+      allRankings[stage] = allRankings[stage].slice(0, MAX_RANKINGS);
+      localStorage.setItem(RANKING_KEY, JSON.stringify(allRankings));
+      return allRankings[stage];
     } catch (e) {
       console.error('Failed to save score:', e);
       return [];
     }
   }
 
-  function loadRankings() {
+  function loadAllRankings() {
     try {
       const data = localStorage.getItem(RANKING_KEY);
-      return data ? JSON.parse(data) : [];
+      return data ? JSON.parse(data) : { stage1: [], stage2: [] };
     } catch (e) {
       console.error('Failed to load rankings:', e);
-      return [];
+      return { stage1: [], stage2: [] };
     }
+  }
+
+  function loadRankings(stage = 'stage1') {
+    const all = loadAllRankings();
+    return all[stage] || [];
   }
 
   function formatTime(seconds) {
@@ -1932,67 +1976,98 @@ function visibleBounds(radius = 0){
       level: state.player.level,
       result: result, // 'clear' or 'gameover'
       mode: state.mode.hardcore ? 'Hardcore' : 'Normal',
+      stage: state.currentStage || 'stage1',  // ★ステージ追加
       date: new Date().toISOString()
     };
   }
 
   function showRankingModal(currentScore = null) {
-    const rankings = loadRankings();
+    const currentStage = currentScore?.stage || state.currentStage || 'stage1';
+    let selectedStage = currentStage;
     
-    let html = `
-      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:flex-start;justify-content:center;padding-top:40px;padding-bottom:40px;z-index:100000;overflow-y:auto;" id="rankingModal">
-        <div style="background:#1a1a2e;border:3px solid #4a90e2;border-radius:12px;padding:30px;max-width:600px;width:90%;max-height:calc(100vh - 80px);overflow-y:auto;">
-          <h2 style="color:#4a90e2;text-align:center;margin:0 0 20px 0;font-size:28px;">🏆 SCORE RANKING 🏆</h2>
-    `;
-
-    if (rankings.length === 0) {
-      html += `<p style="color:#999;text-align:center;padding:40px 0;">No records yet</p>`;
-    } else {
-      html += `<div style="margin-bottom:20px;">`;
+    function renderRankings(stage) {
+      const rankings = loadRankings(stage);
+      const stageName = stage === 'stage1' ? '■ ステージ1' : '▲ ステージ2';
+      const stageColor = stage === 'stage1' ? '#60a5fa' : '#ec4899';
       
-      rankings.forEach((entry, index) => {
-        const isCurrent = currentScore && entry.score === currentScore.score && 
-                         entry.date === currentScore.date;
-        const bgColor = isCurrent ? '#2a4a2e' : (index % 2 === 0 ? '#16213e' : '#1a1a2e');
-        const borderColor = isCurrent ? '#4ade80' : 'transparent';
-        
-        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-        const resultIcon = entry.result === 'clear' ? '✅' : '💀';
-        const modeColor = entry.mode === 'Hardcore' ? '#ef4444' : '#4a90e2';
-        const hasBo = entry.timeBonus && entry.timeBonus > 0;
-        
-        html += `
-          <div style="background:${bgColor};border:2px solid ${borderColor};border-radius:8px;padding:12px;margin-bottom:8px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-              <span style="font-size:20px;font-weight:bold;color:#fff;">${medal}</span>
-              <span style="font-size:24px;font-weight:bold;color:#fbbf24;">${entry.score.toLocaleString()}</span>
+      let html = `
+        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:100000;" id="rankingModal">
+          <div style="background:#1a1a2e;border:3px solid #4a90e2;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:80vh;display:flex;flex-direction:column;">
+            
+            <!-- ★CLOSEボタンを上部に配置 -->
+            <button onclick="document.getElementById('rankingModal').remove();" style="width:100%;padding:10px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-bottom:12px;">
+              ✕ CLOSE
+            </button>
+            
+            <h2 style="color:#4a90e2;text-align:center;margin:0 0 12px 0;font-size:22px;">🏆 RANKING 🏆</h2>
+            
+            <!-- ★ステージ切り替えタブ -->
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <button id="tabStage1" onclick="window._switchRankingTab('stage1')" style="flex:1;padding:8px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px;${stage === 'stage1' ? 'background:#60a5fa;color:#fff;' : 'background:#334155;color:#94a3b8;'}">
+                ■ ステージ1
+              </button>
+              <button id="tabStage2" onclick="window._switchRankingTab('stage2')" style="flex:1;padding:8px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px;${stage === 'stage2' ? 'background:#ec4899;color:#fff;' : 'background:#334155;color:#94a3b8;'}">
+                ▲ ステージ2
+              </button>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:14px;color:#aaa;">
-              <span>${resultIcon} ${entry.kills + entry.bossKills} kills (Boss: ${entry.bossKills})</span>
-              <span>⏱️ ${formatTime(entry.time)}${hasBo ? ` 🎁+${entry.timeBonus.toLocaleString()}` : ''}</span>
+            
+            <div style="flex:1;overflow-y:auto;">
+      `;
+
+      if (rankings.length === 0) {
+        html += `<p style="color:#999;text-align:center;padding:30px 0;">記録なし</p>`;
+      } else {
+        rankings.forEach((entry, index) => {
+          const isCurrent = currentScore && entry.score === currentScore.score && 
+                           entry.date === currentScore.date;
+          const bgColor = isCurrent ? '#2a4a2e' : (index % 2 === 0 ? '#16213e' : '#1a1a2e');
+          const borderColor = isCurrent ? '#4ade80' : 'transparent';
+          
+          const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+          const resultIcon = entry.result === 'clear' ? '✅' : '💀';
+          const modeColor = entry.mode === 'Hardcore' ? '#ef4444' : '#4a90e2';
+          const hasBo = entry.timeBonus && entry.timeBonus > 0;
+          
+          html += `
+            <div style="background:${bgColor};border:2px solid ${borderColor};border-radius:8px;padding:10px;margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-size:18px;font-weight:bold;color:#fff;">${medal}</span>
+                <span style="font-size:20px;font-weight:bold;color:#fbbf24;">${entry.score.toLocaleString()}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:#aaa;">
+                <span>${resultIcon} ${entry.kills + entry.bossKills} kills</span>
+                <span>⏱️ ${formatTime(entry.time)}${hasBo ? ` 🎁+${entry.timeBonus.toLocaleString()}` : ''}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-top:2px;">
+                <span style="color:${modeColor};font-weight:bold;">${entry.mode}</span>
+                <span>Lv ${entry.level}</span>
+                <span>${new Date(entry.date).toLocaleDateString()}</span>
+              </div>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-top:4px;">
-              <span style="color:${modeColor};font-weight:bold;">${entry.mode}</span>
-              <span>Lv ${entry.level}</span>
-              <span>${new Date(entry.date).toLocaleDateString()}</span>
+          `;
+        });
+      }
+
+      html += `
             </div>
           </div>
-        `;
-      });
-      
-      html += `</div>`;
-    }
-
-    html += `
-          <button onclick="document.getElementById('rankingModal').remove();" style="width:100%;padding:12px;background:#4a90e2;color:#fff;border:none;border-radius:8px;font-size:18px;font-weight:bold;cursor:pointer;margin-top:10px;">
-            CLOSE
-          </button>
         </div>
-      </div>
-    `;
+      `;
+      return html;
+    }
+    
+    // タブ切り替え関数をグローバルに
+    window._switchRankingTab = function(stage) {
+      selectedStage = stage;
+      const modal = document.getElementById('rankingModal');
+      if (modal) modal.remove();
+      const newModal = document.createElement('div');
+      newModal.innerHTML = renderRankings(stage);
+      document.body.appendChild(newModal);
+    };
 
     const modal = document.createElement('div');
-    modal.innerHTML = html;
+    modal.innerHTML = renderRankings(selectedStage);
     document.body.appendChild(modal);
   }
 
@@ -3448,7 +3523,7 @@ state.player.y = WORLD.h * 0.5;
 state.player.aimAngle = 0; // 初期向き（右向き相当）
 
     state.player.r = 14;
-    state.player.speed = 185;      // ★170→185（少し速く）
+    state.player.speed = 180;      // ★170→180（少し速く）
     state.player.maxHp = 120;      // ★110→120（少し硬く）
     state.player.hp = 120;
     state.player.xp = 0;
@@ -3561,7 +3636,90 @@ state.records = JSON.parse(localStorage.getItem('vs_records') || '[]'); // [{sco
     // ★デバッグ：フルパワーモード適用
     if (typeof applyDebugFullPower === 'function') applyDebugFullPower();
 
+    // ★スタートボーナス（通常モードのみ、6種類から選択）
+    if (!state.mode.hardcore) {
+      showStartBonus();
+    }
+
   }
+
+// ★スタートボーナス選択（宝箱と同じ6種類選択）
+function showStartBonus() {
+  state.paused = true;
+  
+  const modal = document.createElement('div');
+  modal.id = 'startBonusModal';
+  modal.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); display: flex; align-items: center;
+    justify-content: center; z-index: 10000;
+  `;
+  
+  const container = document.createElement('div');
+  container.style.cssText = `
+    background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+    border: 3px solid #fbbf24; border-radius: 16px; padding: 20px;
+    max-width: 600px; width: 90%; text-align: center;
+  `;
+  
+  const title = document.createElement('h2');
+  title.textContent = '🎁 スタートボーナス';
+  title.style.cssText = 'color: #fbbf24; margin: 0 0 8px 0; font-size: 24px;';
+  container.appendChild(title);
+  
+  const subtitle = document.createElement('p');
+  subtitle.textContent = '能力を1つ選んでスタート！';
+  subtitle.style.cssText = 'color: #94a3b8; margin: 0 0 16px 0; font-size: 14px;';
+  container.appendChild(subtitle);
+  
+  // 宝箱と同じロジックで6つ選ぶ
+  const pool = ALL_UPGRADES.filter(u => u.can());
+  const shuffled = pool.sort(() => Math.random() - 0.5);
+  const choices = shuffled.slice(0, 6);
+  
+  const grid = document.createElement('div');
+  grid.style.cssText = `
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  `;
+  
+  choices.forEach((upg, i) => {
+    const btn = document.createElement('button');
+    btn.style.cssText = `
+      background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      border: 2px solid #475569; border-radius: 12px; padding: 12px 8px;
+      color: #fff; cursor: pointer; transition: all 0.2s;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    `;
+    btn.innerHTML = `
+      <span style="font-size: 12px; font-weight: bold; color: #60a5fa;">${upg.name}</span>
+      <span style="font-size: 10px; color: #94a3b8; line-height: 1.3;">${typeof upg.desc === 'function' ? upg.desc() : upg.desc}</span>
+    `;
+    
+    btn.onmouseenter = () => {
+      btn.style.borderColor = '#fbbf24';
+      btn.style.transform = 'scale(1.03)';
+    };
+    btn.onmouseleave = () => {
+      btn.style.borderColor = '#475569';
+      btn.style.transform = 'scale(1)';
+    };
+    
+    btn.onclick = () => {
+      upg.apply();
+      modal.remove();
+      state.paused = false;
+      // トースト表示
+      showStartToast(`🎁 ${upg.name} を獲得！`);
+    };
+    
+    grid.appendChild(btn);
+  });
+  
+  container.appendChild(grid);
+  modal.appendChild(container);
+  document.body.appendChild(modal);
+}
 
 function hoistPcTimerToBody(){
   const el = document.getElementById('pcTimer');
@@ -5356,7 +5514,8 @@ const U = {
       ghost: '周囲の霊体が3方向に射撃。',
       poison: '毒の沼を生成。継続ダメージ＋敵を鈍足化。',
       nova: '周囲の敵にスタンとダメージ。強化で範囲拡大。',
-      rubber: 'ランダム方向に跳弾。壁で反射。'
+      rubber: 'ランダム方向に跳弾。壁で反射。',
+      laser: '敵を貫通するレーザービーム。レベルアップで威力アップ。'
     };
     
     return {
@@ -5381,7 +5540,8 @@ const U = {
       ghost: '霊体の数が増加。Lv3で3体。',
       poison: '毒沼の範囲と持続時間が延長。鈍足効果UP。',
       nova: '範囲が大きく拡大。スタン時間延長。',
-      rubber: '跳弾の数が増加。'
+      rubber: '跳弾の数が増加。',
+      laser: '威力と太さが大幅アップ。'
     };
     
     return {
@@ -5406,7 +5566,8 @@ const U = {
       ghost: '霊体が6体に増加＋射撃速度アップ！',
       poison: '毒沼が3枚同時展開！広範囲を鈍足地帯に。',
       nova: '常時オーラで継続ダメージ！',
-      rubber: '跳弾8発＋反射回数25回！'
+      rubber: '跳弾8発＋反射回数25回！',
+      laser: '高威力の極太レーザー！'
     };
     
     return {
