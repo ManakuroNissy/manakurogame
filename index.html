@@ -3948,6 +3948,23 @@ function showStartBonus() {
   });
   
   container.appendChild(grid);
+  
+  // パスボタン
+  const passBtn = document.createElement('button');
+  passBtn.textContent = '⏭ パス';
+  passBtn.style.cssText = `
+    margin-top: 12px; background: #64748b; color: #fff; border: none;
+    padding: 10px 20px; border-radius: 8px; font-size: 14px;
+    font-weight: bold; cursor: pointer; opacity: 0.8;
+  `;
+  passBtn.onmouseenter = () => { passBtn.style.opacity = '1'; };
+  passBtn.onmouseleave = () => { passBtn.style.opacity = '0.8'; };
+  passBtn.onclick = () => {
+    modal.remove();
+    state.paused = false;
+  };
+  container.appendChild(passBtn);
+  
   modal.appendChild(container);
   document.body.appendChild(modal);
 }
