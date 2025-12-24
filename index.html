@@ -3692,8 +3692,8 @@ function showStartBonus() {
   // 武器追加のみをフィルタ（blaster以外の新規武器）
   const weaponKeys = ['shotgun', 'orbit', 'lightning', 'nova', 'rock', 'homing', 'ghost', 'poison', 'blade', 'rubber', 'laser'];
   const weaponAdds = ALL_UPGRADES.filter(u => {
-    // weaponAdd系のみ（name に "獲得" が含まれ、can() が true）
-    return weaponKeys.some(key => u.name === state.weapons[key]?.name + ' 獲得') && u.can();
+    // weaponAdd系のみ（id が "add:" で始まり、can() が true）
+    return u.id && u.id.startsWith('add:') && weaponKeys.includes(u.id.replace('add:', '')) && u.can();
   });
   
   // シャッフルして6つ選ぶ
