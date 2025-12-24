@@ -4377,8 +4377,9 @@ function spawnEnemy(){
     });
   } else if (roll < spinnerProb + dasherProb + sniperProb) {
     // スナイパー（狙撃三角）
-    // ★同時に最大3体まで（8分以降は5体）
-    const sniperLimit = state.timeSec >= 480 ? 5 : 3;
+    // ★通常は最大3体まで（8分以降は5体）、ハードコアは5体（8分以降は7体）
+    const baseLimit = state.timeSec >= 480 ? 5 : 3;
+    const sniperLimit = state.mode.hardcore ? baseLimit + 2 : baseLimit;
     const existingSnipers = state.enemies.filter(en => en.type === 'sniper').length;
     if (existingSnipers >= sniperLimit) return;
     
@@ -4642,7 +4643,7 @@ function spawnMidBoss(){
 
   let hp = 420 + state.difficulty*120;
   if (state.timeSec>=360) hp *= 1.6;
-  if (state.mode.hardcore) hp *= 1.5;
+  if (state.mode.hardcore) hp *= 1.5; // ★ハードコアはHP1.5倍
 
   const e = {
     x,y, size: state.currentStage === 'stage2' ? 55 : 48,
@@ -4673,7 +4674,7 @@ function spawnBigBoss(){
 
   let hp = 1000 + state.difficulty*240;
   if (state.timeSec>=360) hp *= 1.6;
-  if (state.mode.hardcore) hp *= 1.3;
+  if (state.mode.hardcore) hp *= 1.5; // ★ハードコアはHP1.5倍（1.3→1.5）
 
   const e = {
     x,y, size: state.currentStage === 'stage2' ? 80 : 70,
@@ -5555,6 +5556,9 @@ const R = baseR * (1.35 + 0.12*(lv-1)) * (this.awaken ? 1.20 : 1.00);
           addEffect('nova',{x:state.player.x,y:state.player.y,r:R, life:.25});
           let hits = 0;
           for(const e of state.enemies){
+            // ★スピナーの高速回転中は無効
+            if(e.type === 'spinner' && e.spinPhase === 'highspin') continue;
+            
             const d = Math.hypot(e.x-state.player.x, e.y-state.player.y);
             if(d<R) { e.hp -= dmg; e.hitFlash = Math.max(e.hitFlash, 0.12);
             hits++;
@@ -5584,6 +5588,9 @@ const R = baseR * (1.35 + 0.12*(lv-1)) * (this.awaken ? 1.20 : 1.00);
 
   let auraHits = 0;
 for (const e of state.enemies){
+  // ★スピナーの高速回転中は無効
+  if(e.type === 'spinner' && e.spinPhase === 'highspin') continue;
+  
   const d = Math.hypot(e.x - state.player.x, e.y - state.player.y);
   if (d < R2){
     e.hp -= (27 + 4.5*(this.lv-1)) * state.mods.dmgMul * dt; // ★18→27、3→4.5（1.5倍）
@@ -5842,6 +5849,9 @@ function strikeLightning(hit, mult){
 function dealSlashDamage(cx, cy, ang, span, inner, outer, dmg){
   for(let j=state.enemies.length-1;j>=0;j--){
     const e = state.enemies[j];
+    // ★スピナーの高速回転中は無効
+    if(e.type === 'spinner' && e.spinPhase === 'highspin') continue;
+    
     const dx = e.x - cx, dy = e.y - cy;
     const d  = Math.hypot(dx,dy);
     if (d < inner || d > outer) continue;
@@ -6787,6 +6797,9 @@ if (state.weapons.orbit.lv > 0){
   const dps = (w.dpsBase + 4*(w.lv-1)) * (w.awaken? 1.4:1.0) * state.mods.dmgMul;
 
   for (const e of state.enemies){
+    // ★スピナーの高速回転中は無効
+    if(e.type === 'spinner' && e.spinPhase === 'highspin') continue;
+    
     for (let k=0; k<count; k++){
       const ang = w.ang + k*(Math.PI*2/count);
       const ox = state.player.x + Math.cos(ang)*ring;
@@ -7265,10 +7278,11 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
               vx: Math.cos(angle + off) * 150,
               vy: Math.sin(angle + off) * 150,
               size: 12,
-              hp: 8,              // ★壊せるHP
-              maxHp: 8,
-              dmg: 8,             // プレイヤーへの接触ダメージ
+              hp: 16,              // ★HP2倍（8→16）
+              maxHp: 16,
+              dmg: 10,             // ★ダメージ10（8→10）
               type: 'miniTriangle',
+              noXpDrop: true,      // ★経験値ドロップなし
               bounces: 0,
               maxBounces: 3,
               rotation: angle + off,
@@ -7346,7 +7360,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
           // 消滅
           state.enemies.splice(state.enemies.indexOf(e), 1);
         } else {
-          // レーザーダメージ判定（4方向）
+          // レーザーダメージ判定（4方向）- 一撃30ダメージ
           for(let i = 0; i < 4; i++){
             const angle = e.rotation + (i * Math.PI / 2);
             const endX = e.x + Math.cos(angle) * e.laserLength;
@@ -7362,21 +7376,8 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             const distToLaser = Math.hypot(px - closestX, py - closestY);
             
             if(distToLaser < state.player.r + 8){
-              // 継続ダメージ
               if(state.player.iTime <= 0 && !state._debugInvincible){
-                const dmg = e.laserDamage * dt * state.mods.damageMul;
-                state.player.hp -= dmg;
-                
-                // ★強めのノックバック（レーザーから離れる方向）
-                const knockAngle = Math.atan2(py - e.y, px - e.x);
-                const knockPower = 400 * dt; // 強めのノックバック
-                state.player.x += Math.cos(knockAngle) * knockPower;
-                state.player.y += Math.sin(knockAngle) * knockPower;
-                
-                // 画面内に収める
-                const B = worldBounds();
-                state.player.x = clamp(state.player.x, B.minX + state.player.r, B.maxX - state.player.r);
-                state.player.y = clamp(state.player.y, B.minY + state.player.r, B.maxY - state.player.r);
+                state.player.hp -= 30 * state.mods.damageMul;
               }
             }
           }
@@ -7716,7 +7717,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             }
           }
           
-          // 壁反射レーザー（進行方向に3発放射状）
+          // 壁反射レーザー（進行方向に3発放射状）- ★スピード1.2倍
           if(e.laserCd <= 0){
             // プレイヤー方向を基準に±20度の範囲で3発
             const baseAng = ang; // プレイヤーへの角度
@@ -7725,34 +7726,43 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
               const offset = (i - 1) * spreadAngle; // -20°, 0°, +20°
               const laserAng = baseAng + offset;
               state.enemyBullets.push({
-                x:e.x, y:e.y, vx:Math.cos(laserAng)*400, vy:Math.sin(laserAng)*400,
+                x:e.x, y:e.y, vx:Math.cos(laserAng)*480, vy:Math.sin(laserAng)*480, // ★400→480（1.2倍）
                 r:5, dmg:15, life:8, type:'reflectLaser', bounces:0, maxBounces:8, rotation:laserAng
               });
             }
             e.laserCd = 2.5; // 2.5秒間隔
           }
           
-          // 突進攻撃（より頻繁に）
+          // 突進攻撃（ターゲット座標方式に変更）
           if(e.dashPhase === 'idle' && e.dashCd <= 0){
             e.dashPhase = 'warn';
             e.dashWarnTime = 0.8; // 短い予告
-            e.dashAngle = ang;
+            // ★ターゲット座標を記録
+            e.dashTargetX = state.player.x;
+            e.dashTargetY = state.player.y;
+            e.dashAngle = Math.atan2(e.dashTargetY - e.y, e.dashTargetX - e.x);
           }
           if(e.dashPhase === 'warn'){
             e.dashWarnTime -= dt;
             addEffect('dashWarn', { x:e.x, y:e.y, angle:e.dashAngle, length:600, life:dt*1.1 });
-            if(e.dashWarnTime <= 0){ e.dashPhase = 'dash'; e.dashDuration = 0.5; }
+            if(e.dashWarnTime <= 0){ e.dashPhase = 'dash'; }
           }
           if(e.dashPhase === 'dash'){
-            e.dashDuration -= dt;
-            e.x += Math.cos(e.dashAngle) * 1000 * dt; // より高速
-            e.y += Math.sin(e.dashAngle) * 1000 * dt;
+            // ★ターゲット座標に向かって突進
+            const dashSpeed = 1000;
+            e.x += Math.cos(e.dashAngle) * dashSpeed * dt;
+            e.y += Math.sin(e.dashAngle) * dashSpeed * dt;
+            
+            // ★ターゲット座標に到達したか確認
+            const distToTarget = Math.hypot(e.dashTargetX - e.x, e.dashTargetY - e.y);
+            
             const d = Math.hypot(state.player.x - e.x, state.player.y - e.y);
             if(d < state.player.r + e.size/2 && state.player.iTime <= 0 && !state._debugInvincible){
               state.player.hp -= 35;
               state.player.iTime = 0.8;
             }
-            if(e.dashDuration <= 0){ e.dashPhase = 'idle'; e.dashCd = 5.0; } // ★5秒間隔（程よい頻度）
+            // ★ターゲット座標に到達したら終了
+            if(distToTarget < 30){ e.dashPhase = 'idle'; e.dashCd = 5.0; }
           }
           
         // ステージ2のゴーストラスボス（新バージョン）
@@ -8590,20 +8600,23 @@ if (state.mode.hardcore) touchDmg *= 1.5; // 1.3 → 1.5に戻す
         }
       }
 // --- 毒フィールド（最大2枚までスタック） ---
-let top1 = 0, top2 = 0;  // 上位2つのDPS
-for (const ef of state.effects) {
-  if (ef.type !== 'poisonField') continue;
-  const dx = e.x - ef.x, dy = e.y - ef.y;
-  if (dx*dx + dy*dy <= ef.r * ef.r) {
-    const dps = ef.dps || 20;
-    if (dps > top1) { top2 = top1; top1 = dps; }
-    else if (dps > top2) { top2 = dps; }
+// ★スピナーの高速回転中は無効
+if(!(e.type === 'spinner' && e.spinPhase === 'highspin')){
+  let top1 = 0, top2 = 0;  // 上位2つのDPS
+  for (const ef of state.effects) {
+    if (ef.type !== 'poisonField') continue;
+    const dx = e.x - ef.x, dy = e.y - ef.y;
+    if (dx*dx + dy*dy <= ef.r * ef.r) {
+      const dps = ef.dps || 20;
+      if (dps > top1) { top2 = top1; top1 = dps; }
+      else if (dps > top2) { top2 = dps; }
+    }
   }
-}
-const poisonDps = top1 + top2; // ← 最大2枚ぶん
-if (poisonDps > 0) {
-  e.hp -= poisonDps * dt;
-  e.hitFlash = Math.max(e.hitFlash, 0.06);
+  const poisonDps = top1 + top2; // ← 最大2枚ぶん
+  if (poisonDps > 0) {
+    e.hp -= poisonDps * dt;
+    e.hitFlash = Math.max(e.hitFlash, 0.06);
+  }
 }
       // 敵死亡処理
       if(e.hp <= 0) {
@@ -11110,7 +11123,10 @@ if (!e._counted) {
     state.items.push({ kind:'chest', x:pos.x, y:pos.y, r:14, t:0, picks:1 });
   } else {
     playKillSound('normal'); // 通常敵効果音
-    try { dropGem(e.x, e.y, 1); } catch(_){}
+    // ★noXpDropフラグがある場合は経験値をドロップしない
+    if (!e.noXpDrop) {
+      try { dropGem(e.x, e.y, 1); } catch(_){}
+    }
   }
 
   e.dead = true; e.hp = 0;
@@ -11315,7 +11331,7 @@ function spawnFinalBoss(){
   const hp0  = base * 10;
   // ★ステージ2はHP60%に（80%からさらに20%減）
   const hpMul = state.currentStage === 'stage2' ? 0.6 : 1.0;
-  const hp   = (state.mode.hardcore ? hp0 * 1.3 : hp0) * hpMul;
+  const hp   = (state.mode.hardcore ? hp0 * 1.5 : hp0) * hpMul; // ★ハードコアはHP1.5倍（1.3→1.5）
 
   const e = {
     x, y,
