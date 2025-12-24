@@ -3452,12 +3452,9 @@ function showPauseMenu() {
     box-shadow: 0 4px 12px rgba(100,116,139,0.3);
   `;
   retireBtn.onclick = () => {
-    // 確認ダイアログ
-    if (confirm('本当にリタイアしますか？\nゲームオーバーとして記録されます。')) {
-      modal.remove();
-      state.manualPaused = false;
-      triggerGameOver();
-    }
+    modal.remove();
+    state.manualPaused = false;
+    triggerGameOver();
   };
   buttonArea.appendChild(retireBtn);
   
