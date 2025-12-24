@@ -566,7 +566,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 1.8.4</span> - 
+    <span style="opacity:0.7;">Ver 1.8.5</span> - 
     <span style="opacity:0.6; font-size:0.8rem;">ラスボス演出強化</span>
   </div>
   
@@ -645,6 +645,22 @@ document.head.appendChild(link);
       </div>
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 1.8.5 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 1.8.5 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">⚔️ ブレード完全リニューアル</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>新エフェクト：主人公中心から半径が広がる斬撃</li>
+            <li>交互に逆向きの流れ＋放射線エフェクト</li>
+            <li>3セグメント描画で軽量化</li>
+            <li>連撃数変更：Lv1=2連撃 → Lv2=4連撃 → Lv3=6連撃 → 覚醒=12連撃</li>
+            <li>レベルごとに半径拡大：60px → 90px → 120px → 180px（覚醒）</li>
+            <li>CT 1.1秒固定（連撃が長くなる分、実質CTが短縮）</li>
+            <li>基礎ダメージ60（2連撃で合計120ダメージ）</li>
+          </ul>
+        </div>
         
         <!-- Ver 1.8.4 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(147,51,234,0.15); border-left:4px solid #9333ea; border-radius:8px;">
@@ -5358,22 +5374,16 @@ orbit:{
     
 blade:{
   short:'BD', name:'ブレード', lv:0, awaken:false, cd:0,
-  // 調整しやすい基礎値
-  short:'BD', name:'ブレード', lv:0, awaken:false, cd:0,
-  baseRate: 1.10,     // ← 発生は少し遅め（近接リスクのご褒美に）
-  baseDmg:  105,      // 70 → 105（1.5倍強化）
-  span:     Math.PI * 0.62, // 横に広い
-  inner:    10,             // 足元の当たり開始
-  outer:    130,            // 最大到達（基礎）
-  fxSpeed:  360,            // ← 見た目の前進速度UP（元:220）
-  reachLv:  22,             // ← Lvごとに“到達距離”を+18px
-
+  baseRate: 1.10,
+  baseDmg:  60,
+  span:     Math.PI * 0.5,  // 少し狭く
+  baseR:    50,
+  expandLv: [60, 90, 120, 180],  // 半径拡大UP
 
 update(dt){
   if (this.lv <= 0) return;
   this.cd -= dt; if (this.cd > 0) return;
 
-  // 向き：移動方向（停止中のみ最近敵へフォールバック）
   let dir = state.input.lastDir;
   if (Math.hypot(dir.x, dir.y) < 0.1){
     const t = nearestEnemy(state.player.x, state.player.y);
@@ -5386,55 +5396,56 @@ update(dt){
   }
   const baseAng = Math.atan2(dir.y, dir.x);
 
-  // 連撃数：Lvで +1（最大3）、覚醒で6
-  const count = this.awaken ? 6 : Math.min(1 + (this.lv - 1), 3);
+  const count = this.awaken ? 12 : Math.min(this.lv * 2, 6);
+  
+  const lvIdx = this.awaken ? 3 : Math.min(this.lv - 1, 2);
+  const expandDist = this.expandLv[lvIdx];
+  const scale = this.awaken ? 1.3 : 1.0;
+  const angleOffset = this.awaken ? 0.015 : [0.04, 0.03, 0.025][lvIdx];  // 角度ずれさらに縮小
+  const interval = this.awaken ? 0.06 : [0.20, 0.15, 0.10][lvIdx];  // 間隔調整
+  
+  const dmgBase = this.baseDmg * (1 + 0.25 * (this.lv - 1));
+  const dmg = Math.round(dmgBase * state.mods.dmgMul);
 
-  // ★ レベルに応じた“到達距離”ボーナスとダメージ補正
-  const reachBonus = (this.reachLv || 0) * Math.max(0, this.lv - 1);
-  const innerR = this.inner * state.mods.sizeMul;
-  const outerR = (this.outer + reachBonus) * state.mods.sizeMul;
-  const dmgBase = this.baseDmg * (1 + 0.25 * (this.lv - 1)); // ← 成長率UP（元:0.18）
-
-  const comboDelay = 0.1; // 1発ごとの時差
   for (let i = 0; i < count; i++){
-    const off = (i - (count - 1)/2) * 0.10; // 角度ずらし
+    const reverse = i % 2 === 1;
+    const angOff = angleOffset * (i - (count - 1) / 2);
+    
     schedule(() => {
-      const a = baseAng + off;
-
-      // ---- ダメージ（当たり判定）：到達距離をLvで伸ばす ----
-      const dmg = Math.round(dmgBase * state.mods.dmgMul);
+      const a = baseAng + angOff;
+      
+      const maxR = (this.baseR + expandDist) * scale * state.mods.sizeMul;
       dealSlashDamage(
         state.player.x, state.player.y,
         a, this.span,
-        innerR, outerR,
+        0, maxR,
         dmg
       );
 
-      // ---- 見た目（前へ出ながらフェード）：速度もLvで少し増加 ----
-      const v = (this.fxSpeed || 360) + 100 * Math.max(0, this.lv - 1); // ← 前進距離をレベルで増やす
-      addEffect('slash', {
+      addEffect('slashNew', {
         x: state.player.x, y: state.player.y,
         ang: a, span: this.span,
-        inner: this.inner * state.mods.sizeMul,
-        outer: (this.outer + reachBonus) * state.mods.sizeMul,
-        life: 0.16 + 0.01 * Math.max(0, this.lv - 1), // 少し長く見せる
-        life0: 0.16 + 0.01 * Math.max(0, this.lv - 1),
-        vx: Math.cos(a) * v,
-        vy: Math.sin(a) * v,
-        comboIdx: i
+        baseR: this.baseR * scale * state.mods.sizeMul,
+        expandDist: expandDist * scale * state.mods.sizeMul,
+        reverse: reverse,
+        life: 0.25,
+        life0: 0.25
       });
-    }, i * comboDelay);
+      
+      addEffect('slashRay', {
+        x: state.player.x, y: state.player.y,
+        ang: a,
+        length: 60 * scale * state.mods.sizeMul,
+        life: 0.15,
+        life0: 0.15
+      });
+    }, i * interval);
   }
 
-playShotSound('blade'); // 効果音
+  playShotSound('blade');
 
-// 次発までのクールダウン（Lvで短縮、覚醒でさらに少し短縮）
-const lv = Math.max(1, this.lv);
-// 係数 0.85 = 1LvごとにCTを15%短縮（幾何減衰）。下限は 0.35s
-const ct = Math.max(0.35, this.baseRate * Math.pow(0.85, lv - 1) * (this.awaken ? 0.90 : 1.0));
-this.cd = ct * state.mods.rateMul;
-
-
+  // CT固定1.1秒（連撃が長くなる分、実質CTが短くなる）
+  this.cd = 1.1 * state.mods.rateMul;
 }
 
 },
@@ -10322,13 +10333,13 @@ for (const ef of state.effects) {
   const boost = ef.comboIdx ? Math.min(0.12 * ef.comboIdx, 0.24) : 0; // 2段目=+0.12
   const W = Wbase * (1.0 + boost);          // 少しだけ太く
   const span = ef.span;
-  const LAYERS = 6;
+  const LAYERS = 2; // 軽量化
 
   // --- 外側ブルーグロー ---
   ctx.globalAlpha = (0.45 + boost*0.6) * a;  // 2段目は少し明るく
   ctx.strokeStyle = '#4cc3ff';
   ctx.lineCap     = 'round';
-  ctx.shadowBlur  = 18;
+  ctx.shadowBlur  = 10; // 軽量化
   ctx.shadowColor = '#9fd3ff';
   for (let i = 0; i < LAYERS; i++) {
     const t = i / (LAYERS - 1);
@@ -10350,6 +10361,77 @@ for (const ef of state.effects) {
   ctx.stroke();
 
   ctx.restore();
+// ★新ブレードエフェクト（slashNew）- 3セグメント、shadowなし
+} else if (ef.type === 'slashNew') {
+  const progress = 1 - ef.life / ef.life0;
+  ctx.save();
+  ctx.translate(ef.x, ef.y);
+  ctx.rotate(ef.ang);
+  
+  const R = ef.baseR + ef.expandDist * progress;
+  const span = ef.span;
+  
+  const trailLength = 0.4;
+  const headPos = progress * 1.3;
+  const tailPos = Math.max(0, headPos - trailLength);
+  
+  if (headPos <= 1.3) {
+    let startT = tailPos;
+    let endT = Math.min(headPos, 1);
+    
+    if (ef.reverse) {
+      startT = 1 - Math.min(headPos, 1);
+      endT = 1 - tailPos;
+    }
+    
+    const segments = 3;
+    for (let i = 0; i < segments; i++) {
+      const t = startT + (endT - startT) * i / (segments - 1);
+      const nextT = startT + (endT - startT) * (i + 1) / (segments - 1);
+      
+      const angle = -span / 2 + span * t;
+      const nextAngle = -span / 2 + span * Math.min(nextT, 1);
+      
+      const centerDist = Math.abs(t - 0.5) * 2;
+      const thickness = 14 * (1 - centerDist * 0.6);
+      
+      let posInTrail = ef.reverse ? (1 - i / (segments - 1)) : (i / (segments - 1));
+      const brightness = 0.4 + 0.6 * posInTrail;
+      
+      ctx.globalAlpha = brightness * (1 - progress * 0.3);
+      ctx.strokeStyle = '#6cf';
+      ctx.lineWidth = thickness;
+      ctx.lineCap = 'butt';
+      ctx.beginPath();
+      ctx.arc(0, 0, R, angle, nextAngle);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+// ★放射線エフェクト（slashRay）
+} else if (ef.type === 'slashRay') {
+  const progress = 1 - ef.life / ef.life0;
+  if (progress < 0.6) {
+    ctx.save();
+    const alpha = (0.6 - progress) / 0.6 * 0.5;
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = '#6cf';
+    ctx.lineWidth = 1.5;
+    
+    const spread = 0.3;
+    const angles = [ef.ang - spread, ef.ang, ef.ang + spread];
+    const len = ef.length * Math.min(1, progress * 3);
+    
+    for (const ang of angles) {
+      ctx.beginPath();
+      ctx.moveTo(ef.x, ef.y);
+      ctx.lineTo(ef.x + Math.cos(ang) * len, ef.y + Math.sin(ang) * len);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
 } else if (ef.type === 'poisonField') {
   ctx.save();
   const a = Math.max(0, ef.life / (ef.life0 || 5));
