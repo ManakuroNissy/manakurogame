@@ -5832,10 +5832,11 @@ if (state.gameover){
   return;
 }
 
-// 合成 pause を先に反映（手動ポーズ／レベルアップ／宝箱）
+// 合成 pause を先に反映（手動ポーズ／レベルアップ／宝箱／スタートボーナス）
 const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
 const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
-state.paused = !!(lvlOpen || chestOpen || state.manualPaused);
+const startBonusOpen = !!document.getElementById('startBonusModal');
+state.paused = !!(lvlOpen || chestOpen || startBonusOpen || state.manualPaused);
 
 // オーバーレイ/手動いずれかで停止していたらここで抜ける
 if (state.paused){
