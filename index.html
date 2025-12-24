@@ -566,8 +566,8 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 1.8.0</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;">スタートボーナス＆ランキング改善</span>
+    <span style="opacity:0.7;">Ver 1.8.1</span> - 
+    <span style="opacity:0.6; font-size:0.8rem;">バグ修正＆スタートボーナス改善</span>
   </div>
   
   <button id="startBtn" class="btn">スタート</button>
@@ -645,6 +645,23 @@ document.head.appendChild(link);
       </div>
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 1.8.1 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.15); border-left:4px solid #10b981; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#10b981; font-size:1.3rem;">Ver 1.8.1 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/24</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#a7f3d0;">🔊 音声バグ修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>起動時に常に音声ONで開始するように修正</li>
+            <li>以前のミュート設定が残ってBGMが鳴らない問題を解消</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#a7f3d0;">🎁 スタートボーナス改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>武器のみ6種類から選択する仕様に変更</li>
+            <li>選択中にゲームが動いてしまうバグを修正</li>
+          </ul>
+        </div>
         
         <!-- Ver 1.8.0 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(251,191,36,0.15); border-left:4px solid #fbbf24; border-radius:8px;">
@@ -3643,7 +3660,7 @@ state.records = JSON.parse(localStorage.getItem('vs_records') || '[]'); // [{sco
 
   }
 
-// ★スタートボーナス選択（宝箱と同じ6種類選択）
+// ★スタートボーナス選択（武器6種類から選択）
 function showStartBonus() {
   state.paused = true;
   
@@ -3668,13 +3685,19 @@ function showStartBonus() {
   container.appendChild(title);
   
   const subtitle = document.createElement('p');
-  subtitle.textContent = '能力を1つ選んでスタート！';
+  subtitle.textContent = '武器を1つ選んでスタート！';
   subtitle.style.cssText = 'color: #94a3b8; margin: 0 0 16px 0; font-size: 14px;';
   container.appendChild(subtitle);
   
-  // 宝箱と同じロジックで6つ選ぶ
-  const pool = ALL_UPGRADES.filter(u => u.can());
-  const shuffled = pool.sort(() => Math.random() - 0.5);
+  // 武器追加のみをフィルタ（blaster以外の新規武器）
+  const weaponKeys = ['shotgun', 'orbit', 'lightning', 'nova', 'rock', 'homing', 'ghost', 'poison', 'blade', 'rubber', 'laser'];
+  const weaponAdds = ALL_UPGRADES.filter(u => {
+    // weaponAdd系のみ（name に "獲得" が含まれ、can() が true）
+    return weaponKeys.some(key => u.name === state.weapons[key]?.name + ' 獲得') && u.can();
+  });
+  
+  // シャッフルして6つ選ぶ
+  const shuffled = weaponAdds.sort(() => Math.random() - 0.5);
   const choices = shuffled.slice(0, 6);
   
   const grid = document.createElement('div');
@@ -3710,7 +3733,7 @@ function showStartBonus() {
       modal.remove();
       state.paused = false;
       // トースト表示
-      showStartToast(`🎁 ${upg.name} を獲得！`);
+      showStartToast(`🎁 ${upg.name}！`);
     };
     
     grid.appendChild(btn);
