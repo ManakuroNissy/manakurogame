@@ -1048,11 +1048,11 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
   document.addEventListener('keydown', unlock, {passive:true});
 })();
 
-// 起動時に保存されたミュート状態を反映
+// 起動時は常に音声ONで開始（ユーザーが明示的にミュートにした場合のみ消音）
 (()=>{
-  const m = loadSavedMute();
-  if (typeof window.setAudioMuted === 'function') setAudioMuted(m);
-  else window.AUDIO_MUTED = !!m;
+  // localStorageの保存値は無視し、常にミュート解除で開始
+  if (typeof window.setAudioMuted === 'function') setAudioMuted(false);
+  else window.AUDIO_MUTED = false;
 })();
 
 
@@ -1858,11 +1858,11 @@ function refreshSoundIcon(){
 }
 
 
-// 保存されたミュート状態を起動時に反映
+// 起動時は常に音声ONで開始（2箇所目も同様に修正）
 (function(){
-  const m = loadSavedMute();
-  if (typeof window.setAudioMuted === 'function') setAudioMuted(m);
-  else window.AUDIO_MUTED = !!m;
+  // localStorageの保存値は無視し、常にミュート解除で開始
+  if (typeof window.setAudioMuted === 'function') setAudioMuted(false);
+  else window.AUDIO_MUTED = false;
 })();
 
   new ResizeObserver(resize).observe(cv); resize();
