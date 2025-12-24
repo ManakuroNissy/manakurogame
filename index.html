@@ -8,6 +8,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest">
 
+<!-- グローバルPromise拒否ハンドラ（エラー表示を抑制） -->
+<script>
+window.addEventListener('unhandledrejection', function(event) {
+  event.preventDefault();
+});
+</script>
+
 <title>10min's Survivor</title>
 <style>
   html,body { margin:0; height:100%; background:#0e0e0f; color:#eee; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif; }
@@ -448,8 +455,108 @@ padding-left:  var(--hud-lpad);
 }
 
 </style>
+
+<!-- PWA manifest（外部ファイルがなくてもインラインで定義） -->
+<script>
+// インラインでmanifestを生成
+const manifestData = {
+  name: "10min's Survivor",
+  short_name: "10min's",
+  description: "10分間生き延びろ！サバイバーライクゲーム",
+  start_url: "./",
+  display: "fullscreen",
+  orientation: "landscape",
+  background_color: "#0f172a",
+  theme_color: "#3b82f6",
+  icons: [{
+    src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230f172a' width='100' height='100' rx='20'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='%2360a5fa'>10</text></svg>",
+    sizes: "any",
+    type: "image/svg+xml"
+  }]
+};
+const manifestBlob = new Blob([JSON.stringify(manifestData)], {type: 'application/json'});
+const manifestURL = URL.createObjectURL(manifestBlob);
+const link = document.createElement('link');
+link.rel = 'manifest';
+link.href = manifestURL;
+document.head.appendChild(link);
+</script>
+
 </head>
 <body>
+
+<!-- PWAインストールバナー（スマホブラウザのみ表示） -->
+<div id="pwaInstallBanner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color:white; padding:12px 16px; z-index:10002; box-shadow:0 -2px 10px rgba(0,0,0,0.3);">
+  <div style="display:flex; align-items:center; justify-content:space-between; max-width:600px; margin:0 auto;">
+    <div style="flex:1;">
+      <div style="font-weight:bold; font-size:14px;">📱 ホーム画面に追加</div>
+      <div style="font-size:12px; opacity:0.9;">フルスクリーンで快適プレイ！</div>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button id="pwaInstallBtn" style="background:#fff; color:#1e40af; border:none; padding:8px 16px; border-radius:6px; font-weight:bold; font-size:13px; cursor:pointer;">追加する</button>
+      <button id="pwaCloseBtn" style="background:transparent; color:white; border:1px solid rgba(255,255,255,0.5); padding:8px 12px; border-radius:6px; font-size:13px; cursor:pointer;">✕</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // PWAとして起動済みか判定
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+    || window.navigator.standalone === true;
+  
+  // スマホ判定
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  
+  // PCまたはPWA起動済みなら表示しない
+  if (!isMobile || isStandalone) return;
+  
+  // 一度閉じたら24時間は表示しない
+  const dismissed = localStorage.getItem('pwa_banner_dismissed');
+  if (dismissed && Date.now() - parseInt(dismissed) < 24 * 60 * 60 * 1000) return;
+  
+  const banner = document.getElementById('pwaInstallBanner');
+  const installBtn = document.getElementById('pwaInstallBtn');
+  const closeBtn = document.getElementById('pwaCloseBtn');
+  
+  // 少し遅れて表示
+  setTimeout(() => {
+    banner.style.display = 'block';
+  }, 2000);
+  
+  // beforeinstallprompt イベント（Android Chrome）
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+  
+  installBtn.onclick = async () => {
+    if (deferredPrompt) {
+      // Android: ネイティブインストールプロンプト
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      if (result.outcome === 'accepted') {
+        banner.style.display = 'none';
+      }
+      deferredPrompt = null;
+    } else {
+      // iOS: 手動手順を表示
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      if (isIOS) {
+        alert('① 画面下の共有ボタン（□↑）をタップ\n② 「ホーム画面に追加」を選択\n③ 右上の「追加」をタップ');
+      } else {
+        alert('ブラウザのメニューから「ホーム画面に追加」を選択してください');
+      }
+    }
+  };
+  
+  closeBtn.onclick = () => {
+    banner.style.display = 'none';
+    localStorage.setItem('pwa_banner_dismissed', Date.now().toString());
+  };
+})();
+</script>
 
 <div id="wrap">
 <div id="start" style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:.5rem;">
@@ -2909,8 +3016,6 @@ function applyDebugFullPower() {
   state.player.speed = 280;
   state.mods.dmgMul = 2.0;
   state.mods.rateMul = 0.5;
-  
-  console.log('DEBUG: Full Power Applied!');
 }
 
 
@@ -2950,28 +3055,44 @@ if (titleBtn) {
 clearEl.style.display = 'none';
   
 async function tryFullscreenAndLandscape(){
-  try{
-    // タッチ端末判定
-    const isTouch =
-      (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
-      ('ontouchstart' in window) ||
-      (navigator.maxTouchPoints > 0);
+  // WebViewやiOSでは全てスキップ（エラー防止）
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isWebView = /(WebView|wv|FBAN|FBAV|Instagram|Claude)/i.test(navigator.userAgent);
+  if (isIOS || isWebView) return Promise.resolve();
+  
+  return new Promise((resolve) => {
+    try {
+      // タッチ端末判定
+      const isTouch =
+        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+        ('ontouchstart' in window) ||
+        (navigator.maxTouchPoints > 0);
 
-    // PCや file: ではフルスクリーンを行わない（ESCガイド抑止）
-    if (!isTouch || location.protocol === 'file:') return;
+      // PCや file: ではスキップ
+      if (!isTouch || location.protocol === 'file:') {
+        resolve();
+        return;
+      }
 
-    // フルスクリーン（可能な端末）
-    const el = document.documentElement;
-    if (el.requestFullscreen) await el.requestFullscreen();
-
-    // 画面回転ロック（Fullscreen後は成功率UP）
-    if (screen.orientation && screen.orientation.lock) {
-      try { await screen.orientation.lock('landscape'); } catch(e){}
+      // フルスクリーン（Android Chrome等）
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        el.requestFullscreen()
+          .then(() => {
+            // 画面回転ロック
+            if (screen.orientation && typeof screen.orientation.lock === 'function') {
+              screen.orientation.lock('landscape').catch(() => {});
+            }
+          })
+          .catch(() => {})
+          .finally(() => resolve());
+      } else {
+        resolve();
+      }
+    } catch (e) {
+      resolve();
     }
-  } catch (e) {
-    console.error('LOOP_CRASH', e);
-    if (e && e.stack) console.error('STACKTRACE ↓↓↓\n' + e.stack);
-  }
+  });
 }
 
 
@@ -3194,8 +3315,7 @@ function updateEndScore(kind){ // kind: 'over' | 'clear'
 function showStageSelect() {
   const modal = document.getElementById('stageSelectModal');
   const cardsContainer = document.getElementById('stageCards');
-  const saveData = window.loadSaveData();  // ★グローバル関数を使用
-  console.log('[DEBUG] showStageSelect - saveData:', JSON.stringify(saveData));
+  const saveData = window.loadSaveData();
   const isHardcore = window._pendingHardcore || false;
   
   cardsContainer.innerHTML = '';
@@ -3253,7 +3373,11 @@ function showStageSelect() {
 async function startStage(stageId, hardcore) {
   try {
     ensureEndScoreNodes();
-    await tryFullscreenAndLandscape();
+    
+    // フルスクリーン試行（失敗しても続行）
+    try {
+      await tryFullscreenAndLandscape();
+    } catch(e) { /* 無視 */ }
     
     // ★BGM再生処理を追加
     try {
@@ -3263,11 +3387,9 @@ async function startStage(stageId, hardcore) {
         bgm.load('main.mp3');
         bgm.setVolume(0.09);
         const p = bgm.play();
-        if (p && p.catch) p.catch(e => console.warn('BGM play blocked:', e));
+        if (p && p.catch) p.catch(() => {});
       }
-    } catch(e) {
-      console.warn('BGM start error:', e);
-    }
+    } catch(e) { /* 無視 */ }
     
     state.currentStage = stageId;
     state.mode.hardcore = hardcore;
@@ -3326,9 +3448,9 @@ state.player.y = WORLD.h * 0.5;
 state.player.aimAngle = 0; // 初期向き（右向き相当）
 
     state.player.r = 14;
-    state.player.speed = 170;
-    state.player.maxHp = 110;
-    state.player.hp = 110;
+    state.player.speed = 185;      // ★170→185（少し速く）
+    state.player.maxHp = 120;      // ★110→120（少し硬く）
+    state.player.hp = 120;
     state.player.xp = 0;
     state.player.level = 1;
     state.player.iTime = 0;
@@ -4490,7 +4612,7 @@ const STAGES = {
 
   // === Weapons with Awaken ===
   const weapons = {
-blaster:{ short:'BL', name:'ブラスター', lv:1, awaken:false, cd:0, baseRate:.48, baseDmg:12, baseSpeed:360, range:500, rangeAwaken:660,
+blaster:{ short:'BL', name:'ブラスター', lv:1, awaken:false, cd:0, baseRate:.48, baseDmg:15, baseSpeed:360, range:500, rangeAwaken:660,  // ★baseDmg 12→15
       update(dt){
         if(this.lv<=0) return;
         this.cd-=dt; if(this.cd>0) return;
@@ -9958,34 +10080,29 @@ function pointLineDist(px, py, x1, y1, x2, y2) {
 
 
 function showGameClear(){
-  console.log('[DEBUG] showGameClear called, currentStage:', state.currentStage);
   const el = document.getElementById('gameclear');
   const hardcoreBtn = document.getElementById('hardcoreBtn');
   if (el){
-    console.log('[DEBUG] gameclear element found');
     // クリアで解放
     state.mode.unlockedHardcore = true;
     
     // ステージ1クリアでステージ2解放
     if (state.currentStage === 'stage1') {
-      console.log('[DEBUG] Stage 1 cleared, unlocking Stage 2');
-      const saveData = window.loadSaveData();  // ★グローバル関数を使用
+      const saveData = window.loadSaveData();
       if (!saveData.stageProgress) saveData.stageProgress = {};
       if (!saveData.stageProgress.stage1) saveData.stageProgress.stage1 = {};
       saveData.stageProgress.stage1.cleared = true;
-      window.saveSaveData(saveData);  // ★グローバル関数を使用
+      window.saveSaveData(saveData);
       STAGES.stage2.unlocked = true;
-      console.log('[DEBUG] Stage 2 unlocked, saveData:', saveData);
     }
     
     // ステージ2クリアも記録
     if (state.currentStage === 'stage2') {
-      console.log('[DEBUG] Stage 2 cleared');
-      const saveData = window.loadSaveData();  // ★グローバル関数を使用
+      const saveData = window.loadSaveData();
       if (!saveData.stageProgress) saveData.stageProgress = {};
       if (!saveData.stageProgress.stage2) saveData.stageProgress.stage2 = {};
       saveData.stageProgress.stage2.cleared = true;
-      window.saveSaveData(saveData);  // ★グローバル関数を使用
+      window.saveSaveData(saveData);
     }
 
     el.style.display = 'flex';
