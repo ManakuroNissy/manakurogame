@@ -592,7 +592,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 1.9.0</span> - 
+    <span style="opacity:0.7;">Ver 2.0.0</span> - 
     <span style="opacity:0.6; font-size:0.8rem;">難易度モード追加</span>
   </div>
   
@@ -606,12 +606,42 @@ document.head.appendChild(link);
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button id="rankingBtn" class="btn" style="background:#fbbf24;">🏆 RANKING</button>
     <button id="achievementsBtn" class="btn" style="background:#ec4899;">🎖️ 実績</button>
-    <button id="updateLogBtn" class="btn" style="background:#4b5563;">📝 更新履歴</button>
+    <button id="customizeBtn" class="btn" style="background:#06b6d4;">🎨 カスタマイズ</button>
   </div>
-  <div style="margin-top:8px;">
+  <div style="display:flex;gap:8px;margin-top:8px;">
+    <button id="updateLogBtn" class="btn" style="background:#4b5563;">📝 更新履歴</button>
     <button id="settingsBtn" class="btn" style="background:#64748b;">⚙️ 設定</button>
   </div>
 </div>
+</div>
+
+<!-- カスタマイズモーダル -->
+<div id="customizeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
+  <div style="max-width:550px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h2 style="margin:0; color:#fff; font-size:1.5rem;">🎨 カスタマイズ</h2>
+      <button id="closeCustomize" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">✕ 閉じる</button>
+    </div>
+    
+    <div style="display:flex; gap:1.5rem; align-items:flex-start;">
+      <!-- プレビュー -->
+      <div style="flex-shrink:0; text-align:center;">
+        <canvas id="colorPreviewCanvas" width="100" height="100" style="width:100px; height:100px; position:static; background:#0f172a; border-radius:12px;"></canvas>
+        <div id="colorPreviewName" style="color:#fff; font-size:0.9rem; margin-top:0.5rem;">グリーン</div>
+      </div>
+      
+      <!-- カラー選択 -->
+      <div style="flex:1;">
+        <h3 style="color:#06b6d4; font-size:1rem; margin:0 0 0.5rem 0;">🎮 主人公カラー</h3>
+        <p style="color:#94a3b8; font-size:0.85rem; margin:0 0 1rem 0;">実績を5つ解除するごとに新しいカラーをゲット！</p>
+        <div id="colorGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;"></div>
+      </div>
+    </div>
+    
+    <div id="colorProgress" style="margin-top:1rem; padding:1rem; background:#334155; border-radius:8px;">
+      <div style="color:#94a3b8; font-size:0.9rem;">次のカラー解放まで：<span id="colorProgressText">0/5</span></div>
+    </div>
+  </div>
 </div>
 
 <!-- 設定モーダル -->
@@ -714,9 +744,9 @@ document.head.appendChild(link);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
-        <!-- Ver 1.9.0 -->
+        <!-- Ver 2.0.0 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 1.9.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/25</span></h3>
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/25</span></h3>
           
           <h4 style="margin:0.5rem 0; color:#86efac;">🎮 新機能：難易度モード</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
@@ -742,6 +772,20 @@ document.head.appendChild(link);
             <li>難易度別クリア実績を追加（ステージ1×4難易度 + ステージ2×4難易度 = 計8種）</li>
             <li>「ハードコアミニマリスト」実績を削除（難易度が無関係な縛り系実績と分離）</li>
             <li>武器縛り系の実績は難易度に関係なく達成可能に</li>
+            <li>新実績追加：リロールマスター、宝箱ハンター、ボス殲滅者、生存者</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎨 新機能：カスタマイズ</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>主人公のカラーを変更可能に（タイトル画面「カスタマイズ」）</li>
+            <li>実績を5つ解除するごとに新カラーをゲット（全12色）</li>
+            <li>全実績コンプリートでレインボーカラー解放！</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">⚖️ バランス調整（ステージ2）</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ダッシャーの速度を85%に低下（640→544）</li>
+            <li>Hardcoreのスナイパー上限を緩和（5/7→4/6）</li>
           </ul>
         </div>
         
@@ -2406,7 +2450,7 @@ function visibleBounds(radius = 0){
     boss_50: { id: 'boss_50', name: 'ボス殲滅者', desc: '累計ボス50体撃破', icon: '🏰🏰', tier: 'gold' },
     survivor: { id: 'survivor', name: '生存者', desc: 'HP30%以下でクリア', icon: '💔', tier: 'gold' },
     
-    blaster_speed: { id: 'blaster_speed', name: 'ブラスター速攻', desc: 'Blasterのみ + 11分以内', icon: '🚀🔫', tier: 'platinum' },
+    blaster_speed: { id: 'blaster_speed', name: '得点マスター', desc: '35万点以上でクリア', icon: '💯', tier: 'platinum' },
     all_weapon_master: { id: 'all_weapon_master', name: '真の武器マスター', desc: '8種類以上の覚醒クリア達成', icon: '🏆', tier: 'platinum' },
 
     // 縛りプレイ
@@ -2628,7 +2672,7 @@ function visibleBounds(radius = 0){
     if (allAwakenCleared) unlockAchievement('all_weapon_master');
     
     // 複合実績
-    if (weaponCount === 1 && clearTime <= 660) {
+    if (state.score >= 350000) {
       unlockAchievement('blaster_speed');
     }
     
@@ -2757,6 +2801,240 @@ function visibleBounds(radius = 0){
     modal.innerHTML = html;
     document.body.appendChild(modal);
   }
+
+  // === カラーカスタマイズシステム ===
+  const PLAYER_COLORS = {
+    green:   { name: 'グリーン',   color: '#4ade80', unlockAt: 0 },  // デフォルト
+    cyan:    { name: '水色',       color: '#22d3ee', unlockAt: 5 },
+    pink:    { name: 'ピンク',     color: '#f472b6', unlockAt: 10 },
+    red:     { name: 'レッド',     color: '#ef4444', unlockAt: 15 },
+    yellow:  { name: 'イエロー',   color: '#facc15', unlockAt: 20 },
+    orange:  { name: 'オレンジ',   color: '#fb923c', unlockAt: 25 },
+    purple:  { name: 'パープル',   color: '#a78bfa', unlockAt: 30 },
+    navy:    { name: '紺色',       color: '#3b82f6', unlockAt: 35 },
+    bronze:  { name: 'ブロンズ',   color: '#cd7f32', unlockAt: 40, shiny: true },
+    silver:  { name: 'シルバー',   color: '#c0c0c0', unlockAt: 45, shiny: true },
+    gold:    { name: 'ゴールド',   color: '#ffd700', unlockAt: 50, shiny: true },
+    rainbow: { name: 'レインボー', color: 'rainbow', unlockAt: -1 }  // コンプリートボーナス
+  };
+
+  const COLOR_SAVE_KEY = 'playerColorSetting';
+
+  function getUnlockedColors() {
+    const achievements = loadAchievements();
+    const unlockedCount = Object.keys(achievements).length;
+    const totalAchievements = Object.keys(ACHIEVEMENTS).length;
+    const allComplete = unlockedCount >= totalAchievements;
+    
+    const unlocked = [];
+    for (const [key, data] of Object.entries(PLAYER_COLORS)) {
+      if (key === 'rainbow') {
+        if (allComplete) unlocked.push(key);
+      } else if (unlockedCount >= data.unlockAt) {
+        unlocked.push(key);
+      }
+    }
+    return unlocked;
+  }
+
+  function getSelectedColor() {
+    try {
+      const saved = localStorage.getItem(COLOR_SAVE_KEY);
+      if (saved && getUnlockedColors().includes(saved)) {
+        return saved;
+      }
+    } catch (e) {}
+    return 'green';
+  }
+
+  function setSelectedColor(colorKey) {
+    try {
+      localStorage.setItem(COLOR_SAVE_KEY, colorKey);
+    } catch (e) {}
+  }
+
+  function getPlayerColorValue() {
+    const key = getSelectedColor();
+    if (key === 'rainbow') return 'rainbow';
+    return PLAYER_COLORS[key]?.color || '#4ade80';
+  }
+
+  function isPlayerColorShiny() {
+    const key = getSelectedColor();
+    return PLAYER_COLORS[key]?.shiny || false;
+  }
+
+  // プレビューキャンバス描画
+  function drawColorPreview(colorKey) {
+    const canvas = document.getElementById('colorPreviewCanvas');
+    const nameEl = document.getElementById('colorPreviewName');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const cx = 50, cy = 50, r = 28;
+    
+    ctx.clearRect(0, 0, 100, 100);
+    
+    // 背景
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, 100, 100);
+    
+    const data = PLAYER_COLORS[colorKey];
+    if (!data) return;
+    
+    // 主人公の体
+    if (colorKey === 'rainbow') {
+      const hue = (Date.now() / 20) % 360;
+      ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+    } else if (data.shiny) {
+      // 金属光沢グラデーション（中央が白く光る）
+      const grad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+      if (colorKey === 'bronze') {
+        grad.addColorStop(0, '#4a3520');    // 暗い
+        grad.addColorStop(0.35, '#8b5a2b'); // やや暗い
+        grad.addColorStop(0.5, '#fff8ee');  // 中央：白っぽい光
+        grad.addColorStop(0.65, '#8b5a2b'); // やや暗い
+        grad.addColorStop(1, '#4a3520');    // 暗い
+      } else if (colorKey === 'silver') {
+        grad.addColorStop(0, '#505050');    // 暗い
+        grad.addColorStop(0.35, '#888888'); // やや暗い
+        grad.addColorStop(0.5, '#ffffff');  // 中央：白
+        grad.addColorStop(0.65, '#888888'); // やや暗い
+        grad.addColorStop(1, '#505050');    // 暗い
+      } else if (colorKey === 'gold') {
+        grad.addColorStop(0, '#5c4a00');    // 暗い
+        grad.addColorStop(0.35, '#9a7b00'); // やや暗い
+        grad.addColorStop(0.5, '#fffde8');  // 中央：白っぽい光
+        grad.addColorStop(0.65, '#9a7b00'); // やや暗い
+        grad.addColorStop(1, '#5c4a00');    // 暗い
+      }
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = data.color;
+    }
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 白い縁取り
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // 目
+    ctx.fillStyle = '#0b0b0b';
+    ctx.beginPath();
+    ctx.arc(cx - 8, cy - 5, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 8, cy - 5, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 名前更新
+    if (nameEl) nameEl.textContent = data.name;
+  }
+
+  // プレビューアニメーション（レインボー用）
+  let previewAnimationId = null;
+  function startPreviewAnimation(colorKey) {
+    if (previewAnimationId) cancelAnimationFrame(previewAnimationId);
+    
+    function animate() {
+      drawColorPreview(colorKey);
+      if (colorKey === 'rainbow') {
+        previewAnimationId = requestAnimationFrame(animate);
+      }
+    }
+    animate();
+  }
+
+  function showCustomizeModal() {
+    const modal = document.getElementById('customizeModal');
+    const colorGrid = document.getElementById('colorGrid');
+    const progressText = document.getElementById('colorProgressText');
+    
+    const achievements = loadAchievements();
+    const unlockedCount = Object.keys(achievements).length;
+    const totalAchievements = Object.keys(ACHIEVEMENTS).length;
+    const unlockedColors = getUnlockedColors();
+    const selectedColor = getSelectedColor();
+    
+    // 次のカラー解放までの進捗
+    const nextUnlock = [5,10,15,20,25,30,35,40,45,50].find(n => unlockedCount < n) || 'MAX';
+    if (nextUnlock === 'MAX') {
+      progressText.textContent = unlockedCount >= totalAchievements ? '🌈 全カラー解放済み！' : `${unlockedCount}/${totalAchievements}`;
+    } else {
+      progressText.textContent = `${unlockedCount}/${nextUnlock}（あと${nextUnlock - unlockedCount}つ）`;
+    }
+    
+    // カラーグリッド生成
+    colorGrid.innerHTML = '';
+    for (const [key, data] of Object.entries(PLAYER_COLORS)) {
+      const isUnlocked = unlockedColors.includes(key);
+      const isSelected = key === selectedColor;
+      
+      const btn = document.createElement('button');
+      btn.style.cssText = `
+        width:100%; aspect-ratio:1; border-radius:12px; border:3px solid ${isSelected ? '#fff' : 'transparent'};
+        cursor:${isUnlocked ? 'pointer' : 'not-allowed'}; position:relative; transition:all 0.2s;
+        ${key === 'rainbow' 
+          ? 'background:linear-gradient(135deg,#ef4444,#f97316,#facc15,#4ade80,#22d3ee,#8b5cf6,#ec4899);' 
+          : `background:${data.color};`}
+        opacity:${isUnlocked ? '1' : '0.3'};
+      `;
+      
+      if (!isUnlocked) {
+        btn.innerHTML = `<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.5rem;">🔒</span>`;
+        btn.title = key === 'rainbow' ? '全実績コンプリートで解放' : `実績${data.unlockAt}個で解放`;
+      } else {
+        btn.title = data.name;
+        if (isSelected) {
+          btn.innerHTML = `<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.5rem;">✓</span>`;
+        }
+      }
+      
+      if (isUnlocked) {
+        btn.onclick = () => {
+          setSelectedColor(key);
+          showCustomizeModal(); // 再描画
+        };
+        btn.onmouseenter = () => {
+          btn.style.transform = 'scale(1.05)';
+          startPreviewAnimation(key); // ホバーでプレビュー
+        };
+        btn.onmouseleave = () => {
+          btn.style.transform = 'scale(1)';
+          startPreviewAnimation(selectedColor); // 戻す
+        };
+      }
+      
+      // ラベル
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'text-align:center;';
+      wrapper.appendChild(btn);
+      const label = document.createElement('div');
+      label.style.cssText = `font-size:0.75rem; color:${isUnlocked ? '#fff' : '#666'}; margin-top:4px;`;
+      label.textContent = data.name;
+      wrapper.appendChild(label);
+      
+      colorGrid.appendChild(wrapper);
+    }
+    
+    // プレビュー初期化
+    startPreviewAnimation(selectedColor);
+    
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+  }
+
+  // グローバルに公開
+  window.getPlayerColorValue = getPlayerColorValue;
+  window.isPlayerColorShiny = isPlayerColorShiny;
+  window.getSelectedColor = getSelectedColor;
+  window.showCustomizeModal = showCustomizeModal;
 
   // === ゲームセーブデータ（ステージ進行状況） ===
   window.SAVE_DATA_KEY = '10min-survivor-save-v1';
@@ -3374,6 +3652,18 @@ const scoreVal = document.getElementById('scoreVal');
         STAGES.stage2.unlocked = true;
         showStartToast('🔓 STAGE 2 UNLOCKED!');
         debugBuffer = '';
+      } else if (debugBuffer.endsWith('allcolor')) {
+        // 全カラー解放（実績55個分を強制解除）
+        const achievements = loadAchievements();
+        const allIds = Object.keys(ACHIEVEMENTS);
+        for (let i = 0; i < Math.min(55, allIds.length); i++) {
+          if (!achievements[allIds[i]]) {
+            achievements[allIds[i]] = { unlockedAt: Date.now() };
+          }
+        }
+        saveAchievements(achievements);
+        showStartToast('🌈 ALL COLORS UNLOCKED!');
+        debugBuffer = '';
       }
     }
   }, {passive:true});
@@ -3526,6 +3816,22 @@ if (!window.__START_BOUND) {
   if (achievementsBtn) {
     achievementsBtn.onclick = () => {
       showAchievementsModal();
+    };
+  }
+  
+  // カスタマイズボタン
+  const customizeBtn = document.getElementById('customizeBtn');
+  if (customizeBtn) {
+    customizeBtn.onclick = () => {
+      showCustomizeModal();
+    };
+  }
+  
+  // カスタマイズモーダル閉じる
+  const closeCustomize = document.getElementById('closeCustomize');
+  if (closeCustomize) {
+    closeCustomize.onclick = () => {
+      document.getElementById('customizeModal').style.display = 'none';
     };
   }
   
@@ -4827,15 +5133,15 @@ function spawnEnemy(){
       dashDir: { x: 0, y: 0 }, // ダッシュ方向
       targetX: 0,             // ターゲット座標
       targetY: 0,
-      dashSpeed: 640,         // ダッシュ速度（800の80%に調整）
+      dashSpeed: 544,         // ダッシュ速度（640の85%に調整）
       rotation: 0,            // 向き（先端の向き）
       hitFlash: 0, kbx: 0, kby: 0
     });
   } else if (roll < spinnerProb + dasherProb + sniperProb) {
     // スナイパー（狙撃三角）
-    // ★通常は最大3体まで（8分以降は5体）、ハードコアは5体（8分以降は7体）
+    // ★通常は最大3体まで（8分以降は5体）、ハードコアは4体（8分以降は6体）
     const baseLimit = state.timeSec >= 480 ? 5 : 3;
-    const sniperLimit = state.mode.hardcore ? baseLimit + 2 : baseLimit;
+    const sniperLimit = state.mode.hardcore ? baseLimit + 1 : baseLimit;
     const existingSnipers = state.enemies.filter(en => en.type === 'sniper').length;
     if (existingSnipers >= sniperLimit) return;
     
@@ -9826,12 +10132,49 @@ if (state.player.iTime > 0 && ((state.t * 20 | 0) % 2 === 0)) {
 if (state.player && state.player.visible === false) {
   // 何も描かない
 } else {
-ctx.fillStyle = '#2ecc71';
-ctx.beginPath(); ctx.arc(state.player.x, state.player.y, state.player.r, 0, Math.PI*2); ctx.fill();
-ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+// プレイヤーカラー取得
+const playerColorVal = window.getPlayerColorValue ? window.getPlayerColorValue() : '#4ade80';
+const isShiny = window.isPlayerColorShiny ? window.isPlayerColorShiny() : false;
+const playerColorKey = window.getSelectedColor ? window.getSelectedColor() : 'green';
+const px = state.player.x, py = state.player.y, pr = state.player.r;
+
+if (playerColorVal === 'rainbow') {
+  // レインボー：時間で色相変化
+  const hue = (Date.now() / 20) % 360;
+  ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+} else if (isShiny) {
+  // 金属光沢グラデーション（中央が白く光る）
+  const grad = ctx.createLinearGradient(px - pr, py - pr, px + pr, py + pr);
+  if (playerColorKey === 'bronze') {
+    grad.addColorStop(0, '#4a3520');
+    grad.addColorStop(0.35, '#8b5a2b');
+    grad.addColorStop(0.5, '#fff8ee');
+    grad.addColorStop(0.65, '#8b5a2b');
+    grad.addColorStop(1, '#4a3520');
+  } else if (playerColorKey === 'silver') {
+    grad.addColorStop(0, '#505050');
+    grad.addColorStop(0.35, '#888888');
+    grad.addColorStop(0.5, '#ffffff');
+    grad.addColorStop(0.65, '#888888');
+    grad.addColorStop(1, '#505050');
+  } else if (playerColorKey === 'gold') {
+    grad.addColorStop(0, '#5c4a00');
+    grad.addColorStop(0.35, '#9a7b00');
+    grad.addColorStop(0.5, '#fffde8');
+    grad.addColorStop(0.65, '#9a7b00');
+    grad.addColorStop(1, '#5c4a00');
+  }
+  ctx.fillStyle = grad;
+} else {
+  ctx.fillStyle = playerColorVal;
+}
+ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.fill();
+
+ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff';
+ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.stroke();
 ctx.fillStyle = '#0b0b0b';
-ctx.beginPath(); ctx.arc(state.player.x-5, state.player.y-3, 2, 0, Math.PI*2); ctx.fill();
-ctx.beginPath(); ctx.arc(state.player.x+5, state.player.y-3, 2, 0, Math.PI*2); ctx.fill();
+ctx.beginPath(); ctx.arc(px-5, py-3, 2, 0, Math.PI*2); ctx.fill();
+ctx.beginPath(); ctx.arc(px+5, py-3, 2, 0, Math.PI*2); ctx.fill();
 
 ctx.globalAlpha = 1;  // ← ここまでが既存
 }
