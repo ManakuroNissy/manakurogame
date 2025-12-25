@@ -577,7 +577,44 @@ document.head.appendChild(link);
     <button id="achievementsBtn" class="btn" style="background:#8b5cf6;">🎖️ 実績</button>
     <button id="updateLogBtn" class="btn" style="background:#10b981;">📝 更新履歴</button>
   </div>
+  <div style="margin-top:8px;">
+    <button id="settingsBtn" class="btn" style="background:#64748b;">⚙️ 設定</button>
+  </div>
 </div>
+</div>
+
+<!-- 設定モーダル -->
+<div id="settingsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:20px; box-sizing:border-box;">
+  <div style="max-width:400px; margin:3rem auto; background:#1e293b; border-radius:16px; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+      <h2 style="margin:0; color:#fff; font-size:1.5rem;">⚙️ 設定</h2>
+      <button id="closeSettings" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">✕ 閉じる</button>
+    </div>
+    
+    <div style="margin-bottom:1.5rem;">
+      <h3 style="color:#f59e0b; font-size:1rem; margin:0 0 1rem 0;">🔊 音量設定</h3>
+      
+      <!-- BGM音量 -->
+      <div style="margin-bottom:1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span style="color:#94a3b8;">BGM</span>
+          <span id="settingsBgmValue" style="color:#fff; font-weight:bold;">25%</span>
+        </div>
+        <input type="range" id="settingsBgmVolume" min="0" max="100" value="25" style="width:100%; cursor:pointer;">
+      </div>
+      
+      <!-- 効果音音量 -->
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+          <span style="color:#94a3b8;">効果音</span>
+          <span id="settingsSfxValue" style="color:#fff; font-weight:bold;">90%</span>
+        </div>
+        <input type="range" id="settingsSfxVolume" min="0" max="100" value="90" style="width:100%; cursor:pointer;">
+      </div>
+    </div>
+    
+    <p style="color:#64748b; font-size:0.85rem; margin:0; text-align:center;">※ 設定はブラウザに保存されます</p>
+  </div>
 </div>
   
   <div id="gameover" style="display:none;">
@@ -1150,9 +1187,18 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
         bus.master.gain.value = window.AUDIO_MUTED ? 0.0001 : 1.0;
         bus.master.connect(AC.destination);
 
-        bus.bgm = AC.createGain();  bus.bgm.gain.value = 0.25; bus.bgm.connect(bus.master);
-        bus.sfx = AC.createGain();  bus.sfx.gain.value = 0.9;  bus.sfx.connect(bus.master);
-        bus.ui  = AC.createGain();  bus.ui.gain.value  = 0.8;  bus.ui.connect(bus.master);
+        // 保存された音量を読み込み（デフォルト: BGM 25%, SFX 90%）
+        let bgmVol = 0.25, sfxVol = 0.9;
+        try {
+          const savedBgm = localStorage.getItem('bgmVolume');
+          const savedSfx = localStorage.getItem('sfxVolume');
+          if (savedBgm !== null) bgmVol = savedBgm / 100;
+          if (savedSfx !== null) sfxVol = savedSfx / 100;
+        } catch(e){}
+
+        bus.bgm = AC.createGain();  bus.bgm.gain.value = bgmVol; bus.bgm.connect(bus.master);
+        bus.sfx = AC.createGain();  bus.sfx.gain.value = sfxVol;  bus.sfx.connect(bus.master);
+        bus.ui  = AC.createGain();  bus.ui.gain.value  = sfxVol * 0.9;  bus.ui.connect(bus.master);
       }
     }catch(e){ console.warn('Audio init failed', e); }
   }
@@ -3386,6 +3432,80 @@ if (!window.__START_BOUND) {
       if (modal) modal.style.display = 'block';
     };
   }
+  
+  // 設定ボタン
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) {
+    settingsBtn.onclick = () => {
+      const modal = document.getElementById('settingsModal');
+      if (modal) {
+        // 現在の音量を反映
+        const bgmVol = Math.round((window.bus?.bgm?.gain?.value || 0.25) * 100);
+        const sfxVol = Math.round((window.bus?.sfx?.gain?.value || 0.9) * 100);
+        
+        const bgmSlider = document.getElementById('settingsBgmVolume');
+        const sfxSlider = document.getElementById('settingsSfxVolume');
+        const bgmValue = document.getElementById('settingsBgmValue');
+        const sfxValue = document.getElementById('settingsSfxValue');
+        
+        if (bgmSlider) bgmSlider.value = bgmVol;
+        if (sfxSlider) sfxSlider.value = sfxVol;
+        if (bgmValue) bgmValue.textContent = bgmVol + '%';
+        if (sfxValue) sfxValue.textContent = sfxVol + '%';
+        
+        modal.style.display = 'block';
+      }
+    };
+  }
+  
+  // 設定モーダルの閉じるボタン
+  const closeSettings = document.getElementById('closeSettings');
+  if (closeSettings) {
+    closeSettings.onclick = () => {
+      const modal = document.getElementById('settingsModal');
+      if (modal) modal.style.display = 'none';
+    };
+  }
+  
+  // 設定モーダルの音量スライダー
+  const settingsBgmSlider = document.getElementById('settingsBgmVolume');
+  const settingsSfxSlider = document.getElementById('settingsSfxVolume');
+  
+  if (settingsBgmSlider) {
+    settingsBgmSlider.oninput = () => {
+      const val = settingsBgmSlider.value / 100;
+      if (window.bus?.bgm) bus.bgm.gain.value = val;
+      const bgmValue = document.getElementById('settingsBgmValue');
+      if (bgmValue) bgmValue.textContent = settingsBgmSlider.value + '%';
+      // localStorage に保存
+      try { localStorage.setItem('bgmVolume', settingsBgmSlider.value); } catch(e){}
+    };
+  }
+  
+  if (settingsSfxSlider) {
+    settingsSfxSlider.oninput = () => {
+      const val = settingsSfxSlider.value / 100;
+      if (window.bus?.sfx) bus.sfx.gain.value = val;
+      if (window.bus?.ui) bus.ui.gain.value = val * 0.9;
+      const sfxValue = document.getElementById('settingsSfxValue');
+      if (sfxValue) sfxValue.textContent = settingsSfxSlider.value + '%';
+      // localStorage に保存
+      try { localStorage.setItem('sfxVolume', settingsSfxSlider.value); } catch(e){}
+    };
+  }
+  
+  // 保存された音量を読み込み
+  try {
+    const savedBgm = localStorage.getItem('bgmVolume');
+    const savedSfx = localStorage.getItem('sfxVolume');
+    if (savedBgm !== null && window.bus?.bgm) {
+      bus.bgm.gain.value = savedBgm / 100;
+    }
+    if (savedSfx !== null && window.bus?.sfx) {
+      bus.sfx.gain.value = savedSfx / 100;
+      if (bus.ui) bus.ui.gain.value = (savedSfx / 100) * 0.9;
+    }
+  } catch(e){}
 }
 
 
@@ -3587,6 +3707,65 @@ function showPauseMenu() {
   abilitySection.appendChild(abilityGrid);
   container.appendChild(abilitySection);
   
+  // 音量調整セクション
+  const volumeSection = document.createElement('div');
+  volumeSection.style.cssText = 'margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px;';
+  
+  const volumeTitle = document.createElement('h3');
+  volumeTitle.textContent = '🔊 音量設定';
+  volumeTitle.style.cssText = 'color: #f59e0b; margin: 0 0 12px 0; font-size: 16px;';
+  volumeSection.appendChild(volumeTitle);
+  
+  // 現在の音量を取得（0-100）
+  const currentBgmVol = Math.round((window.bus?.bgm?.gain?.value || 0.25) * 100);
+  const currentSfxVol = Math.round((window.bus?.sfx?.gain?.value || 0.9) * 100);
+  
+  // BGM音量
+  const bgmRow = document.createElement('div');
+  bgmRow.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 10px;';
+  bgmRow.innerHTML = `
+    <span style="color: #94a3b8; font-size: 14px; width: 60px;">BGM</span>
+    <input type="range" id="bgmVolume" min="0" max="100" value="${currentBgmVol}" style="flex: 1; cursor: pointer;">
+    <span id="bgmVolValue" style="color: #fff; font-size: 14px; width: 40px; text-align: right;">${currentBgmVol}%</span>
+  `;
+  volumeSection.appendChild(bgmRow);
+  
+  // 効果音音量
+  const sfxRow = document.createElement('div');
+  sfxRow.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+  sfxRow.innerHTML = `
+    <span style="color: #94a3b8; font-size: 14px; width: 60px;">効果音</span>
+    <input type="range" id="sfxVolume" min="0" max="100" value="${currentSfxVol}" style="flex: 1; cursor: pointer;">
+    <span id="sfxVolValue" style="color: #fff; font-size: 14px; width: 40px; text-align: right;">${currentSfxVol}%</span>
+  `;
+  volumeSection.appendChild(sfxRow);
+  
+  container.appendChild(volumeSection);
+  
+  // 音量スライダーのイベント（後でセットアップ）
+  setTimeout(() => {
+    const bgmSlider = document.getElementById('bgmVolume');
+    const sfxSlider = document.getElementById('sfxVolume');
+    const bgmValue = document.getElementById('bgmVolValue');
+    const sfxValue = document.getElementById('sfxVolValue');
+    
+    if (bgmSlider) {
+      bgmSlider.oninput = () => {
+        const val = bgmSlider.value / 100;
+        if (window.bus?.bgm) bus.bgm.gain.value = val;
+        if (bgmValue) bgmValue.textContent = bgmSlider.value + '%';
+      };
+    }
+    if (sfxSlider) {
+      sfxSlider.oninput = () => {
+        const val = sfxSlider.value / 100;
+        if (window.bus?.sfx) bus.sfx.gain.value = val;
+        if (window.bus?.ui) bus.ui.gain.value = val * 0.9;
+        if (sfxValue) sfxValue.textContent = sfxSlider.value + '%';
+      };
+    }
+  }, 0);
+  
   // ボタンエリア
   const buttonArea = document.createElement('div');
   buttonArea.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
@@ -3667,6 +3846,8 @@ function closeAllModals() {
   if (stageModal) stageModal.style.display = 'none';
   const updateModal = document.getElementById('updateLogModal');
   if (updateModal) updateModal.style.display = 'none';
+  const settingsModal = document.getElementById('settingsModal');
+  if (settingsModal) settingsModal.style.display = 'none';
   
   // レベルアップ・宝箱画面も閉じる
   if (levelupEl) levelupEl.style.display = 'none';
@@ -7426,7 +7607,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
           // 消滅
           state.enemies.splice(state.enemies.indexOf(e), 1);
         } else {
-          // レーザーダメージ判定（4方向）- 一撃30ダメージ
+          // レーザーダメージ判定（4方向）- 一撃30ダメージ + ノックバック
           for(let i = 0; i < 4; i++){
             const angle = e.rotation + (i * Math.PI / 2);
             const endX = e.x + Math.cos(angle) * e.laserLength;
@@ -7444,6 +7625,13 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             if(distToLaser < state.player.r + 8){
               if(state.player.iTime <= 0 && !state._debugInvincible){
                 state.player.hp -= 30 * state.mods.damageMul;
+                state.player.iTime = 0.5; // 無敵時間
+                
+                // ★大きくノックバック（レーザーから弾き飛ばす）
+                const kbAngle = Math.atan2(py - closestY, px - closestX);
+                const kbPower = 400; // 強いノックバック
+                state.player.kbx = Math.cos(kbAngle) * kbPower;
+                state.player.kby = Math.sin(kbAngle) * kbPower;
               }
             }
           }
@@ -7517,10 +7705,12 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             
             // プレイヤーへのダメージ
             const distToExplosion = Math.hypot(state.player.x - e.x, state.player.y - e.y);
-            if (distToExplosion < e.explodeRadius && !state._debugInvincible) {
+            if (distToExplosion < e.explodeRadius && state.player.iTime <= 0 && !state._debugInvincible) {
               const dmg = e.explodeDamage * state.mods.damageMul;
               state.player.hp -= dmg;
+              state.player.iTime = 0.5; // ★無敵時間追加
               addEffect('text', { x: state.player.x, y: state.player.y - 20, life: 0.8, text: `-${Math.floor(dmg)}` });
+              addEffect('flash', { life: 0.05 });
               
               // ノックバック
               const kbAng = Math.atan2(state.player.y - e.y, state.player.x - e.x);
@@ -8478,10 +8668,11 @@ else if(e.phase === 'charge_boom'){
           
           // プレイヤーへのダメージ
           const distToPlayer = Math.hypot(e.x - state.player.x, e.y - state.player.y);
-          if(distToPlayer < R && !state._debugInvincible){
+          if(distToPlayer < R && state.player.iTime <= 0 && !state._debugInvincible){
             const finalDmg = Math.round(e.explodeDamage * state.mods.damageMul); // 耐久力による軽減
             state.player.hp -= finalDmg;
-            state.player.iTime = Math.max(state.player.iTime, 0.8);
+            state.player.iTime = 0.8; // ★無敵時間追加
+            addEffect('flash', { life: 0.05 });
           }
           
           // 近くの敵にもダメージ
