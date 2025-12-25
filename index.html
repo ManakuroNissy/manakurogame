@@ -3497,21 +3497,15 @@ if (!startBtn) {
   ];
   
   buttons.forEach(btn => {
-    if (!btn || !window.bgm) return;
+    if (!btn) return;
     
     btn.addEventListener('click', ()=>{
       try{
-        // AudioContext を確実に用意＆再開
+        // AudioContext を確実に用意＆再開（BGMはstartStageで再生）
         if (window.initAudioOnce) initAudioOnce();
         if (window.AC && AC.state === 'suspended') AC.resume();
-
-        // BGM を必ずロード→音量設定→再生
-        bgm.load('main.mp3');      // index.html と同じ階層のファイル名
-        bgm.setVolume(0.09);       // 初期音量（0.18の50%）
-        const p = bgm.play();
-        if (p && p.catch) p.catch(e=>console.warn('BGM play blocked:', e));
       }catch(e){
-        console.warn('BGM start error:', e);
+        console.warn('Audio init error:', e);
       }
     }, {once:true});
   });
@@ -3952,9 +3946,15 @@ if (!window.__START_BOUND) {
   if (settingsBgmSlider) {
     settingsBgmSlider.oninput = () => {
       const val = settingsBgmSlider.value / 100;
+      // bus.bgmのゲインを変更（タイトルBGMにも効く）
+      if (window.bus?.bgm) bus.bgm.gain.value = val;
       // BGMはbgm.setVolume()を使用（BG.gainを直接変更）
       if (window.bgm && typeof bgm.setVolume === 'function') {
         bgm.setVolume(val * 0.36); // 元のsetVolume(0.09)はスライダー25%相当なので、0.36を掛けて調整
+      }
+      // タイトルBGMも調整
+      if (window.titleBgm && typeof titleBgm.setVolume === 'function') {
+        titleBgm.setVolume(val * 0.6);
       }
       const bgmValue = document.getElementById('settingsBgmValue');
       if (bgmValue) bgmValue.textContent = settingsBgmSlider.value + '%';
@@ -3981,8 +3981,12 @@ if (!window.__START_BOUND) {
     const savedSfx = localStorage.getItem('sfxVolume');
     if (savedBgm !== null) {
       const val = savedBgm / 100;
+      if (window.bus?.bgm) bus.bgm.gain.value = val;
       if (window.bgm && typeof bgm.setVolume === 'function') {
         bgm.setVolume(val * 0.36);
+      }
+      if (window.titleBgm && typeof titleBgm.setVolume === 'function') {
+        titleBgm.setVolume(val * 0.6);
       }
     }
     if (savedSfx !== null && window.bus?.sfx) {
@@ -4198,9 +4202,15 @@ function showPauseMenu() {
     if (bgmSlider) {
       bgmSlider.oninput = () => {
         const val = bgmSlider.value / 100;
-        // BGMはbgm.setVolume()を使用
+        // bus.bgmのゲインを変更（タイトルBGMにも効く）
+        if (window.bus?.bgm) bus.bgm.gain.value = val;
+        // メインBGMも調整
         if (window.bgm && typeof bgm.setVolume === 'function') {
           bgm.setVolume(val * 0.36);
+        }
+        // タイトルBGMも調整
+        if (window.titleBgm && typeof titleBgm.setVolume === 'function') {
+          titleBgm.setVolume(val * 0.6);
         }
         if (bgmValue) bgmValue.textContent = bgmSlider.value + '%';
         try { localStorage.setItem('bgmVolume', bgmSlider.value); } catch(e){}
