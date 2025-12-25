@@ -658,7 +658,10 @@ document.head.appendChild(link);
           
           <h4 style="margin:0.5rem 0; color:#93c5fd;">🐛 バグ修正</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ステージ1ラスボスの突進が必中だった問題を修正（座標ロックオン方式に）</li>
+            <li>ステージ1ラスボスの突進が必中だった問題を修正</li>
+            <li>タイトルに戻った後にステージ選択できなくなる問題を修正</li>
+            <li>タイトルに戻った後にランキングが表示される問題を修正</li>
+            <li>やり直す/もう一度遊ぶボタンの状態リセット漏れを修正</li>
           </ul>
         </div>
         
@@ -2546,7 +2549,13 @@ function visibleBounds(radius = 0){
 
     let html = `
       <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:100000;overflow-y:auto;" id="achievementsModal">
-        <div style="background:#1a1a2e;border:3px solid #8b5cf6;border-radius:12px;padding:30px;max-width:700px;width:90%;max-height:85vh;overflow-y:auto;">
+        <div style="background:#1a1a2e;border:3px solid #8b5cf6;border-radius:12px;padding:20px;max-width:700px;width:90%;max-height:85vh;display:flex;flex-direction:column;">
+          
+          <!-- ★CLOSEボタンを上部に配置 -->
+          <button onclick="document.getElementById('achievementsModal').remove();" style="width:100%;padding:10px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-bottom:12px;">
+            ✕ CLOSE
+          </button>
+          
           <h2 style="color:#8b5cf6;text-align:center;margin:0 0 10px 0;font-size:28px;">🎖️ 実績</h2>
           <div style="text-align:center;margin-bottom:20px;color:#fff;">
             <div style="font-size:18px;margin-bottom:8px;">${unlockedCount} / ${totalCount} 解除 (${progress}%)</div>
@@ -2554,7 +2563,7 @@ function visibleBounds(radius = 0){
               <div style="background:linear-gradient(90deg, #8b5cf6, #a78bfa);height:100%;width:${progress}%;transition:width 0.3s;"></div>
             </div>
           </div>
-          <div style="margin-bottom:20px;">
+          <div style="flex:1;overflow-y:auto;margin-bottom:10px;">
     `;
 
     for (const achievement of sortedAchievements) {
@@ -2585,9 +2594,6 @@ function visibleBounds(radius = 0){
 
     html += `
           </div>
-          <button onclick="document.getElementById('achievementsModal').remove();" style="width:100%;padding:12px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:18px;font-weight:bold;cursor:pointer;">
-            CLOSE
-          </button>
         </div>
       </div>
     `;
@@ -3233,6 +3239,10 @@ replayBtn.onclick = () => {
   const rankingModal = document.getElementById('rankingModal');
   if (rankingModal) rankingModal.remove();
   
+  // 状態をリセット
+  state.gameover = false;
+  state._pendingRanking = null;
+  
   state.mode.hardcore = false;      // ← ノーマルで再挑戦
   clearEl.style.display='none';
   resetGame();
@@ -3383,6 +3393,13 @@ retryBtn.onclick = () => {
   // ランキング消去
   const rankingModal = document.getElementById('rankingModal');
   if (rankingModal) rankingModal.remove();
+  
+  // ゲームオーバー画面を隠す
+  if (goEl) goEl.style.display = 'none';
+  
+  // 状態をリセット
+  state.gameover = false;
+  state._pendingRanking = null;
   
   ensureEndScoreNodes();
   resetGame(); 
@@ -3638,17 +3655,18 @@ function closeAllModals() {
     'pauseMenuModal',
     'startBonusModal', 
     'rankingModal',
-    'achievementsModal',
-    'updateLogModal'
+    'achievementsModal'
   ];
   // 動的生成モーダルは削除
   for (const id of modalIds) {
     const el = document.getElementById(id);
     if (el) el.remove();
   }
-  // ステージ選択モーダルは削除せず非表示に（HTMLに定義されているため）
+  // HTMLに定義されているモーダルは削除せず非表示に
   const stageModal = document.getElementById('stageSelectModal');
   if (stageModal) stageModal.style.display = 'none';
+  const updateModal = document.getElementById('updateLogModal');
+  if (updateModal) updateModal.style.display = 'none';
   
   // レベルアップ・宝箱画面も閉じる
   if (levelupEl) levelupEl.style.display = 'none';
@@ -11047,6 +11065,10 @@ function showGameClear(){
         // ランキング消去
         const rankingModal = document.getElementById('rankingModal');
         if (rankingModal) rankingModal.remove();
+        
+        // 状態をリセット
+        state.gameover = false;
+        state._pendingRanking = null;
         
         state.mode.hardcore = true;  // 次の周回をハードコアに
         el.style.display = 'none';
