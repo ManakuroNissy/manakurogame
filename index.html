@@ -1252,13 +1252,17 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
     try{
       if (window.initAudioOnce) initAudioOnce();
       if (window.AC && AC.state === 'suspended') AC.resume();
-      // タイトルBGMを再生（ゲーム開始前のみ）
-      if (window.titleBgm && !window.AUDIO_MUTED && (!window.state || !state.started)){
-        titleBgm.load('title.mp3');
-        titleBgm.setVolume(0.15);
-        titleBgm.play();
-      }
-    }catch(_){}
+      // 少し遅延してタイトルBGMを再生（bus初期化を待つ）
+      setTimeout(() => {
+        try {
+          if (window.titleBgm && !window.AUDIO_MUTED && (!window.state || !state.started)){
+            titleBgm.load('title.mp3');
+            titleBgm.setVolume(0.15);
+            titleBgm.play();
+          }
+        } catch(e) { console.warn('titleBgm delayed start error:', e); }
+      }, 100);
+    }catch(e){ console.warn('Audio unlock error:', e); }
     ['pointerdown','keydown','touchstart','visibilitychange']
       .forEach(ev=>window.removeEventListener(ev, unlock, true));
   }
@@ -1308,6 +1312,29 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
   }
   const TBG = { el:null, node:null, gain:null, vol:0.15, ready:false, connected:false };
 
+  function tryConnect(){
+    if (TBG.connected || !TBG.el) return;
+    const AC = window.AC;
+    if (!AC) return;
+    
+    try {
+      // まだMediaElementSourceが作られていなければ作成
+      if (!TBG.node) {
+        TBG.node = AC.createMediaElementSource(TBG.el);
+        TBG.gain = AC.createGain();
+      }
+      TBG.gain.gain.value = (window.AUDIO_MUTED ? 0 : TBG.vol);
+      
+      // bus.bgmに接続（BGM音量スライダーと連動）、なければbus.masterに
+      const dest = (window.bus && bus.bgm) ? bus.bgm : 
+                   (window.bus && bus.master) ? bus.master : AC.destination;
+      TBG.node.connect(TBG.gain).connect(dest);
+      TBG.connected = true;
+    } catch(e) { 
+      console.warn('titleBgm connect error:', e); 
+    }
+  }
+
   window.titleBgm = {
     load(url){
       const AC = AC_(); if (!AC) return;
@@ -1315,28 +1342,21 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
         TBG.el = new Audio();
         TBG.el.loop = true;
         TBG.el.preload = 'auto';
-      }
-      if (!TBG.connected && AC){
-        try {
-          TBG.node = AC.createMediaElementSource(TBG.el);
-          TBG.gain = AC.createGain();
-          TBG.gain.gain.value = (window.AUDIO_MUTED ? 0 : TBG.vol);
-          // bus.bgmに接続（BGM音量スライダーと連動）、なければbus.masterに
-          const dest = (window.bus && bus.bgm) ? bus.bgm : 
-                       (window.bus && bus.master) ? bus.master : AC.destination;
-          TBG.node.connect(TBG.gain).connect(dest);
-          TBG.connected = true;
-        } catch(e) { console.warn('titleBgm connect error:', e); }
+        TBG.el.addEventListener('canplay', ()=> TBG.ready = true, {once:true});
       }
       TBG.el.src = url;
-      TBG.el.addEventListener('canplay', ()=> TBG.ready = true, {once:true});
+      // 接続を試みる（bus.bgmがあれば）
+      tryConnect();
     },
     play(){ 
+      // 再生前に接続を再試行
+      tryConnect();
       try{ 
         if (TBG.el) {
-          TBG.el.play().catch(()=>{}); 
+          const p = TBG.el.play();
+          if (p && p.catch) p.catch(e => console.warn('titleBgm play error:', e)); 
         }
-      }catch(_){} 
+      }catch(e){ console.warn('titleBgm play exception:', e); } 
     },
     pause(){ TBG.el && TBG.el.pause(); },
     stop(){ if(TBG.el){ TBG.el.pause(); TBG.el.currentTime = 0; } },
