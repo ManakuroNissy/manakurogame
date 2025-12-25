@@ -206,6 +206,34 @@ body[data-hc]::after{
   z-index: 12005; /* ← ボタン(12010)より下。クリックを邪魔しない */
 }
 
+/* === Easy mode badge === */
+body[data-easy]::after{
+  content:"EASY";
+  position: fixed;
+  left: var(--hc-left);
+  right: auto;
+  top:   var(--hc-top);
+  background:#22c55e; color:#fff; font-weight:700;
+  padding:.2rem .5rem; border-radius:.4rem; opacity:.95;
+  box-shadow:0 4px 12px rgba(34,197,94,.35);
+  font-size:.85rem;
+  z-index: 12005;
+}
+
+/* === Hard mode badge === */
+body[data-hard]::after{
+  content:"HARD";
+  position: fixed;
+  left: var(--hc-left);
+  right: auto;
+  top:   var(--hc-top);
+  background:#f59e0b; color:#fff; font-weight:700;
+  padding:.2rem .5rem; border-radius:.4rem; opacity:.95;
+  box-shadow:0 4px 12px rgba(245,158,11,.35);
+  font-size:.85rem;
+  z-index: 12005;
+}
+
 /* 追加の条件バッジを出す場合は、その「さらに下」に固定 */
 .hc-badges{
   position: fixed;
@@ -564,16 +592,21 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 1.8.8</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;">バグ修正・音量設定</span>
+    <span style="opacity:0.7;">Ver 1.9.0</span> - 
+    <span style="opacity:0.6; font-size:0.8rem;">難易度モード追加</span>
   </div>
   
-  <button id="startBtn" class="btn">スタート</button>
-  <button id="startHardcoreBtn" class="btn" style="background:#8b5cf6;">🔥 ハードコアで挑戦</button>
+  <!-- 難易度選択ボタン -->
+  <div id="difficultySelect" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+    <button id="startEasyBtn" class="btn" style="background:#22c55e;">😊 Easy（かんたん）</button>
+    <button id="startBtn" class="btn">🎮 Normal（通常）</button>
+    <button id="startHardBtn" class="btn" style="background:#f59e0b;">💪 Hard（難しい）</button>
+    <button id="startHardcoreBtn" class="btn" style="background:#8b5cf6;">🔥 Hardcore（鬼）</button>
+  </div>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button id="rankingBtn" class="btn" style="background:#fbbf24;">🏆 RANKING</button>
-    <button id="achievementsBtn" class="btn" style="background:#8b5cf6;">🎖️ 実績</button>
-    <button id="updateLogBtn" class="btn" style="background:#10b981;">📝 更新履歴</button>
+    <button id="achievementsBtn" class="btn" style="background:#ec4899;">🎖️ 実績</button>
+    <button id="updateLogBtn" class="btn" style="background:#4b5563;">📝 更新履歴</button>
   </div>
   <div style="margin-top:8px;">
     <button id="settingsBtn" class="btn" style="background:#64748b;">⚙️ 設定</button>
@@ -680,6 +713,37 @@ document.head.appendChild(link);
       </div>
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 1.9.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 1.9.0 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎮 新機能：難易度モード</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li><strong>Easy（かんたん）</strong>：敵HP 60%、攻撃力 80%、敵の数 80%、中ボス・大ボスは同時に1体まで、スタートボーナス2つ選択可能</li>
+            <li><strong>Normal（通常）</strong>：従来のバランス、スタートボーナス1つ</li>
+            <li><strong>Hard（難しい）</strong>：敵HP 1.2倍、攻撃力 1.2倍、敵の数 1.2倍、スタートボーナスなし</li>
+            <li><strong>Hardcore（鬼）</strong>：敵HP 2倍、攻撃力 1.5倍、敵の数 1.5倍、スタートボーナスなし</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">⚙️ UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトル画面に4つの難易度選択ボタンを追加</li>
+            <li>プレイ中に難易度モードを表示（画面左上）</li>
+            <li>ランキングに難易度モードを表示（色分け）</li>
+            <li>SNSシェア時に難易度モードを表示</li>
+            <li>ステージ選択画面で難易度別クリア状況を表示（😊Easy/🎮Normal/💪Hard/🔥Hardcore）</li>
+            <li>クリアフラグをステージ＆難易度別に保存</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎖️ 実績の調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>実績ボタンの色をピンクに変更</li>
+            <li>難易度別クリア実績を追加（ステージ1×4難易度 + ステージ2×4難易度 = 計8種）</li>
+            <li>「ハードコアミニマリスト」実績を削除（難易度が無関係な縛り系実績と分離）</li>
+            <li>武器縛り系の実績は難易度に関係なく達成可能に</li>
+          </ul>
+        </div>
         
         <!-- Ver 1.8.8 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.15); border-left:4px solid #10b981; border-radius:8px;">
@@ -2178,7 +2242,9 @@ function visibleBounds(radius = 0){
       clearBonus: clearBonus,
       level: state.player.level,
       result: result, // 'clear' or 'gameover'
-      mode: state.mode.hardcore ? 'Hardcore' : 'Normal',
+      mode: state.mode.difficulty === 'hardcore' ? 'Hardcore' : 
+            state.mode.difficulty === 'hard' ? 'Hard' :
+            state.mode.difficulty === 'easy' ? 'Easy' : 'Normal',
       stage: state.currentStage || 'stage1',  // ★ステージ追加
       date: new Date().toISOString()
     };
@@ -2228,7 +2294,9 @@ function visibleBounds(radius = 0){
           
           const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
           const resultIcon = entry.result === 'clear' ? '✅' : '💀';
-          const modeColor = entry.mode === 'Hardcore' ? '#ef4444' : '#4a90e2';
+          const modeColor = entry.mode === 'Hardcore' ? '#8b5cf6' : 
+                           entry.mode === 'Hard' ? '#f59e0b' :
+                           entry.mode === 'Easy' ? '#22c55e' : '#4a90e2';
           const hasBo = entry.timeBonus && entry.timeBonus > 0;
           
           html += `
@@ -2288,8 +2356,7 @@ function visibleBounds(radius = 0){
     kill_500: { id: 'kill_500', name: '大虐殺者', desc: '敵500体撃破', icon: '💀💀', tier: 'silver' },
     boss_10: { id: 'boss_10', name: 'ボスハンター', desc: 'ボス10体撃破', icon: '🏰', tier: 'silver' },
     level_20: { id: 'level_20', name: '成長株', desc: 'レベル20到達', icon: '📊', tier: 'bronze' },
-    level_30: { id: 'level_30', name: '熟練者', desc: 'レベル30到達', icon: '🎓', tier: 'silver' },
-    hardcore_clear: { id: 'hardcore_clear', name: 'ハードコアサバイバー', desc: 'Hardcoreでクリア', icon: '🔥', tier: 'gold' },
+    level_25: { id: 'level_25', name: '熟練者', desc: 'レベル25到達', icon: '🎓', tier: 'silver' },
     speed_11min: { id: 'speed_11min', name: 'スピードランナー', desc: '11分以内にクリア', icon: '⚡', tier: 'gold' },
     hp_90_clear: { id: 'hp_90_clear', name: '完全勝利', desc: 'HP90%以上でクリア', icon: '💎', tier: 'silver' },
     chest_10: { id: 'chest_10', name: '宝箱マニア', desc: '宝箱10個開ける', icon: '📦', tier: 'bronze' },
@@ -2297,7 +2364,19 @@ function visibleBounds(radius = 0){
     play_10: { id: 'play_10', name: 'ベテラン', desc: '総プレイ10回', icon: '🎮', tier: 'silver' },
     total_kill_5000: { id: 'total_kill_5000', name: '生涯殺戮者', desc: '累計撃破5000体', icon: '💀', tier: 'gold' },
 
-    // 武器関連
+    // ★難易度別クリア実績（ステージ1）
+    s1_easy_clear: { id: 's1_easy_clear', name: 'ステージ1 Easy', desc: 'ステージ1をEasyでクリア', icon: '😊', tier: 'bronze' },
+    s1_normal_clear: { id: 's1_normal_clear', name: 'ステージ1 Normal', desc: 'ステージ1をNormalでクリア', icon: '🎮', tier: 'silver' },
+    s1_hard_clear: { id: 's1_hard_clear', name: 'ステージ1 Hard', desc: 'ステージ1をHardでクリア', icon: '💪', tier: 'gold' },
+    s1_hardcore_clear: { id: 's1_hardcore_clear', name: 'ステージ1 Hardcore', desc: 'ステージ1をHardcoreでクリア', icon: '🔥', tier: 'platinum' },
+    
+    // ★難易度別クリア実績（ステージ2）
+    s2_easy_clear: { id: 's2_easy_clear', name: 'ステージ2 Easy', desc: 'ステージ2をEasyでクリア', icon: '😊', tier: 'silver' },
+    s2_normal_clear: { id: 's2_normal_clear', name: 'ステージ2 Normal', desc: 'ステージ2をNormalでクリア', icon: '🎮', tier: 'gold' },
+    s2_hard_clear: { id: 's2_hard_clear', name: 'ステージ2 Hard', desc: 'ステージ2をHardでクリア', icon: '💪', tier: 'platinum' },
+    s2_hardcore_clear: { id: 's2_hardcore_clear', name: 'ステージ2 Hardcore', desc: 'ステージ2をHardcoreでクリア', icon: '🔥', tier: 'platinum' },
+
+    // 武器関連（難易度関係なし）
     pure_blaster: { id: 'pure_blaster', name: 'ピュアガンナー', desc: 'Blasterのみでクリア', icon: '🔫', tier: 'gold' },
     weapon_2: { id: 'weapon_2', name: '二刀流', desc: '武器2種類のみでクリア', icon: '⚔️🔫', tier: 'silver' },
     weapon_3: { id: 'weapon_3', name: '三銃士', desc: '武器3種類のみでクリア', icon: '🎯🔫⚔️', tier: 'silver' },
@@ -2313,8 +2392,6 @@ function visibleBounds(radius = 0){
     awaken_orbit: { id: 'awaken_orbit', name: 'オービットマスター', desc: 'Orbit覚醒でクリア', icon: '🔄', tier: 'silver' },
     awaken_poison: { id: 'awaken_poison', name: 'ポイズンマスター', desc: 'Poison覚醒でクリア', icon: '🧪', tier: 'silver' },
     awaken_laser: { id: 'awaken_laser', name: 'レーザーマスター', desc: 'Laser覚醒でクリア', icon: '📡', tier: 'silver' },
-    laser_only: { id: 'laser_only', name: 'ビームサバイバー', desc: 'Laserのみでクリア', icon: '📡', tier: 'gold' },
-    laser_no_damage: { id: 'laser_no_damage', name: 'レーザー無双', desc: 'Laser覚醒でノーダメージ30秒', icon: '📡🛡️', tier: 'silver' },
     all_awaken: { id: 'all_awaken', name: 'グランドマスター', desc: '累計で全11種類覚醒', icon: '🌟🌟🌟', tier: 'platinum' },
     
     // ステータスMAX系
@@ -2323,9 +2400,14 @@ function visibleBounds(radius = 0){
     max_rate_clear: { id: 'max_rate_clear', name: 'マシンガンナー', desc: '攻撃速度MAXでクリア', icon: '⚡', tier: 'gold' },
     max_speed_clear: { id: 'max_speed_clear', name: 'スピードデーモン', desc: '移動速度MAXでクリア', icon: '🏃', tier: 'gold' },
     
-    hardcore_2weapon: { id: 'hardcore_2weapon', name: 'ハードコアミニマリスト', desc: 'Hardcore + 武器2種類以下', icon: '🔥⚔️', tier: 'platinum' },
+    // 累計・セッション系
+    reroll_20: { id: 'reroll_20', name: 'リロールマスター', desc: '1プレイでリロール20回', icon: '🔄', tier: 'silver' },
+    chest_20: { id: 'chest_20', name: '宝箱ハンター', desc: '累計宝箱20個開ける', icon: '📦📦', tier: 'silver' },
+    boss_50: { id: 'boss_50', name: 'ボス殲滅者', desc: '累計ボス50体撃破', icon: '🏰🏰', tier: 'gold' },
+    survivor: { id: 'survivor', name: '生存者', desc: 'HP30%以下でクリア', icon: '💔', tier: 'gold' },
+    
     blaster_speed: { id: 'blaster_speed', name: 'ブラスター速攻', desc: 'Blasterのみ + 11分以内', icon: '🚀🔫', tier: 'platinum' },
-    all_weapon_master: { id: 'all_weapon_master', name: '真の武器マスター', desc: '全10種類の覚醒クリア達成', icon: '🏆', tier: 'platinum' },
+    all_weapon_master: { id: 'all_weapon_master', name: '真の武器マスター', desc: '8種類以上の覚醒クリア達成', icon: '🏆', tier: 'platinum' },
 
     // 縛りプレイ
     no_upgrade: { id: 'no_upgrade', name: '原始人', desc: 'アップグレードなしでクリア', icon: '🚫', tier: 'platinum' },
@@ -2334,8 +2416,6 @@ function visibleBounds(radius = 0){
 
     // 超難関
     speed_1030: { id: 'speed_1030', name: 'ソニック', desc: '10:30クリア', icon: '🚀', tier: 'platinum' },
-    no_damage: { id: 'no_damage', name: '無傷の勝利', desc: 'ノーダメージでクリア', icon: '🛡️', tier: 'platinum' },
-    hardcore_no_damage: { id: 'hardcore_no_damage', name: '真の実力者', desc: 'Hardcoreノーダメージクリア', icon: '🌟', tier: 'platinum' },
     play_100: { id: 'play_100', name: '廃人', desc: '総プレイ100回', icon: '🎮🎮', tier: 'platinum' },
     total_kill_10000: { id: 'total_kill_10000', name: '殲滅者', desc: '累計撃破10000体', icon: '💀💀💀', tier: 'platinum' },
     all_complete: { id: 'all_complete', name: '完璧主義者', desc: '全実績コンプリート', icon: '🔮', tier: 'platinum' }
@@ -2486,9 +2566,23 @@ function visibleBounds(radius = 0){
     // クリア実績
     unlockAchievement('first_clear');
     
-    // Hardcoreクリア
-    if (state.mode.hardcore) {
-      unlockAchievement('hardcore_clear');
+    // ★難易度＆ステージ別クリア実績
+    const difficulty = state.mode.difficulty || 'normal';
+    const stage = state.currentStage || 'stage1';
+    
+    // ステージ1
+    if (stage === 'stage1') {
+      if (difficulty === 'easy') unlockAchievement('s1_easy_clear');
+      if (difficulty === 'normal') unlockAchievement('s1_normal_clear');
+      if (difficulty === 'hard') unlockAchievement('s1_hard_clear');
+      if (difficulty === 'hardcore') unlockAchievement('s1_hardcore_clear');
+    }
+    // ステージ2
+    if (stage === 'stage2') {
+      if (difficulty === 'easy') unlockAchievement('s2_easy_clear');
+      if (difficulty === 'normal') unlockAchievement('s2_normal_clear');
+      if (difficulty === 'hard') unlockAchievement('s2_hard_clear');
+      if (difficulty === 'hardcore') unlockAchievement('s2_hardcore_clear');
     }
     
     // タイム実績
@@ -2499,10 +2593,7 @@ function visibleBounds(radius = 0){
     // HP実績
     const hpPercent = (state.player.hp / state.player.maxHp) * 100;
     if (hpPercent >= 90) unlockAchievement('hp_90_clear');
-    if (sessionTracking.damageTaken === 0) {
-      unlockAchievement('no_damage');
-      if (state.mode.hardcore) unlockAchievement('hardcore_no_damage');
-    }
+    if (hpPercent <= 30) unlockAchievement('survivor');
     
     // 武器数実績
     const weapons = state.weapons;
@@ -2510,10 +2601,6 @@ function visibleBounds(radius = 0){
     
     if (weaponCount === 1) {
       unlockAchievement('pure_blaster'); // Blasterのみ
-      // ★Laserのみでクリア
-      if (weapons.laser && weapons.laser.lv > 0) {
-        unlockAchievement('laser_only');
-      }
     }
     if (weaponCount === 2) unlockAchievement('weapon_2');
     if (weaponCount === 3) unlockAchievement('weapon_3');
@@ -2537,13 +2624,10 @@ function visibleBounds(radius = 0){
     if (awakenedCount >= 11) unlockAchievement('all_awaken'); // ★10→11（laser追加）
     
     // 全武器覚醒クリア実績
-    const allAwakenCleared = Object.keys(achievementProgress.awakenClearCount).length >= 11; // ★10→11
+    const allAwakenCleared = Object.keys(achievementProgress.awakenClearCount).length >= 8;
     if (allAwakenCleared) unlockAchievement('all_weapon_master');
     
     // 複合実績
-    if (state.mode.hardcore && weaponCount <= 2) {
-      unlockAchievement('hardcore_2weapon');
-    }
     if (weaponCount === 1 && clearTime <= 660) {
       unlockAchievement('blaster_speed');
     }
@@ -2595,13 +2679,14 @@ function visibleBounds(radius = 0){
     
     if (achievementProgress.totalKills >= 5000) unlockAchievement('total_kill_5000');
     if (achievementProgress.totalKills >= 10000) unlockAchievement('total_kill_10000');
+    if (achievementProgress.totalBossKills >= 50) unlockAchievement('boss_50');
     
     saveProgress();
   }
 
   function checkLevelAchievements() {
     if (state.player.level >= 20) unlockAchievement('level_20');
-    if (state.player.level >= 30) unlockAchievement('level_30');
+    if (state.player.level >= 25) unlockAchievement('level_25');
   }
 
   function showAchievementsModal() {
@@ -2993,6 +3078,22 @@ magnet:{ active:false, time:0, dur:1.0, speed:1800 },
   mode: {
     hardcore: false,          // 現在ハードコアか？
     unlockedHardcore: false,  // ハードコア解放済み？
+    difficulty: 'normal',     // 'easy', 'normal', 'hard', 'hardcore'
+    // 難易度別倍率
+    getDifficultyMods: function() {
+      switch(this.difficulty) {
+        case 'easy':
+          return { hpMul: 0.6, dmgMul: 0.8, spawnMul: 0.8, bossLimit: 1, startBonusCount: 2 };
+        case 'normal':
+          return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1 };
+        case 'hard':
+          return { hpMul: 1.2, dmgMul: 1.2, spawnMul: 1.2, bossLimit: 99, startBonusCount: 0 };
+        case 'hardcore':
+          return { hpMul: 2.0, dmgMul: 1.5, spawnMul: 1.5, bossLimit: 99, startBonusCount: 0 };
+        default:
+          return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1 };
+      }
+    }
   },
   currentStage: 'stage1',  // 現在のステージ
   obstacles: []  // ステージ2の障害物
@@ -3368,11 +3469,23 @@ async function tryFullscreenAndLandscape(){
 if (typeof window.__START_BOUND === 'undefined') window.__START_BOUND = false;
 
 if (!window.__START_BOUND) {
+  window.__START_BOUND = true;
+  
+  // Easy モード
+  const startEasyBtn = document.getElementById('startEasyBtn');
+  if (startEasyBtn) {
+    startEasyBtn.onclick = () => {
+      window._pendingDifficulty = 'easy';
+      window._pendingHardcore = false;
+      showStageSelect();
+    };
+  }
+  
+  // Normal モード
   const startBtn = document.getElementById('startBtn') || document.querySelector('#start .btn');
   if (startBtn) {
-    window.__START_BOUND = true;
     startBtn.onclick = () => {
-      // ★ステージ選択画面を表示（通常モード用）
+      window._pendingDifficulty = 'normal';
       window._pendingHardcore = false;
       showStageSelect();
     };
@@ -3380,11 +3493,21 @@ if (!window.__START_BOUND) {
     console.warn('[init] start button not found');
   }
   
-  // ハードコアスタートボタン
+  // Hard モード
+  const startHardBtn = document.getElementById('startHardBtn');
+  if (startHardBtn) {
+    startHardBtn.onclick = () => {
+      window._pendingDifficulty = 'hard';
+      window._pendingHardcore = false;
+      showStageSelect();
+    };
+  }
+  
+  // Hardcore モード
   const startHardcoreBtn = document.getElementById('startHardcoreBtn');
   if (startHardcoreBtn) {
     startHardcoreBtn.onclick = () => {
-      // ★ステージ選択画面を表示（ハードコアモード用）
+      window._pendingDifficulty = 'hardcore';
       window._pendingHardcore = true;
       showStageSelect();
     };
@@ -3785,6 +3908,8 @@ function closePauseMenu() {
 
 // タイトルに戻る（グローバル関数）
 function goToTitle() {
+  console.log('goToTitle called'); // デバッグ用
+  
   // すべてのモーダルを閉じる
   closeAllModals();
   
@@ -3792,13 +3917,20 @@ function goToTitle() {
   const rankingModal = document.getElementById('rankingModal');
   if (rankingModal) rankingModal.remove();
   
-  // ゲームオーバー画面を隠す
-  const goEl = document.getElementById('gameover');
-  if (goEl) goEl.style.display = 'none';
+  // ゲームオーバー画面を確実に隠す（複数の方法で）
+  const gameoverEl = document.getElementById('gameover');
+  console.log('gameover element:', gameoverEl); // デバッグ用
+  if (gameoverEl) {
+    gameoverEl.style.cssText = 'display:none !important; visibility:hidden !important;';
+    gameoverEl.setAttribute('hidden', 'true');
+  }
   
-  // クリア画面を隠す
-  const clrEl = document.getElementById('gameclear');
-  if (clrEl) clrEl.style.display = 'none';
+  // クリア画面を確実に隠す
+  const gameclearEl = document.getElementById('gameclear');
+  if (gameclearEl) {
+    gameclearEl.style.cssText = 'display:none !important; visibility:hidden !important;';
+    gameclearEl.setAttribute('hidden', 'true');
+  }
   
   // スタート画面を表示
   const startEl = document.getElementById('start');
@@ -3826,6 +3958,8 @@ function goToTitle() {
   // ポーズボタンを非表示
   const pBtn = document.getElementById('pauseBtn');
   if (pBtn) pBtn.style.display = 'none';
+  
+  console.log('goToTitle completed'); // デバッグ用
 }
 window.goToTitle = goToTitle;
 
@@ -3901,8 +4035,11 @@ function triggerGameOver(){
   state.player.kbx = state.player.kby = 0;
   state.player.iTime = 0;
 
-  // UI
-  if (goEl) goEl.style.display = 'flex';
+  // UI - ゲームオーバー画面を表示
+  if (goEl) {
+    goEl.removeAttribute('hidden');
+    goEl.style.cssText = 'display:flex; visibility:visible; pointer-events:auto;';
+  }
   
   ensureEndScoreNodes();
   updateEndScore('over');
@@ -4022,11 +4159,29 @@ function showStageSelect() {
   cardsContainer.innerHTML = '';
   
   // モードヘッダー表示
+  // 難易度別クリア状況を表示するヘルパー関数
+  function getDifficultyClearStatus(stageData) {
+    const diffs = stageData?.difficulties || {};
+    const cleared = [];
+    if (diffs.easy) cleared.push('<span style="color:#22c55e;">😊</span>');
+    if (diffs.normal) cleared.push('<span style="color:#60a5fa;">🎮</span>');
+    if (diffs.hard) cleared.push('<span style="color:#f59e0b;">💪</span>');
+    if (diffs.hardcore) cleared.push('<span style="color:#8b5cf6;">🔥</span>');
+    
+    if (cleared.length === 0) {
+      return '<span style="color:#94a3b8;">未クリア</span>';
+    }
+    return '<span style="color:#10b981;">✓ クリア済み </span>' + cleared.join(' ');
+  }
+  
+  // 選択中の難易度を表示
+  const difficulty = window._pendingDifficulty || 'normal';
+  const diffNames = { easy: '😊 Easy', normal: '🎮 Normal', hard: '💪 Hard', hardcore: '🔥 Hardcore' };
+  const diffColors = { easy: '#22c55e', normal: '#60a5fa', hard: '#f59e0b', hardcore: '#8b5cf6' };
+  
   const modeHeader = document.createElement('div');
   modeHeader.style.cssText = 'margin-bottom:1rem; text-align:center;';
-  modeHeader.innerHTML = isHardcore 
-    ? '<span style="color:#a78bfa; font-size:1.2rem; font-weight:700;">🔥 ハードコアモード</span>'
-    : '<span style="color:#60a5fa; font-size:1.2rem; font-weight:700;">通常モード</span>';
+  modeHeader.innerHTML = `<span style="color:${diffColors[difficulty]}; font-size:1.2rem; font-weight:700;">${diffNames[difficulty]} モード</span>`;
   cardsContainer.appendChild(modeHeader);
   
   // ステージ1
@@ -4035,7 +4190,7 @@ function showStageSelect() {
   stage1Card.innerHTML = `
     <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.4rem;">■ ${STAGES.stage1.name}</h3>
     <p style="margin:0 0 0.5rem; color:#cbd5e1;">四角い敵との基本ステージ。障害物なし。</p>
-    ${saveData.stageProgress?.stage1?.cleared ? '<span style="color:#10b981;">✓ クリア済み</span>' : '<span style="color:#94a3b8;">未クリア</span>'}
+    ${getDifficultyClearStatus(saveData.stageProgress?.stage1)}
   `;
   stage1Card.onmouseenter = () => stage1Card.style.background = '#475569';
   stage1Card.onmouseleave = () => stage1Card.style.background = '#334155';
@@ -4050,7 +4205,7 @@ function showStageSelect() {
     <h3 style="margin:0 0 0.5rem; color:#ec4899; font-size:1.4rem;">▲ ${STAGES.stage2.name}</h3>
     <p style="margin:0 0 0.5rem; color:#cbd5e1;">三角の敵と障害物のある上級者向けステージ。</p>
     ${stage1Cleared ? 
-      (saveData.stageProgress?.stage2?.cleared ? '<span style="color:#10b981;">✓ クリア済み</span>' : '<span style="color:#94a3b8;">未クリア</span>') :
+      getDifficultyClearStatus(saveData.stageProgress?.stage2) :
       '<span style="color:#ef4444;">🔒 ステージ1をクリアで解放</span>'
     }
   `;
@@ -4094,6 +4249,8 @@ async function startStage(stageId, hardcore) {
     
     state.currentStage = stageId;
     state.mode.hardcore = hardcore;
+    // 難易度モードを設定
+    state.mode.difficulty = window._pendingDifficulty || (hardcore ? 'hardcore' : 'normal');
     resetGame();
     state.started = true;
     state.paused = false;
@@ -4264,16 +4421,19 @@ state.records = JSON.parse(localStorage.getItem('vs_records') || '[]'); // [{sco
     // ★デバッグ：フルパワーモード適用
     if (typeof applyDebugFullPower === 'function') applyDebugFullPower();
 
-    // ★スタートボーナス（通常モードのみ、6種類から選択）
-    if (!state.mode.hardcore) {
-      showStartBonus();
+    // ★スタートボーナス（難易度に応じてボーナス数が変わる）
+    const diffMods = state.mode.getDifficultyMods();
+    if (diffMods.startBonusCount > 0) {
+      showStartBonus(diffMods.startBonusCount);
     }
 
   }
 
-// ★スタートボーナス選択（武器6種類から選択）
-function showStartBonus() {
+// ★スタートボーナス選択（武器6種類から選択、bonusCountで何個選べるか）
+function showStartBonus(bonusCount = 1) {
   state.paused = true;
+  let selectedCount = 0;
+  const selectedUpgrades = [];
   
   const modal = document.createElement('div');
   modal.id = 'startBonusModal';
@@ -4296,7 +4456,8 @@ function showStartBonus() {
   container.appendChild(title);
   
   const subtitle = document.createElement('p');
-  subtitle.textContent = '武器を1つ選んでスタート！';
+  subtitle.id = 'bonusSubtitle';
+  subtitle.textContent = bonusCount > 1 ? `武器を${bonusCount}つ選んでスタート！` : '武器を1つ選んでスタート！';
   subtitle.style.cssText = 'color: #94a3b8; margin: 0 0 16px 0; font-size: 14px;';
   container.appendChild(subtitle);
   
@@ -4319,6 +4480,7 @@ function showStartBonus() {
   
   choices.forEach((upg, i) => {
     const btn = document.createElement('button');
+    btn.dataset.upgId = upg.id;
     btn.style.cssText = `
       background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
       border: 2px solid #475569; border-radius: 12px; padding: 12px 8px;
@@ -4331,20 +4493,45 @@ function showStartBonus() {
     `;
     
     btn.onmouseenter = () => {
-      btn.style.borderColor = '#fbbf24';
-      btn.style.transform = 'scale(1.03)';
+      if (!btn.classList.contains('selected')) {
+        btn.style.borderColor = '#fbbf24';
+        btn.style.transform = 'scale(1.03)';
+      }
     };
     btn.onmouseleave = () => {
-      btn.style.borderColor = '#475569';
-      btn.style.transform = 'scale(1)';
+      if (!btn.classList.contains('selected')) {
+        btn.style.borderColor = '#475569';
+        btn.style.transform = 'scale(1)';
+      }
     };
     
     btn.onclick = () => {
+      if (btn.classList.contains('selected')) return;  // 既に選択済み
+      
       upg.apply();
-      modal.remove();
-      state.paused = false;
-      // トースト表示
-      showStartToast(`🎁 ${upg.name}！`);
+      selectedCount++;
+      selectedUpgrades.push(upg.name);
+      btn.classList.add('selected');
+      btn.style.borderColor = '#22c55e';
+      btn.style.background = 'linear-gradient(135deg, #166534 0%, #14532d 100%)';
+      btn.style.cursor = 'default';
+      btn.style.transform = 'scale(1)';
+      
+      // サブタイトル更新
+      const sub = document.getElementById('bonusSubtitle');
+      if (sub && bonusCount > 1) {
+        const remaining = bonusCount - selectedCount;
+        if (remaining > 0) {
+          sub.textContent = `あと${remaining}つ選べます！`;
+        }
+      }
+      
+      // 必要数選択完了
+      if (selectedCount >= bonusCount) {
+        modal.remove();
+        state.paused = false;
+        showStartToast(`🎁 ${selectedUpgrades.join('、')}！`);
+      }
     };
     
     grid.appendChild(btn);
@@ -4403,10 +4590,17 @@ if (tf) tf.textContent = `⌛ ${txt}`;
   wepEl.textContent = names.join(', ') || '-';
   
 const bodyEl = document.body;
-if (state.mode.hardcore) {
+// 難易度モードバッジの表示
+delete bodyEl.dataset.hc;
+delete bodyEl.dataset.easy;
+delete bodyEl.dataset.hard;
+
+if (state.mode.difficulty === 'hardcore') {
   bodyEl.dataset.hc = "1";
-} else {
-  delete bodyEl.dataset.hc;
+} else if (state.mode.difficulty === 'easy') {
+  bodyEl.dataset.easy = "1";
+} else if (state.mode.difficulty === 'hard') {
+  bodyEl.dataset.hard = "1";
 }
 
 if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
@@ -4579,8 +4773,9 @@ function spawnEnemy(){
 
   if (roll < spinnerProb) {
     // スピナー（回転三角）
+    const diffMods = state.mode.getDifficultyMods();
     let hp = 40 + state.difficulty * 2;
-    if (state.mode.hardcore) hp *= 2.0;
+    hp *= diffMods.hpMul;  // 難易度によるHP倍率
     
     state.enemies.push({
       x, y, size: 26, hp, maxHp: hp, speed: 60, type: 'spinner', // ★20→26に拡大
@@ -4597,8 +4792,9 @@ function spawnEnemy(){
     });
   } else if (roll < spinnerProb + dasherProb) {
     // ダッシャー（突進三角）- ★画面外から登場
+    const diffMods = state.mode.getDifficultyMods();
     let hp = 35 + state.difficulty * 2; // ★50→35に低下
-    if (state.mode.hardcore) hp *= 2.0;
+    hp *= diffMods.hpMul;  // 難易度によるHP倍率
     
     // ★画面外のスポーン位置を計算
     const B = worldBounds();
@@ -4643,8 +4839,9 @@ function spawnEnemy(){
     const existingSnipers = state.enemies.filter(en => en.type === 'sniper').length;
     if (existingSnipers >= sniperLimit) return;
     
+    const diffMods = state.mode.getDifficultyMods();
     let hp = 35 + state.difficulty * 2;
-    if (state.mode.hardcore) hp *= 2.0;
+    hp *= diffMods.hpMul;  // 難易度によるHP倍率
     
     // 画面内の停止位置を計算（端から100px内側）
     const B = worldBounds();
@@ -4691,8 +4888,9 @@ function spawnEnemy(){
       // ランダムな柱を選ぶ
       const obs = state.obstacles[Math.floor(Math.random() * state.obstacles.length)];
       
+      const diffMods = state.mode.getDifficultyMods();
       let hp = 90 + state.difficulty * 4; // ★60→90に増加
-      if (state.mode.hardcore) hp *= 2.0;
+      hp *= diffMods.hpMul;  // 難易度によるHP倍率
       
       const orbitRadius = 80 + Math.random() * 40;  // 柱からの距離
       const startAngle = Math.random() * Math.PI * 2;
@@ -4759,8 +4957,9 @@ function spawnEnemy(){
     }
   } else if (roll < spinnerProb + dasherProb + sniperProb + orbiterProb + pillarTrapProb + bomProb) {
     // BOM敵（自爆型）- 出現予告付き
+    const diffMods = state.mode.getDifficultyMods();
     let hp = (40 + state.difficulty*3) * 4.8; // 1.2 → 4.8（4倍）
-    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
+    hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
     // 画面内のランダムな位置にふらふら出現
     const B = worldBounds();
@@ -4772,6 +4971,7 @@ function spawnEnemy(){
     addEffect('text', { x: spawnX, y: spawnY - 40, life: 0.8, text: '⚠️', size: 28 });
 
     // 0.8秒後に実際に出現
+    const explodeDmg = 60 * diffMods.dmgMul;  // 難易度によるダメージ倍率
     setTimeout(() => {
       if (!state.paused && state.started) {
         state.enemies.push({
@@ -4783,7 +4983,7 @@ function spawnEnemy(){
           floatSpeed: 50,
           warningTime: 2.5,
           explodeRadius: 180,
-          explodeDamage: 60,
+          explodeDamage: explodeDmg,
           warningRadius: 0,
           hitFlash:0, kbx:0, kby:0
         });
@@ -4793,8 +4993,9 @@ function spawnEnemy(){
     }, 800);
   } else if (roll < bomProb + warperProb) {
     // ワープする敵（紫の縦長四角）- 出現予告付き
+    const diffMods = state.mode.getDifficultyMods();
     let hp = (28 + state.difficulty*3) * 3.9; // 1.3 → 3.9 (3倍硬く)
-    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
+    hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
     // 画面内のランダムな位置に出現
     const B = worldBounds();
@@ -4830,8 +5031,9 @@ function spawnEnemy(){
     }, 600);
   } else if (roll < bomProb + warperProb + laserProb) {
     // レーザー敵（黄色い横長四角）
+    const diffMods = state.mode.getDifficultyMods();
     let hp = (24 + state.difficulty*2.8) * 2.5; // 1.8 → 2.5 (さらに硬く)
-    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
+    hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
     // 時間経過で出現数が増える
     let spawnCount = 1; // デフォルト1体
@@ -4856,8 +5058,9 @@ function spawnEnemy(){
     }
   } else if (roll < bomProb + warperProb + laserProb + shooterProb) {
     // 射撃タイプ
+    const diffMods = state.mode.getDifficultyMods();
     let hp = (20 + state.difficulty*2.5) * 1.5;
-    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
+    hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
     // ねらい：プレイヤー（※画面中心にしたいなら (B.minX+B.maxX)/2 などでも可）
     const tx = state.player.x, ty = state.player.y;
@@ -4871,8 +5074,9 @@ function spawnEnemy(){
     });
   } else {
     // 近接タイプ
+    const diffMods = state.mode.getDifficultyMods();
     let hp = 16 + state.difficulty*2.2;
-    if (state.mode.hardcore) hp *= 2.0; // 1.5 → 2.0
+    hp *= diffMods.hpMul;  // 難易度によるHP倍率
     if (state.timeSec >= 360) hp *= 2.0;
 
     const dForSpeed = Math.min(state.difficulty, 16);
@@ -4884,13 +5088,20 @@ function spawnEnemy(){
       // 近接爆発用
       blinkTimer: 0,      // 点滅タイマー
       explodeRadius: 50,  // 爆発範囲
-      explodeDamage: 15,  // 爆発ダメージ
+      explodeDamage: 15 * diffMods.dmgMul,  // 爆発ダメージ（難易度倍率適用）
       nearThreshold: 80   // この距離以内で点滅開始
     });
   }
 }
 
 function spawnMidBoss(){
+  // イージーモードでは中ボス・大ボスの同時出現制限
+  const diffMods = state.mode.getDifficultyMods();
+  if (diffMods.bossLimit === 1) {
+    const bossCount = state.enemies.filter(e => e.type === 'mid' || e.type === 'big').length;
+    if (bossCount >= 1) return;  // 既に1体いる場合はスポーンしない
+  }
+
   const B = worldBounds();
   const margin = 80;
   const side = Math.floor(Math.random()*4);
@@ -4903,7 +5114,7 @@ function spawnMidBoss(){
 
   let hp = 420 + state.difficulty*120;
   if (state.timeSec>=360) hp *= 1.6;
-  if (state.mode.hardcore) hp *= 1.5; // ★ハードコアはHP1.5倍
+  hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
   const e = {
     x,y, size: state.currentStage === 'stage2' ? 55 : 48,
@@ -4922,6 +5133,13 @@ function spawnMidBoss(){
 }
 
 function spawnBigBoss(){
+  // イージーモードでは中ボス・大ボスの同時出現制限
+  const diffMods = state.mode.getDifficultyMods();
+  if (diffMods.bossLimit === 1) {
+    const bossCount = state.enemies.filter(e => e.type === 'mid' || e.type === 'big').length;
+    if (bossCount >= 1) return;  // 既に1体いる場合はスポーンしない
+  }
+
   const B = worldBounds();
   const margin = 100;
   const side = Math.floor(Math.random()*4);
@@ -4934,7 +5152,7 @@ function spawnBigBoss(){
 
   let hp = 1000 + state.difficulty*240;
   if (state.timeSec>=360) hp *= 1.6;
-  if (state.mode.hardcore) hp *= 1.5; // ★ハードコアはHP1.5倍（1.3→1.5）
+  hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
   const e = {
     x,y, size: state.currentStage === 'stage2' ? 80 : 70,
@@ -5131,6 +5349,7 @@ function openChest(pickCount = 2) {
   
   // 宝箱実績チェック
   if (sessionTracking.chestsOpened >= 10) unlockAchievement('chest_10');
+  if (achievementProgress.totalChestsOpened >= 20) unlockAchievement('chest_20');
 
   // オーバーレイ表示
   chestEl.style.display = 'flex';
@@ -6646,12 +6865,16 @@ state.spawnTimer -= dt;
 let spawnRate = Math.max(0.38, 1.20 - state.timeSec * 0.004);
 // 後半(6分〜)は少し加速
 if (state.timeSec >= 360) spawnRate = Math.max(0.34, spawnRate * 0.85);
-// ハードコアモードでは敵の数を1.5倍（生成間隔を2/3に短縮）
-if (state.mode.hardcore) spawnRate *= 0.67;
+// 難易度によるスポーン間隔調整
+const diffMods = state.mode.getDifficultyMods();
+if (diffMods.spawnMul !== 1.0) {
+  spawnRate /= diffMods.spawnMul;  // spawnMulが大きいほど間隔が短くなる（敵が多い）
+}
 
 if (state.spawnTimer <= 0) {
   // いまの雑魚数と上限
-  const cap   = currentTrashCap(state.timeSec);
+  let cap = currentTrashCap(state.timeSec);
+  cap = Math.floor(cap * diffMods.spawnMul);  // 難易度による上限調整
   const alive = countTrash();
   const room  = Math.max(0, cap - alive);
 
@@ -11205,26 +11428,32 @@ function showGameClear(){
     // クリアで解放
     state.mode.unlockedHardcore = true;
     
+    // 難易度とステージ別のクリア記録
+    const difficulty = state.mode.difficulty || 'normal';
+    const stage = state.currentStage || 'stage1';
+    
+    const saveData = window.loadSaveData();
+    if (!saveData.stageProgress) saveData.stageProgress = {};
+    if (!saveData.stageProgress[stage]) saveData.stageProgress[stage] = {};
+    
+    // ステージ全体のクリアフラグ（ステージ2解放用）
+    saveData.stageProgress[stage].cleared = true;
+    
+    // 難易度別クリアフラグ
+    if (!saveData.stageProgress[stage].difficulties) {
+      saveData.stageProgress[stage].difficulties = {};
+    }
+    saveData.stageProgress[stage].difficulties[difficulty] = true;
+    
+    window.saveSaveData(saveData);
+    
     // ステージ1クリアでステージ2解放
-    if (state.currentStage === 'stage1') {
-      const saveData = window.loadSaveData();
-      if (!saveData.stageProgress) saveData.stageProgress = {};
-      if (!saveData.stageProgress.stage1) saveData.stageProgress.stage1 = {};
-      saveData.stageProgress.stage1.cleared = true;
-      window.saveSaveData(saveData);
+    if (stage === 'stage1') {
       STAGES.stage2.unlocked = true;
     }
-    
-    // ステージ2クリアも記録
-    if (state.currentStage === 'stage2') {
-      const saveData = window.loadSaveData();
-      if (!saveData.stageProgress) saveData.stageProgress = {};
-      if (!saveData.stageProgress.stage2) saveData.stageProgress.stage2 = {};
-      saveData.stageProgress.stage2.cleared = true;
-      window.saveSaveData(saveData);
-    }
 
-    el.style.display = 'flex';
+    el.removeAttribute('hidden');
+    el.style.cssText = 'display:flex; visibility:visible; pointer-events:auto;';
     state.paused = true;
     
     // ゲームを完全停止
@@ -11563,11 +11792,12 @@ function spawnFinalBoss(){
   else if (side === 2){ x = rnd(B.minX - margin, B.maxX + margin); y = B.maxY + margin; }
   else { x = B.minX - margin; y = rnd(B.minY - margin, B.maxY + margin); }
 
+  const diffMods = state.mode.getDifficultyMods();
   const base = 1500 + state.difficulty*300;
   const hp0  = base * 10;
   // ★ステージ2はHP60%に（80%からさらに20%減）
   const hpMul = state.currentStage === 'stage2' ? 0.6 : 1.0;
-  const hp   = (state.mode.hardcore ? hp0 * 1.5 : hp0) * hpMul; // ★ハードコアはHP1.5倍（1.3→1.5）
+  const hp   = hp0 * diffMods.hpMul * hpMul;  // 難易度によるHP倍率
 
   const e = {
     x, y,
@@ -11634,8 +11864,12 @@ function getShareText(resultType) {
     text += `💯 スコア: ${score}点\n`;
     text += `⚔️ 討伐数: ${kills}体\n`;
     text += `👑 ボス討伐: ${bossKills}体\n\n`;
-    if (state.mode.hardcore) {
+    if (state.mode.difficulty === 'hardcore') {
       text += `🔥 ハードコアモードでクリア！\n\n`;
+    } else if (state.mode.difficulty === 'hard') {
+      text += `💪 ハードモードでクリア！\n\n`;
+    } else if (state.mode.difficulty === 'easy') {
+      text += `😊 イージーモードでクリア！\n\n`;
     }
     text += `#10minsSurvivor #ゲームクリア\n`;
   } else {
