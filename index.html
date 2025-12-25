@@ -22,7 +22,21 @@ window.addEventListener('unhandledrejection', function(event) {
   height:100dvh;
   overflow:hidden;
   touch-action:none;
+  overscroll-behavior:none;
+  -webkit-overflow-scrolling:touch;
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+html, body {
+  overflow:hidden;
+  overscroll-behavior:none;
+  user-select:none;
+  -webkit-user-select:none;
+  -webkit-touch-callout:none;
+  touch-action:none;
+  position:fixed;
+  width:100%;
+  height:100%;
 }
 
 
@@ -234,6 +248,16 @@ body[data-hard]::after{
   z-index: 12005;
 }
 
+/* スマホ縦持ち時は通常の難易度バッジを非表示（HUD内に統合表示） */
+@media (orientation: portrait) and (max-width: 768px) {
+  body[data-hc]::after,
+  body[data-easy]::after,
+  body[data-hard]::after,
+  body[data-hardcore]::after {
+    display: none !important;
+  }
+}
+
 /* 追加の条件バッジを出す場合は、その「さらに下」に固定 */
 .hc-badges{
   position: fixed;
@@ -294,23 +318,24 @@ body[data-hc] .hc-badges{ display: flex; }
 #hudTop{
   position:absolute;
   left:0; top:0;
-  height:56px;
+  right:0;
+  height:48px;
   width:auto;
   display:none;           /* 縦向き時のみJSで 'block' にする */
   color:#fff;
-  background:rgba(0,0,0,.45);
-  border-bottom:1px solid rgba(255,255,255,.08);
+  background:rgba(0,0,0,.55);
+  border-bottom:1px solid rgba(255,255,255,.1);
   box-sizing:border-box;
-  padding:8px;
-  backdrop-filter: blur(2px);
-  pointer-events: none;   /* ← 上帯は操作不要なので透過 */
+  padding:4px 8px;
+  backdrop-filter: blur(3px);
+  pointer-events: none;   /* ← 上帯は操作不要なので透過（ボタンは個別でauto） */
 padding-left:  var(--hud-lpad);
   padding-right: var(--hud-rpad);
   margin-top:    var(--hud-tpad);
   box-sizing:    border-box; /* 念のため */
   /* HUD上段がノッチにかぶらないよう安全領域分だけ下げる */
 #hudTop, .hud{
-  padding-top: calc(8px + var(--safe-top));
+  padding-top: calc(4px + var(--safe-top));
 }
 }
 
@@ -430,6 +455,13 @@ padding-left:  var(--hud-lpad);
   #btnSound{
     right: calc(env(safe-area-inset-right) + 64px);
     top:   calc(env(safe-area-inset-top) + 8px);
+  }
+}
+
+/* スマホ縦持ち時は従来のPause/Soundボタンを非表示（HUD内に統合） */
+@media (orientation: portrait) and (max-width: 768px) {
+  #btnPause, #btnSound {
+    display: none !important;
   }
 }
 
@@ -2022,7 +2054,7 @@ warnBoss(){
 // === 固定アスペクトのプレイ領域（4:3 / 3:4） ===
 const ASPECT_L = 4/3;
 const ASPECT_P = 3/4;
-const UI_TOP_BAR_CSS = 84; // 上帯の実寸(px)
+const UI_TOP_BAR_CSS = 52; // 上帯の実寸(px) - コンパクトHUD用
 
 // HUDをノッチから少し下げる（px）
 const HUD_TOP_OFFSET_CSS = 10;
@@ -2524,6 +2556,7 @@ function visibleBounds(radius = 0){
     max_damage_clear: { id: 'max_damage_clear', name: 'パワーハウス', desc: '球のダメージMAXでクリア', icon: '💥', tier: 'gold' },
     max_rate_clear: { id: 'max_rate_clear', name: 'マシンガンナー', desc: '攻撃速度MAXでクリア', icon: '⚡', tier: 'gold' },
     max_speed_clear: { id: 'max_speed_clear', name: 'スピードデーモン', desc: '移動速度MAXでクリア', icon: '🏃', tier: 'gold' },
+    max_all_clear: { id: 'max_all_clear', name: '究極戦士', desc: '全7能力MAXでクリア', icon: '👑', tier: 'platinum' },
     
     // 累計・セッション系
     reroll_20: { id: 'reroll_20', name: 'リロールマスター', desc: '1プレイでリロール20回', icon: '🔄', tier: 'silver' },
@@ -2535,9 +2568,8 @@ function visibleBounds(radius = 0){
     all_weapon_master: { id: 'all_weapon_master', name: '真の武器マスター', desc: '8種類以上の覚醒クリア達成', icon: '🏆', tier: 'platinum' },
 
     // 縛りプレイ
-    no_upgrade: { id: 'no_upgrade', name: '原始人', desc: 'アップグレードなしでクリア', icon: '🚫', tier: 'platinum' },
+    no_upgrade: { id: 'no_upgrade', name: '原始人', desc: '能力強化なしでクリア（武器はOK）', icon: '🚫', tier: 'platinum' },
     no_item: { id: 'no_item', name: '禁欲主義者', desc: 'アイテムなしでクリア（宝箱除く）', icon: '🚷', tier: 'platinum' },
-    stoic: { id: 'stoic', name: 'ストイック', desc: 'アップグレード・アイテムなしクリア', icon: '💪', tier: 'platinum' },
 
     // 超難関
     speed_1030: { id: 'speed_1030', name: 'ソニック', desc: '10:30クリア', icon: '🚀', tier: 'platinum' },
@@ -2764,28 +2796,37 @@ function visibleBounds(radius = 0){
     if (sessionTracking.itemsCollected === 0) {
       unlockAchievement('no_item');
     }
-    if (sessionTracking.upgradesTaken === 0 && sessionTracking.itemsCollected === 0) {
-      unlockAchievement('stoic');
-    }
     
     // ステータスMAX実績
     if (state.player.maxHp >= 220) { // CAPS.hpMax
       unlockAchievement('max_hp_clear');
     }
-    if (state.mods.dmgMul >= 1.5) { // CAPS.dmgMulMax
+    if (state.mods.dmgMul >= 1.47) { // CAPS.dmgMulMax
       unlockAchievement('max_damage_clear');
     }
-    if (state.mods.rateMul <= 0.60) { // CAPS.rateMulMin（小さいほど速い）
+    if (state.mods.rateMul <= 0.59) { // CAPS.rateMulMin（小さいほど速い）
       unlockAchievement('max_rate_clear');
     }
     if (state.player.speed >= 340) { // CAPS.speedMax
       unlockAchievement('max_speed_clear');
     }
+    // 全能力MAX（HP, 移動速度, 攻撃ダメージ, 攻撃速度, 弾サイズ, 耐久力, HP自動回復）
+    const allMax = 
+      state.player.maxHp >= 220 &&       // HP MAX
+      state.player.speed >= 340 &&        // 移動速度 MAX
+      state.mods.dmgMul >= 1.47 &&        // 攻撃ダメージ MAX
+      state.mods.rateMul <= 0.59 &&       // 攻撃速度 MAX
+      state.mods.sizeMul >= 1.61 &&       // 弾サイズ MAX
+      (state.defenseLv || 0) >= 5 &&      // 耐久力 MAX
+      (state.regenLv || 0) >= 3;          // HP自動回復 MAX
+    if (allMax) {
+      unlockAchievement('max_all_clear');
+    }
     
     saveProgress();
   }
 
-  function checkKillAchievements() {
+  function checkKillAchievements(enemy) {
     const totalKills = (state.kills || 0) + (state.bossKills || 0);
     
     // 初撃破
@@ -2800,7 +2841,11 @@ function visibleBounds(radius = 0){
     
     // 累積撃破数
     achievementProgress.totalKills++;
-    achievementProgress.totalBossKills += (arguments[0] && (arguments[0].type === 'mid' || arguments[0].type === 'big' || arguments[0].type === 'final')) ? 1 : 0;
+    
+    // 累積ボス撃破数
+    if (enemy && (enemy.type === 'mid' || enemy.type === 'big' || enemy.type === 'final')) {
+      achievementProgress.totalBossKills++;
+    }
     
     if (achievementProgress.totalKills >= 5000) unlockAchievement('total_kill_5000');
     if (achievementProgress.totalKills >= 10000) unlockAchievement('total_kill_10000');
@@ -3549,33 +3594,51 @@ function ensureTopHud(){
 
   host.dataset.init = '1';
   host.innerHTML = `
-    <div class="tophud tophud3" style="height:100%;display:flex;flex-direction:column;gap:6px;padding:0 10px;">
-      <!-- 1行目：HP -->
-      <div class="row row1" style="display:flex;align-items:center;gap:8px;">
-        <span class="label" style="font-size:12px;opacity:.9;min-width:28px;text-align:right;">HP</span>
-        <div class="bar hp" style="position:relative;flex:1;height:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden">
-          <!-- 初期は緑で描画（後でJSが％に応じて赤へ切替）-->
-          <i id="hpTop" style="position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#27e38a,#12c574)"></i>
-        </div>
-        <span class="v" id="hpTopVal" style="font-weight:700;letter-spacing:.02em;white-space:nowrap"></span>
+    <div class="tophud-compact" style="height:100%;display:flex;flex-direction:column;gap:4px;padding:0 6px;">
+      <!-- 1行目：⏸ 難易度 Lv スコア タイマー 🔊 -->
+      <div class="row row1" style="display:flex;align-items:center;gap:6px;">
+        <button id="pauseTopBtn" style="background:none;border:none;color:#fff;font-size:18px;padding:2px 6px;cursor:pointer;opacity:0.9;">⏸</button>
+        <span id="diffBadgeTop" style="font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;display:none;"></span>
+        <span style="font-weight:700;font-size:13px;">Lv<b id="lvTop">1</b></span>
+        <span style="font-size:12px;opacity:0.85;">💎<b id="scoreTop">0</b></span>
+        <span style="flex:1;"></span>
+        <span id="timeTop" style="font-weight:800;font-size:14px;letter-spacing:.02em;">0:00</span>
+        <button id="soundTopBtn" style="background:none;border:none;color:#fff;font-size:16px;padding:2px 6px;cursor:pointer;opacity:0.9;">🔊</button>
       </div>
 
-      <!-- 2行目：EX -->
-      <div class="row row2" style="display:flex;align-items:center;gap:8px;">
-        <span class="label" style="font-size:12px;opacity:.9;min-width:28px;text-align:right;">EX</span>
-        <div class="bar xp" style="position:relative;flex:1;height:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:8px;overflow:hidden">
-          <i id="xpTop" style="position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#6ae3ff,#4da6ff)"></i>
+      <!-- 2行目：HPバー EXバー -->
+      <div class="row row2" style="display:flex;align-items:center;gap:6px;">
+        <div class="bar hp" style="position:relative;flex:1;height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden">
+          <i id="hpTop" style="position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,#27e38a,#12c574);transition:width 0.2s;"></i>
         </div>
-        <span class="v" id="xpTopVal" style="font-weight:700;letter-spacing:.02em;white-space:nowrap"></span>
-      </div>
-
-      <!-- 3行目：Lv / WL / タイマー -->
-      <div class="row row3" style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
-        <span class="v" style="font-weight:700;letter-spacing:.02em">Lv <b id="lvTop">1</b> / WL <b id="wlTop">1</b></span>
-        <span class="v" id="timeTop" style="font-weight:800;letter-spacing:.03em">0:00</span>
+        <div class="bar xp" style="position:relative;flex:1;height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden">
+          <i id="xpTop" style="position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#6ae3ff,#4da6ff);transition:width 0.2s;"></i>
+        </div>
       </div>
     </div>
   `;
+  
+  // ⏸ボタンのイベント
+  const pauseTopBtn = document.getElementById('pauseTopBtn');
+  if (pauseTopBtn) {
+    pauseTopBtn.style.pointerEvents = 'auto';
+    pauseTopBtn.onclick = () => {
+      if (typeof togglePause === 'function') togglePause();
+    };
+  }
+  
+  // 🔊ボタンのイベント
+  const soundTopBtn = document.getElementById('soundTopBtn');
+  if (soundTopBtn) {
+    soundTopBtn.style.pointerEvents = 'auto';
+    soundTopBtn.onclick = () => {
+      const next = !window.AUDIO_MUTED;
+      if (typeof setAudioMuted === 'function') setAudioMuted(next);
+      soundTopBtn.textContent = next ? '🔇' : '🔊';
+    };
+    // 初期状態を反映
+    soundTopBtn.textContent = window.AUDIO_MUTED ? '🔇' : '🔊';
+  }
 }
 
 
@@ -4359,6 +4422,19 @@ function goToTitle() {
   const hud = document.querySelector('.hud');
   if (hud) hud.style.display = 'none';
   
+  // hudTop（レベル、スコア、タイマーなど）を非表示
+  const hudTop = document.getElementById('hudTop');
+  if (hudTop) hudTop.style.display = 'none';
+  
+  // PC用タイマーを非表示
+  const pcTimer = document.getElementById('pcTimer');
+  if (pcTimer) pcTimer.style.display = 'none';
+  
+  // 難易度バッジを非表示（body属性を削除）
+  document.body.removeAttribute('data-easy');
+  document.body.removeAttribute('data-hard');
+  document.body.removeAttribute('data-hardcore');
+  
   // キャンバスを黒でクリア（ゲーム画面が透けて見えないように）
   try {
     const cv = document.getElementById('cv');
@@ -5059,6 +5135,8 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   const lvTop    = document.getElementById('lvTop');
   const wlTop    = document.getElementById('wlTop');
   const timeTop  = document.getElementById('timeTop');
+  const scoreTop = document.getElementById('scoreTop');
+  const diffBadgeTop = document.getElementById('diffBadgeTop');
 
   // HP：幅＆色（20%以下で赤／それ以外は緑）
   if (hpTop){
@@ -5081,6 +5159,29 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
     (state?.weaponLevel) ??
     (p?.weaponLevel) ?? 1;
   if (wlTop) wlTop.textContent = wl;
+
+  // スコア
+  if (scoreTop) scoreTop.textContent = (state.score || 0).toLocaleString();
+
+  // 難易度バッジ
+  if (diffBadgeTop) {
+    const diff = state.mode?.difficulty || 'normal';
+    if (diff === 'easy') {
+      diffBadgeTop.textContent = 'EASY';
+      diffBadgeTop.style.background = '#22c55e';
+      diffBadgeTop.style.display = 'inline';
+    } else if (diff === 'hard') {
+      diffBadgeTop.textContent = 'HARD';
+      diffBadgeTop.style.background = '#f59e0b';
+      diffBadgeTop.style.display = 'inline';
+    } else if (diff === 'hardcore') {
+      diffBadgeTop.textContent = 'HC';
+      diffBadgeTop.style.background = '#8b5cf6';
+      diffBadgeTop.style.display = 'inline';
+    } else {
+      diffBadgeTop.style.display = 'none';
+    }
+  }
 
   // タイマー（mm:ss）— 一度だけ計算して両方に使う
   const t  = Math.max(0, Math.floor(state?.timeSec || 0));
@@ -5115,6 +5216,27 @@ if (pcTimer){
   } else {
     console.warn('[init] #wrap element not found (skipped touchmove preventDefault)');
   }
+}
+
+// スワイプバック・スワイプ進む防止（画面端からのジェスチャー無効化）
+{
+  document.addEventListener('touchstart', e => {
+    const touch = e.touches[0];
+    // 画面端20px以内からのタッチを記録
+    if (touch.clientX < 20 || touch.clientX > window.innerWidth - 20) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+  
+  // iOS Safari のプルダウンリフレッシュ防止
+  document.addEventListener('touchmove', e => {
+    if (e.touches.length === 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+  
+  // 右クリック（長押し）メニュー無効化
+  document.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 window.addEventListener('keydown', e=>{
@@ -6820,9 +6942,9 @@ function dealSlashDamage(cx, cy, ang, span, inner, outer, dmg){
 const CAPS = {
   speedMax: 340,   // player.speed 上限（初期170、×1.15^5）
   hpMax: 220,      // 最大HP上限（初期110、×1.15^5）
-  dmgMulMax: 1.5,  // ダメージ倍率上限（初期1.0、×1.08^5）
-  rateMulMin: 0.60,// 攻撃間隔倍率の下限（小さいほど速い、初期1.0、×0.90^5）
-  sizeMulMax: 2.2  // サイズ倍率上限（初期1.0）
+  dmgMulMax: 1.47, // ダメージ倍率上限（初期1.0、×1.08^5）
+  rateMulMin: 0.59,// 攻撃間隔倍率の下限（小さいほど速い、初期1.0、×0.90^5）
+  sizeMulMax: 1.61 // サイズ倍率上限（初期1.0、×1.10^5）
 };
 
 
@@ -6918,10 +7040,9 @@ const U = {
     },
     can: () => state.player.speed < CAPS.speedMax - 1,
     apply: () => {
-      const before = state.player.speed;
       state.player.speed = Math.min(CAPS.speedMax, state.player.speed * 1.15);
-      if (state.player.speed === before) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
+      if (state.player.speed >= CAPS.speedMax) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💨 移動速度MAX!' });
       }
     }
   },
@@ -6937,11 +7058,10 @@ const U = {
     },
     can: () => state.player.maxHp < CAPS.hpMax - 1,
     apply: () => {
-      const before = state.player.maxHp;
       state.player.maxHp = Math.min(CAPS.hpMax, Math.round(state.player.maxHp * 1.15));
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + Math.round(state.player.maxHp * 0.15));
-      if (state.player.maxHp === before) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
+      if (state.player.maxHp >= CAPS.hpMax) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '❤️ HP MAX!' });
       }
     }
   },
@@ -6960,7 +7080,11 @@ const U = {
     apply: () => {
       state.regenLv = (state.regenLv || 0) + 1;
       const lv = state.regenLv;
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: `リジェネ Lv${lv}` });
+      if (lv >= 3) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💚 回復MAX!' });
+      } else {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: `リジェネ Lv${lv}` });
+      }
     }
   },
 
@@ -6982,7 +7106,11 @@ const U = {
       state.defenseLv = (state.defenseLv || 0) + 1;
       const lv = state.defenseLv;
       state.mods.damageMul = 1 - (lv * 0.06); // 6%ずつ軽減
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: `耐久力 Lv${lv}` });
+      if (lv >= 5) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🛡️ 耐久力MAX!' });
+      } else {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: `耐久力 Lv${lv}` });
+      }
     }
   },
 
@@ -7006,8 +7134,8 @@ const U = {
     can: () => state.mods.rateMul > CAPS.rateMulMin + 1e-6,
     apply: () => {
       state.mods.rateMul = Math.max(CAPS.rateMulMin, state.mods.rateMul * 0.90);
-      if (state.mods.rateMul === CAPS.rateMulMin) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '最速!' });
+      if (state.mods.rateMul <= CAPS.rateMulMin) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '⚡ 攻撃速度MAX!' });
       }
     }
   },
@@ -7023,10 +7151,9 @@ const U = {
     },
     can: () => state.mods.dmgMul < CAPS.dmgMulMax - 1e-6,
     apply: () => {
-      const before = state.mods.dmgMul;
       state.mods.dmgMul = Math.min(CAPS.dmgMulMax, state.mods.dmgMul * 1.08);
-      if (state.mods.dmgMul === before) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
+      if (state.mods.dmgMul >= CAPS.dmgMulMax) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💥 攻撃力MAX!' });
       }
     }
   },
@@ -7037,10 +7164,9 @@ const U = {
     desc: '弾・範囲 +10%（上限あり）',
     can: () => state.mods.sizeMul < CAPS.sizeMulMax - 1e-6,
     apply: () => {
-      const before = state.mods.sizeMul;
       state.mods.sizeMul = Math.min(CAPS.sizeMulMax, state.mods.sizeMul * 1.10);
-      if (state.mods.sizeMul === before) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: '上限!' });
+      if (state.mods.sizeMul >= CAPS.sizeMulMax) {
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🔵 弾サイズMAX!' });
       }
     }
   },
