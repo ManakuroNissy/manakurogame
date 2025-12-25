@@ -3701,7 +3701,8 @@ function triggerGameOver(){
   // ゲームオーバー状態の時のみランキング表示
   state._pendingRanking = scoreData;
   setTimeout(() => {
-    if (state.gameover && state._pendingRanking) {
+    // タイトルに戻っていないかチェック（started=falseならタイトル画面）
+    if (state.gameover && state._pendingRanking && state.started) {
       showRankingModal(state._pendingRanking);
       state._pendingRanking = null;
     }
@@ -11032,8 +11033,8 @@ function showGameClear(){
     saveScore(scoreData);
     state._pendingRanking = scoreData;
     setTimeout(() => {
-      // クリア画面が表示されている時のみランキング表示
-      if (clearEl && clearEl.style.display === 'flex' && state._pendingRanking) {
+      // クリア画面が表示されている時のみランキング表示（タイトルに戻っていないかチェック）
+      if (clearEl && clearEl.style.display === 'flex' && state._pendingRanking && state.started) {
         showRankingModal(state._pendingRanking);
         state._pendingRanking = null;
       }
