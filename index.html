@@ -3776,6 +3776,13 @@ function updateEndScore(kind){ // kind: 'over' | 'clear'
 function showStageSelect() {
   const modal = document.getElementById('stageSelectModal');
   const cardsContainer = document.getElementById('stageCards');
+  
+  // nullチェック
+  if (!modal || !cardsContainer) {
+    console.warn('Stage select modal elements not found');
+    return;
+  }
+  
   const saveData = window.loadSaveData();
   const isHardcore = window._pendingHardcore || false;
   
@@ -8175,18 +8182,10 @@ if(e.phase === 'shoot'){
 
 }else if(e.phase === 'dash'){
   const dashSpeed = 1200;
-  // ★主人公の現在位置に向かって方向を更新（正確に追尾）
-  const dx = state.player.x - e.x;
-  const dy = state.player.y - e.y;
-  const dist = Math.hypot(dx, dy);
-  if(dist > 10){
-    e.dashDir.x = dx / dist;
-    e.dashDir.y = dy / dist;
-  }
+  // ★座標ロックオン方式：teleフェーズで記録したtargetに向かって突進（追尾しない）
   e.x += e.dashDir.x * dashSpeed * dt;
   e.y += e.dashDir.y * dashSpeed * dt;
-  // ターゲットも更新
-  e.target = { x: state.player.x, y: state.player.y };
+  // ターゲット座標に到達したか確認
   const rx = e.target.x - e.x, ry = e.target.y - e.y;
   if(rx*e.dashDir.x + ry*e.dashDir.y <= 0){
     e.cd = 1.6;          // 2.0→1.6
