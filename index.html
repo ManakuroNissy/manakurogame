@@ -3,10 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="manifest" href="manifest.webmanifest">
 
 <!-- グローバルPromise拒否ハンドラ（エラー表示を抑制） -->
 <script>
@@ -2170,7 +2168,7 @@ function visibleBounds(radius = 0){
       const stageColor = stage === 'stage1' ? '#60a5fa' : '#ec4899';
       
       let html = `
-        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:100000;" id="rankingModal">
+        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:13030;" id="rankingModal">
           <div style="background:#1a1a2e;border:3px solid #4a90e2;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:80vh;display:flex;flex-direction:column;">
             
             <!-- ★CLOSEボタンを上部に配置 -->
@@ -2594,7 +2592,7 @@ function visibleBounds(radius = 0){
     });
 
     let html = `
-      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:100000;overflow-y:auto;" id="achievementsModal">
+      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:13030;overflow-y:auto;" id="achievementsModal">
         <div style="background:#1a1a2e;border:3px solid #8b5cf6;border-radius:12px;padding:20px;max-width:700px;width:90%;max-height:85vh;display:flex;flex-direction:column;">
           
           <!-- ★CLOSEボタンを上部に配置 -->
@@ -3910,18 +3908,9 @@ function triggerGameOver(){
   ensureEndScoreNodes();
   updateEndScore('over');
 
-  // スコア保存とランキング表示
+  // スコア保存（ランキングは自動表示しない）
   const scoreData = createScoreData('gameover');
   saveScore(scoreData);
-  // ゲームオーバー状態の時のみランキング表示
-  state._pendingRanking = scoreData;
-  setTimeout(() => {
-    // タイトルに戻っていないかチェック（started=falseならタイトル画面）
-    if (state.gameover && state._pendingRanking && state.started) {
-      showRankingModal(state._pendingRanking);
-      state._pendingRanking = null;
-    }
-  }, 500);
 
   // フローティング・ジョイスティックOFF
   delete document.body.dataset.fjoy;
@@ -11253,17 +11242,9 @@ function showGameClear(){
     // 解除された実績を表示
     displayUnlockedAchievements();
 
-    // スコア保存とランキング表示
+    // スコア保存（ランキングは自動表示しない）
     const scoreData = createScoreData('clear');
     saveScore(scoreData);
-    state._pendingRanking = scoreData;
-    setTimeout(() => {
-      // クリア画面が表示されている時のみランキング表示（タイトルに戻っていないかチェック）
-      if (clearEl && clearEl.style.display === 'flex' && state._pendingRanking && state.started) {
-        showRankingModal(state._pendingRanking);
-        state._pendingRanking = null;
-      }
-    }, 500);
 
     // ハードコアボタンを表示
     if (hardcoreBtn){
@@ -11275,7 +11256,6 @@ function showGameClear(){
         
         // 状態をリセット
         state.gameover = false;
-        state._pendingRanking = null;
         
         state.mode.hardcore = true;  // 次の周回をハードコアに
         el.style.display = 'none';
