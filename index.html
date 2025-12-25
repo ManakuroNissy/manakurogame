@@ -4304,15 +4304,23 @@ function goToTitle() {
   const gameoverEl = document.getElementById('gameover');
   console.log('gameover element:', gameoverEl); // デバッグ用
   if (gameoverEl) {
-    gameoverEl.style.cssText = 'display:none !important; visibility:hidden !important;';
+    gameoverEl.removeAttribute('style');  // 既存スタイルをクリア
+    gameoverEl.style.display = 'none';
+    gameoverEl.style.visibility = 'hidden';
+    gameoverEl.style.pointerEvents = 'none';
     gameoverEl.setAttribute('hidden', 'true');
+    gameoverEl.classList.add('hidden');
   }
   
   // クリア画面を確実に隠す
   const gameclearEl = document.getElementById('gameclear');
   if (gameclearEl) {
-    gameclearEl.style.cssText = 'display:none !important; visibility:hidden !important;';
+    gameclearEl.removeAttribute('style');
+    gameclearEl.style.display = 'none';
+    gameclearEl.style.visibility = 'hidden';
+    gameclearEl.style.pointerEvents = 'none';
     gameclearEl.setAttribute('hidden', 'true');
+    gameclearEl.classList.add('hidden');
   }
   
   // スタート画面を表示
@@ -4328,6 +4336,11 @@ function goToTitle() {
   state._debugInvincible = false;
   state._debugSkipToFinal = false;
   state._didSkipFinal = false;
+  
+  // プレイヤーHPをリセット（triggerGameOverの再発防止）
+  if (state.player) {
+    state.player.hp = state.player.maxHp || 100;
+  }
   
   // 配列をクリア
   state.enemies.length = 0;
@@ -4766,7 +4779,7 @@ state.bossKills = 0;
       // 基準: 960x540 → 小さい画面では柱も小さく
       const baseWidth = 960;
       const baseHeight = 540;
-      const cvs = document.getElementById('c');  // ★canvasを取得
+      const cvs = document.getElementById('cv');  // ★canvasを取得
       const screenScale = Math.min(
         (cvs ? cvs.width : baseWidth) / baseWidth,
         (cvs ? cvs.height : baseHeight) / baseHeight,
@@ -5595,27 +5608,42 @@ function flashBossMsg(ms = 2000, text = '!! BOSS APPROACHING !!') {
 }
   // ★アイテム/ジェムのドロップ位置を柱から離す
   function adjustDropPosition(x, y, radius = 20) {
-    const margin = radius + 10;
-    for (const obs of state.obstacles) {
-      const halfSize = obs.size / 2 + margin;
-      // 柱と重なっているかチェック
-      if (x > obs.x - halfSize && x < obs.x + halfSize &&
-          y > obs.y - halfSize && y < obs.y + halfSize) {
-        // 柱の中心から最も近い外側に押し出す
-        const dx = x - obs.x;
-        const dy = y - obs.y;
-        const absDx = Math.abs(dx);
-        const absDy = Math.abs(dy);
-        
-        if (absDx > absDy) {
-          // 左右に押し出す
-          x = obs.x + (dx > 0 ? halfSize : -halfSize);
-        } else {
-          // 上下に押し出す
-          y = obs.y + (dy > 0 ? halfSize : -halfSize);
+    if (!state.obstacles || state.obstacles.length === 0) return { x, y };
+    
+    const margin = radius + 25;  // より大きなマージン
+    
+    // 複数回チェック（押し出し後に別の柱と重なる可能性）
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let moved = false;
+      
+      for (const obs of state.obstacles) {
+        const halfSize = obs.size / 2 + margin;
+        // 柱と重なっているかチェック
+        if (x > obs.x - halfSize && x < obs.x + halfSize &&
+            y > obs.y - halfSize && y < obs.y + halfSize) {
+          // 柱の中心から最も近い外側に押し出す
+          const dx = x - obs.x;
+          const dy = y - obs.y;
+          const absDx = Math.abs(dx);
+          const absDy = Math.abs(dy);
+          
+          // 押し出し距離を少し大きめに
+          const pushExtra = 5;
+          
+          if (absDx > absDy) {
+            // 左右に押し出す
+            x = obs.x + (dx > 0 ? halfSize + pushExtra : -halfSize - pushExtra);
+          } else {
+            // 上下に押し出す
+            y = obs.y + (dy > 0 ? halfSize + pushExtra : -halfSize - pushExtra);
+          }
+          moved = true;
         }
       }
+      
+      if (!moved) break;  // 重なりがなくなったら終了
     }
+    
     return { x, y };
   }
   
@@ -5677,8 +5705,8 @@ function spawnItemRandom(){
   if (Math.random() < chance) {
     const B = worldBounds();        // ← ズーム対応の表示境界
     const pad = 30;                 // 画面端から少し内側に出す
-    const x = rnd(B.minX + pad, B.maxX - pad);
-    const y = rnd(B.minY + pad, B.maxY - pad);
+    let x = rnd(B.minX + pad, B.maxX - pad);
+    let y = rnd(B.minY + pad, B.maxY - pad);
 
     const roll = Math.random();
     const kind = roll < 0.45 ? 'magnet' : roll < 0.75 ? 'nuke' : 'heal';
@@ -5687,7 +5715,10 @@ function spawnItemRandom(){
   kind==='nuke'   ? 10 :
   kind==='heal'   ? 14 :   // ★ ここを 18（= 12 * 1.5）
   kind==='chest'  ? 14 : 12;
-state.items.push({ kind, x, y, r:rByKind, t:0 });
+    
+    // 柱との重なりを回避
+    const pos = adjustDropPosition(x, y, rByKind);
+    state.items.push({ kind, x: pos.x, y: pos.y, r:rByKind, t:0 });
   }
 }
 
