@@ -566,8 +566,8 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 1.8.6</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;">ハードコア強化＆ステージ2調整</span>
+    <span style="opacity:0.7;">Ver 1.8.7</span> - 
+    <span style="opacity:0.6; font-size:0.8rem;">武器バランス調整</span>
   </div>
   
   <button id="startBtn" class="btn">スタート</button>
@@ -645,6 +645,22 @@ document.head.appendChild(link);
       </div>
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 1.8.7 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 1.8.7 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">⚖️ 武器バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>レーザー：基本ダメージ 36→32、Lv上昇 +30→+25</li>
+            <li>ブレード：基本ダメージ 60→52</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">🐛 バグ修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ステージ1ラスボスの突進が必中だった問題を修正（座標ロックオン方式に）</li>
+          </ul>
+        </div>
         
         <!-- Ver 1.8.6 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(239,68,68,0.15); border-left:4px solid #ef4444; border-radius:8px;">
@@ -5403,7 +5419,7 @@ orbit:{
 blade:{
   short:'BD', name:'ブレード', lv:0, awaken:false, cd:0,
   baseRate: 1.10,
-  baseDmg:  60,
+  baseDmg:  52,
   span:     Math.PI * 0.5,  // 少し狭く
   baseR:    50,
   expandLv: [60, 90, 120, 180],  // 半径拡大UP
@@ -5672,7 +5688,7 @@ for (const e of state.enemies){
     laser:{
       short:'LZ', name:'レーザー', lv:0, awaken:false, cd:0,
       baseRate: 1.2,    // 発射間隔（0.8→1.2）
-      baseDmg: 36,      // ★基本ダメージ（18→36、2倍）
+      baseDmg: 32,      // ★基本ダメージ
       baseWidth: 8,     // 基本太さ（6→8）
       range: 800,       // 射程
       // ★覚醒時の継続レーザー用
@@ -5739,7 +5755,7 @@ for (const e of state.enemies){
         
         // レベルで威力と太さが増加
         const awakenMul = this.awaken ? 2.5 : 1;
-        const dmg = (this.baseDmg + 30 * (this.lv - 1)) * awakenMul * state.mods.dmgMul;
+        const dmg = (this.baseDmg + 25 * (this.lv - 1)) * awakenMul * state.mods.dmgMul;
         const width = (this.baseWidth + 4 * (this.lv - 1)) * awakenMul * state.mods.sizeMul;
         const range = this.range * (this.awaken ? 1.2 : 1);
         
