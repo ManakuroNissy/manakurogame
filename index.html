@@ -39,7 +39,7 @@ canvas {
 #start { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:50; pointer-events:auto; }
 .hud {
   position:absolute; left:0; right:0; top:0;
-  display:flex; gap:.75rem; padding:.5rem .75rem;
+  display:none; gap:.75rem; padding:.5rem .75rem;
   align-items:center; pointer-events:none;
 
   /* ← ここから追記/置換：セーフエリア考慮しつつ左上Pauseぶんだけ空ける */
@@ -1252,9 +1252,11 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
     try{
       if (window.initAudioOnce) initAudioOnce();
       if (window.AC && AC.state === 'suspended') AC.resume();
-      // すでにBGMが読めていてミュートでなければ再生
-      if (window.bgm && bgm.isReady && bgm.isReady() && !window.AUDIO_MUTED){
-        const p = bgm.play(); if (p && p.catch) p.catch(()=>{});
+      // タイトルBGMを再生（ゲーム開始前のみ）
+      if (window.titleBgm && !window.AUDIO_MUTED && (!window.state || !state.started)){
+        titleBgm.load('title.mp3');
+        titleBgm.setVolume(0.15);
+        titleBgm.play();
       }
     }catch(_){}
     ['pointerdown','keydown','touchstart','visibilitychange']
@@ -1292,8 +1294,55 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
     },
     play(){ try{ BG.el && BG.el.play(); }catch(_){ /* autoplay規制はStart押下で回避 */ } },
     pause(){ BG.el && BG.el.pause(); },
+    stop(){ if(BG.el){ BG.el.pause(); BG.el.currentTime = 0; } },
     setVolume(v){ BG.vol = v; if (BG.gain) BG.gain.gain.value = (window.AUDIO_MUTED ? 0 : v); },
     isReady(){ return !!BG.ready; }
+  };
+})();
+
+// === タイトルBGM (title.mp3用) ================================
+(function(){
+  function AC_(){
+    if (!window.AC && typeof initAudioOnce === 'function') initAudioOnce();
+    return window.AC;
+  }
+  const TBG = { el:null, node:null, gain:null, vol:0.15, ready:false, connected:false };
+
+  window.titleBgm = {
+    load(url){
+      const AC = AC_(); if (!AC) return;
+      if (!TBG.el){
+        TBG.el = new Audio();
+        TBG.el.loop = true;
+        TBG.el.preload = 'auto';
+      }
+      if (!TBG.connected && AC){
+        try {
+          TBG.node = AC.createMediaElementSource(TBG.el);
+          TBG.gain = AC.createGain();
+          TBG.gain.gain.value = (window.AUDIO_MUTED ? 0 : TBG.vol);
+          // bus.bgmに接続（BGM音量スライダーと連動）、なければbus.masterに
+          const dest = (window.bus && bus.bgm) ? bus.bgm : 
+                       (window.bus && bus.master) ? bus.master : AC.destination;
+          TBG.node.connect(TBG.gain).connect(dest);
+          TBG.connected = true;
+        } catch(e) { console.warn('titleBgm connect error:', e); }
+      }
+      TBG.el.src = url;
+      TBG.el.addEventListener('canplay', ()=> TBG.ready = true, {once:true});
+    },
+    play(){ 
+      try{ 
+        if (TBG.el) {
+          TBG.el.play().catch(()=>{}); 
+        }
+      }catch(_){} 
+    },
+    pause(){ TBG.el && TBG.el.pause(); },
+    stop(){ if(TBG.el){ TBG.el.pause(); TBG.el.currentTime = 0; } },
+    setVolume(v){ TBG.vol = v; if (TBG.gain) TBG.gain.gain.value = (window.AUDIO_MUTED ? 0 : v); },
+    isReady(){ return !!TBG.ready; },
+    isPlaying(){ return TBG.el && !TBG.el.paused; }
   };
 })();
 
@@ -2040,6 +2089,12 @@ function updateHudTop(){
   const el = document.getElementById('hudTop');
   if (!el) return;
 
+  // ゲーム開始前は非表示
+  if (!window.state || !state.started) {
+    el.style.display = 'none';
+    return;
+  }
+
   // 縦向きだけ表示（横では隠す）
   if (!PLAY.isPortrait){
     el.style.display = 'none';
@@ -2062,13 +2117,19 @@ function ensurePcTimer(){
     el.textContent = '0:00';
     document.body.appendChild(el);        // ← dock ではなく body へ
   }
-  // 表示はJS側で制御したいならここで block に
-  el.style.display = 'block';
+  // ゲーム開始前は非表示
+  el.style.display = (window.state && state.started) ? 'block' : 'none';
 }
 
 function positionPcTimer(){
   const el = document.getElementById('pcTimer');
   if (!el || !window.PLAY) return;
+  
+  // ゲーム開始前は非表示
+  if (!window.state || !state.started) {
+    el.style.display = 'none';
+    return;
+  }
   
   // 横画面＆小さめ画面(=タッチ端末想定)ならタイマーを 1/3 に
 const isLandscape = window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
@@ -3408,46 +3469,32 @@ if (!startBtn) {
 }  
 // Start押下でBGMを読み込み＆再生（1回だけ）
 (function(){
-  const btn = document.getElementById('startBtn');
-  if (!btn || !window.bgm) return;
+  const buttons = [
+    document.getElementById('startBtn'),
+    document.getElementById('startEasyBtn'),
+    document.getElementById('startHardBtn'),
+    document.getElementById('startHardcoreBtn')
+  ];
+  
+  buttons.forEach(btn => {
+    if (!btn || !window.bgm) return;
+    
+    btn.addEventListener('click', ()=>{
+      try{
+        // AudioContext を確実に用意＆再開
+        if (window.initAudioOnce) initAudioOnce();
+        if (window.AC && AC.state === 'suspended') AC.resume();
 
-  btn.addEventListener('click', ()=>{
-    try{
-      // AudioContext を確実に用意＆再開
-      if (window.initAudioOnce) initAudioOnce();
-      if (window.AC && AC.state === 'suspended') AC.resume();
-
-      // BGM を必ずロード→音量設定→再生
-      bgm.load('main.mp3');      // index.html と同じ階層のファイル名
-      bgm.setVolume(0.09);       // 初期音量（0.18の50%）
-      const p = bgm.play();
-      if (p && p.catch) p.catch(e=>console.warn('BGM play blocked:', e));
-    }catch(e){
-      console.warn('BGM start error:', e);
-    }
-  }, {once:true});
-})();
-
-// ハードコアスタート押下でもBGMを読み込み＆再生（1回だけ）
-(function(){
-  const btn = document.getElementById('startHardcoreBtn');
-  if (!btn || !window.bgm) return;
-
-  btn.addEventListener('click', ()=>{
-    try{
-      // AudioContext を確実に用意＆再開
-      if (window.initAudioOnce) initAudioOnce();
-      if (window.AC && AC.state === 'suspended') AC.resume();
-
-      // BGM を必ずロード→音量設定→再生
-      bgm.load('main.mp3');      // index.html と同じ階層のファイル名
-      bgm.setVolume(0.09);       // 初期音量（0.18の50%）
-      const p = bgm.play();
-      if (p && p.catch) p.catch(e=>console.warn('BGM play blocked:', e));
-    }catch(e){
-      console.warn('BGM start error:', e);
-    }
-  }, {once:true});
+        // BGM を必ずロード→音量設定→再生
+        bgm.load('main.mp3');      // index.html と同じ階層のファイル名
+        bgm.setVolume(0.09);       // 初期音量（0.18の50%）
+        const p = bgm.play();
+        if (p && p.catch) p.catch(e=>console.warn('BGM play blocked:', e));
+      }catch(e){
+        console.warn('BGM start error:', e);
+      }
+    }, {once:true});
+  });
 })();
 
   
@@ -4265,6 +4312,30 @@ function goToTitle() {
   const pBtn = document.getElementById('pauseBtn');
   if (pBtn) pBtn.style.display = 'none';
   
+  // HUDを非表示
+  const hud = document.querySelector('.hud');
+  if (hud) hud.style.display = 'none';
+  
+  // キャンバスを黒でクリア（ゲーム画面が透けて見えないように）
+  try {
+    const cv = document.getElementById('cv');
+    if (cv) {
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#0a0a1a';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+    }
+  } catch(e) {}
+  
+  // メインBGMを停止し、タイトルBGMを再開
+  try {
+    if (window.bgm) bgm.stop();
+    if (window.titleBgm && !window.AUDIO_MUTED) {
+      titleBgm.load('title.mp3');
+      titleBgm.setVolume(0.15);
+      titleBgm.play();
+    }
+  } catch(e) {}
+  
   console.log('goToTitle completed'); // デバッグ用
 }
 window.goToTitle = goToTitle;
@@ -4545,6 +4616,9 @@ async function startStage(stageId, hardcore) {
     try {
       if (window.initAudioOnce) initAudioOnce();
       if (window.AC && AC.state === 'suspended') AC.resume();
+      // タイトルBGMを停止
+      if (window.titleBgm) titleBgm.stop();
+      // メインBGMを再生
       if (window.bgm) {
         bgm.load('main.mp3');
         bgm.setVolume(0.09);
@@ -4562,6 +4636,13 @@ async function startStage(stageId, hardcore) {
     state.paused = false;
     document.getElementById('start').style.display = 'none';
     document.getElementById('stageSelectModal').style.display = 'none';
+    
+    // HUDを表示
+    const hud = document.querySelector('.hud');
+    if (hud) hud.style.display = 'flex';
+    const hudTop = document.getElementById('hudTop');
+    if (hudTop) hudTop.style.display = '';
+    
     state.last = performance.now();
     syncPauseButton();
     // ポーズボタンを表示
