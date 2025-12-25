@@ -3639,13 +3639,17 @@ function closeAllModals() {
     'startBonusModal', 
     'rankingModal',
     'achievementsModal',
-    'updateLogModal',
-    'stageSelectModal'
+    'updateLogModal'
   ];
+  // 動的生成モーダルは削除
   for (const id of modalIds) {
     const el = document.getElementById(id);
     if (el) el.remove();
   }
+  // ステージ選択モーダルは削除せず非表示に（HTMLに定義されているため）
+  const stageModal = document.getElementById('stageSelectModal');
+  if (stageModal) stageModal.style.display = 'none';
+  
   // レベルアップ・宝箱画面も閉じる
   if (levelupEl) levelupEl.style.display = 'none';
   if (chestEl) chestEl.style.display = 'none';
