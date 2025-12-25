@@ -564,8 +564,8 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 1.8.7</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;">武器バランス調整</span>
+    <span style="opacity:0.7;">Ver 1.8.8</span> - 
+    <span style="opacity:0.6; font-size:0.8rem;">バグ修正・音量設定</span>
   </div>
   
   <button id="startBtn" class="btn">スタート</button>
@@ -638,7 +638,7 @@ document.head.appendChild(link);
     </div>
     <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center; margin-top:1rem;">
       <button id="retryBtn" class="btn">やり直す</button>
-      <button id="titleBtnGameover" class="btn" style="background:#64748b;">タイトルに戻る</button>
+      <button id="titleBtnGameover" class="btn" style="background:#64748b;" onclick="goToTitle()">タイトルに戻る</button>
     </div>
     </div> <!-- ← ここで閉じる -->
 <!-- クリア画面 -->
@@ -664,7 +664,7 @@ document.head.appendChild(link);
   </div>
   <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center; margin-top:1rem;">
     <button id="replayBtn" class="btn">もう一度遊ぶ</button>
-    <button id="titleBtn" class="btn" style="background:#64748b;">タイトルに戻る</button>
+    <button id="titleBtn" class="btn" style="background:#64748b;" onclick="goToTitle()">タイトルに戻る</button>
     <button id="hardcoreBtn" class="btn" style="display:none;background:#8b5cf6;">Hardcoreで再挑戦</button>
   </div>
 </div>
@@ -680,6 +680,32 @@ document.head.appendChild(link);
       </div>
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 1.8.8 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.15); border-left:4px solid #10b981; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#34d399; font-size:1.3rem;">Ver 1.8.8 <span style="font-size:0.8rem; opacity:0.7;">- 2024/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#6ee7b7;">🔊 新機能</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトル画面に設定ボタン追加（BGM/効果音の音量調整）</li>
+            <li>一時停止メニューでも音量調整可能</li>
+            <li>音量設定はブラウザに保存</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#6ee7b7;">🐛 バグ修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトルに戻るボタンが押せなくなる問題を修正</li>
+            <li>ゲームオーバー/クリア時のランキング自動表示を削除</li>
+            <li>ゲームオーバー処理の統合（重複関数の整理）</li>
+            <li>ピラートラップのノックバック効果が消えていた問題を修正</li>
+            <li>被ダメージ時の無敵時間が付与されない箇所を修正</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#6ee7b7;">⚖️ バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>miniTriangle：HP 16→8に戻し、経験値ドロップ復活</li>
+          </ul>
+        </div>
         
         <!-- Ver 1.8.7 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
@@ -3293,48 +3319,6 @@ replayBtn.onclick = () => {
   syncPauseButton();
 };
 
-// タイトルに戻るボタン
-const titleBtn = document.getElementById('titleBtn');
-if (titleBtn) {
-  titleBtn.onclick = () => {
-    // すべてのモーダルを閉じる
-    closeAllModals();
-    
-    // ランキング消去
-    const rankingModal = document.getElementById('rankingModal');
-    if (rankingModal) rankingModal.remove();
-    
-    // クリア画面を隠す
-    clearEl.style.display = 'none';
-    
-    // スタート画面を表示
-    const startEl = document.getElementById('start');
-    if (startEl) startEl.style.display = 'flex';
-    
-    // ゲームを完全にリセット
-    state.started = false;
-    state.gameover = false;
-    state.paused = true;
-    state.manualPaused = false;
-    state._pendingRanking = null; // ランキング表示をキャンセル
-    state._debugInvincible = false; // デバッグ無敵をリセット
-    state._debugSkipToFinal = false; // デバッグモードをリセット
-    state._didSkipFinal = false;
-    
-    // 配列をクリア
-    state.enemies.length = 0;
-    state.bullets.length = 0;
-    state.enemyBullets.length = 0;
-    state.gems.length = 0;
-    state.items.length = 0;
-    state.effects.length = 0;
-    state.sparks.length = 0;
-    
-    // ポーズボタンを非表示
-    if (pauseBtn) pauseBtn.style.display = 'none';
-  };
-}
-
 // resetGame() の最後あたりでクリア画面も隠す
 clearEl.style.display = 'none';
   
@@ -3529,49 +3513,6 @@ retryBtn.onclick = () => {
   resetGame(); 
   syncPauseButton(); 
 };
-
-// ゲームオーバーのタイトルに戻るボタン
-const titleBtnGameover = document.getElementById('titleBtnGameover');
-const gameoverEl = document.getElementById('gameover');
-if (titleBtnGameover && gameoverEl) {
-  titleBtnGameover.onclick = () => {
-    // すべてのモーダルを閉じる
-    closeAllModals();
-    
-    // ランキング消去
-    const rankingModal = document.getElementById('rankingModal');
-    if (rankingModal) rankingModal.remove();
-    
-    // ゲームオーバー画面を隠す
-    gameoverEl.style.display = 'none';
-    
-    // スタート画面を表示
-    const startEl = document.getElementById('start');
-    if (startEl) startEl.style.display = 'flex';
-    
-    // ゲームを完全にリセット
-    state.started = false;
-    state.gameover = false;
-    state.paused = true;
-    state.manualPaused = false;
-    state._pendingRanking = null; // ランキング表示をキャンセル
-    state._debugInvincible = false; // デバッグ無敵をリセット
-    state._debugSkipToFinal = false; // デバッグモードをリセット
-    state._didSkipFinal = false;
-    
-    // 配列をクリア
-    state.enemies.length = 0;
-    state.bullets.length = 0;
-    state.enemyBullets.length = 0;
-    state.gems.length = 0;
-    state.items.length = 0;
-    state.effects.length = 0;
-    state.sparks.length = 0;
-    
-    // ポーズボタンを非表示
-    if (pauseBtn) pauseBtn.style.display = 'none';
-  };
-}
 
 
 function syncPauseButton(){
@@ -3842,6 +3783,52 @@ function closePauseMenu() {
   }
 }
 
+// タイトルに戻る（グローバル関数）
+function goToTitle() {
+  // すべてのモーダルを閉じる
+  closeAllModals();
+  
+  // ランキング消去
+  const rankingModal = document.getElementById('rankingModal');
+  if (rankingModal) rankingModal.remove();
+  
+  // ゲームオーバー画面を隠す
+  const goEl = document.getElementById('gameover');
+  if (goEl) goEl.style.display = 'none';
+  
+  // クリア画面を隠す
+  const clrEl = document.getElementById('gameclear');
+  if (clrEl) clrEl.style.display = 'none';
+  
+  // スタート画面を表示
+  const startEl = document.getElementById('start');
+  if (startEl) startEl.style.display = 'flex';
+  
+  // ゲームを完全にリセット
+  state.started = false;
+  state.gameover = false;
+  state.paused = true;
+  state.manualPaused = false;
+  state._pendingRanking = null;
+  state._debugInvincible = false;
+  state._debugSkipToFinal = false;
+  state._didSkipFinal = false;
+  
+  // 配列をクリア
+  state.enemies.length = 0;
+  state.bullets.length = 0;
+  state.enemyBullets.length = 0;
+  state.gems.length = 0;
+  state.items.length = 0;
+  state.effects.length = 0;
+  state.sparks.length = 0;
+  
+  // ポーズボタンを非表示
+  const pBtn = document.getElementById('pauseBtn');
+  if (pBtn) pBtn.style.display = 'none';
+}
+window.goToTitle = goToTitle;
+
 // すべてのモーダルを閉じる（タイトルに戻る・リタイア時用）
 function closeAllModals() {
   const modalIds = [
@@ -3894,6 +3881,7 @@ if (pauseBtn){
 function triggerGameOver(){
   if (state.gameover) return;
   state.gameover = true;
+  state.paused = true;
 
   // 入力を止める
   state.manualPaused = false;
@@ -3901,6 +3889,17 @@ function triggerGameOver(){
 
   // プレイヤー非表示（描画側でも見ない）
   if (state.player) state.player.visible = false;
+  
+  // XP回収の残りを強制停止
+  state.gather.active = false;
+  state.gather.time = 0;
+  state.gather.totalXP = 0;
+  const gatherEl = document.getElementById('gatherHUD');
+  if (gatherEl) gatherEl.style.display = 'none';
+  
+  // ノックバック＆無敵も停止
+  state.player.kbx = state.player.kby = 0;
+  state.player.iTime = 0;
 
   // UI
   if (goEl) goEl.style.display = 'flex';
@@ -3911,6 +3910,15 @@ function triggerGameOver(){
   // スコア保存（ランキングは自動表示しない）
   const scoreData = createScoreData('gameover');
   saveScore(scoreData);
+  
+  // このセッションで解除された実績をリセット
+  window._unlockedThisSession = [];
+  
+  // ゲームオーバー時の実績チェック（討伐数など）
+  if (typeof checkKillAchievements === 'function') checkKillAchievements();
+  
+  // 解除された実績を表示（ゲームオーバー版）
+  if (typeof displayUnlockedAchievementsGameover === 'function') displayUnlockedAchievementsGameover();
 
   // フローティング・ジョイスティックOFF
   delete document.body.dataset.fjoy;
@@ -7530,11 +7538,10 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
               vx: Math.cos(angle + off) * 150,
               vy: Math.sin(angle + off) * 150,
               size: 12,
-              hp: 16,              // ★HP2倍（8→16）
-              maxHp: 16,
-              dmg: 10,             // ★ダメージ10（8→10）
+              hp: 8,               // ★HP元に戻す
+              maxHp: 8,
+              dmg: 10,             // ★ダメージ10
               type: 'miniTriangle',
-              noXpDrop: true,      // ★経験値ドロップなし
               bounces: 0,
               maxBounces: 3,
               rotation: angle + off,
@@ -8918,13 +8925,11 @@ state.paused = false;                 // ← ポーズ中でも tick が効く�
           state.items.push({ kind: 'chest', x: pos.x, y: pos.y, r: 14, t: 0, picks });
           addEffect('text', { x: e.x, y: e.y, life: 1.2, text: (picks === 2 ? '宝箱×2！' : '宝箱！') });
           spark(e.x, e.y, e.type === 'mid' ? 22 : 34);
-        } else if (e.type === 'miniTriangle') {
-          // ★miniTriangleは経験値を落とさない、エフェクトのみ
-          spark(e.x, e.y, 5);
         } else {
+          // 通常の経験値ドロップ（miniTriangle含む）
           const val = 1 + (Math.random() < 0.2 ? 1 : 0);
           dropGem(e.x, e.y, val);
-          spark(e.x, e.y, 10);
+          spark(e.x, e.y, e.type === 'miniTriangle' ? 5 : 10);
         }
         state.enemies.splice(i, 1);
       }
@@ -11488,26 +11493,8 @@ function triggerFinalExplosion(x, y){
 }
 
 function gameOver(){
-  state.paused = true;
-  // ▼ XP回収の残りを強制停止
-  state.gather.active = false;
-  state.gather.time = 0;
-  state.gather.totalXP = 0;
-if (gatherEl) gatherEl.style.display='none';
-  // ▼ ノックバック＆無敵も停止
-  state.player.kbx = state.player.kby = 0;
-  state.player.iTime = 0;
-  
-  // このセッションで解除された実績をリセット
-  window._unlockedThisSession = [];
-  
-  // ゲームオーバー時の実績チェック（討伐数など）
-  checkKillAchievements();
-  
-  // 解除された実績を表示（ゲームオーバー版）
-  displayUnlockedAchievementsGameover();
-  
-  goEl.style.display='flex';
+  // triggerGameOverに統合
+  triggerGameOver();
 }
 
 // ゲームオーバー時の実績表示
