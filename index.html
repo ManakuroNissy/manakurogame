@@ -4800,6 +4800,12 @@ replayBtn.onclick = () => {
   state.gameover = false;
   state._pendingRanking = null;
   
+  // 配列を事前クリア（前回のエフェクトが見えないように）
+  state.effects.length = 0;
+  state.bullets.length = 0;
+  state.enemyBullets.length = 0;
+  state.sparks.length = 0;
+  
   state.mode.hardcore = false;      // ← ノーマルで再挑戦
   clearEl.style.display='none';
   resetGame();
@@ -5097,6 +5103,12 @@ retryBtn.onclick = () => {
   state.gameover = false;
   state._pendingRanking = null;
   
+  // 配列を事前クリア（前回のエフェクトが見えないように）
+  state.effects.length = 0;
+  state.bullets.length = 0;
+  state.enemyBullets.length = 0;
+  state.sparks.length = 0;
+  
   ensureEndScoreNodes();
   resetGame(); 
   syncPauseButton(); 
@@ -5105,6 +5117,13 @@ retryBtn.onclick = () => {
 
 function syncPauseButton(){
   if (!pauseBtn) return;
+  
+  // タイトル画面にいる場合は非表示
+  if (!state.started) {
+    pauseBtn.style.display = 'none';
+    return;
+  }
+  
   // 表示は manualPaused を見て決める（▶=停止中／⏸=動作中）
   const showingPlay = !!state.manualPaused;
   pauseBtn.textContent = showingPlay ? '▶' : '⏸';
@@ -5449,8 +5468,11 @@ function goToTitle() {
   state.sparks.length = 0;
   
   // ポーズボタンを非表示
-  const pBtn = document.getElementById('pauseBtn');
-  if (pBtn) pBtn.style.display = 'none';
+  const pBtn = document.getElementById('btnPause');
+  if (pBtn) {
+    pBtn.style.display = 'none';
+    pBtn.textContent = '⏸'; // テキストもリセット
+  }
   
   // HUDを非表示
   const hud = document.querySelector('.hud');
@@ -5867,6 +5889,16 @@ async function startStage(stageId, hardcore) {
     // Clear arrays
     state.enemies.length=0; state.bullets.length=0; state.enemyBullets.length=0;
     state.gems.length=0; state.sparks.length=0; state.effects.length=0; state.items.length=0;
+
+    // キャンバスを即座にクリア（前回のエフェクトが一瞬見えるのを防止）
+    try {
+      const cvs = document.getElementById('cv');
+      if (cvs) {
+        const ctx = cvs.getContext('2d');
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
+      }
+    } catch(e) {}
 
 
 
@@ -8583,21 +8615,28 @@ if (state.paused){
 // === movement input（浮遊スティック最優先 → なければキーボード/既存入力） ===
 let vx = 0, vy = 0;
 
-if (state.touchJoy && state.touchJoy.active) {
-  // フローティング・ジョイスティック
-  vx = state.touchJoy.dx;
-  vy = state.touchJoy.dy;
-} else {
-  // 既存の入力ベクトル（固定ジョイスティックが無くても0扱い）
-  if (state.input) {
-    if (typeof state.input.vx === 'number') vx += state.input.vx;
-    if (typeof state.input.vy === 'number') vy += state.input.vy;
-  }
-  // キーボード
-  if (typeof keyboardVec === 'function') {
-    const kv = keyboardVec(); vx += kv.x; vy += kv.y;
+// ゲームオーバー/クリア画面表示中は入力を無視
+const goEl = document.getElementById('gameover');
+const clearEl = document.getElementById('gameclear');
+const isEndScreen = (goEl && goEl.style.display !== 'none') || (clearEl && clearEl.style.display !== 'none');
+
+if (!isEndScreen) {
+  if (state.touchJoy && state.touchJoy.active) {
+    // フローティング・ジョイスティック
+    vx = state.touchJoy.dx;
+    vy = state.touchJoy.dy;
+  } else {
+    // 既存の入力ベクトル（固定ジョイスティックが無くても0扱い）
+    if (state.input) {
+      if (typeof state.input.vx === 'number') vx += state.input.vx;
+      if (typeof state.input.vy === 'number') vy += state.input.vy;
+    }
+    // キーボード
+    if (typeof keyboardVec === 'function') {
+      const kv = keyboardVec(); vx += kv.x; vy += kv.y;
   }
 }
+} // isEndScreen閉じ
 
 // 正規化 & 最終向き
 const pm = Math.hypot(vx, vy) || 0;
