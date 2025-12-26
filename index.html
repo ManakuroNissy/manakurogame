@@ -53,13 +53,29 @@ canvas {
 #start { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:50; pointer-events:auto; }
 .hud {
   position:absolute; left:0; right:0; top:0;
-  display:none; gap:.75rem; padding:.5rem .75rem;
-  align-items:center; pointer-events:none;
+  display:none; flex-direction:column; padding:.5rem .75rem;
+  pointer-events:none;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
 
-  /* ← ここから追記/置換：セーフエリア考慮しつつ左上Pauseぶんだけ空ける */
+  /* セーフエリア考慮 */
   padding-top:  calc(.5rem + env(safe-area-inset-top));
-  padding-left: calc(44px  + env(safe-area-inset-left));   /* ← 44pxでPauseを避ける */
-  padding-right:calc(.75rem + env(safe-area-inset-right));
+  padding-left: calc(.5rem + env(safe-area-inset-left));
+  padding-right:calc(.5rem + env(safe-area-inset-right));
+}
+/* HUD内コントロールボタン */
+.hud-ctrl-btn {
+  background:rgba(255,255,255,0.15); 
+  border:1px solid rgba(255,255,255,0.3); 
+  color:#fff; 
+  border-radius:6px; 
+  padding:6px 12px; 
+  font-size:16px; 
+  cursor:pointer; 
+  pointer-events:auto;
+}
+.hud-ctrl-btn:active {
+  background:rgba(255,255,255,0.3);
 }
   .badge { background:#1a1a1a; border:1px solid #333; border-radius:.5rem; padding:.2rem .5rem; font-weight:600; }
   .bar { flex:1; height:.6rem; background:#1a1a1a; border:1px solid #333; border-radius:.4rem; overflow:hidden; }
@@ -174,19 +190,21 @@ canvas {
   .hud { transform: scale(.9); transform-origin: top center; opacity:.9; }
 }
 
-/* かなり狭い端末ではHUDを非表示（後でプレイヤー周りリングで代替） */
+/* かなり狭い端末ではHUDを縮小表示（非表示にしない） */
 @media (max-width:480px){
-  .hud { display:none; }
+  .hud { 
+    transform: scale(.85); 
+    transform-origin: top center;
+  }
+}
 
-/* さらに狭い幅ならHUDの縮小を強める（HUDを使う構成のままなら） */
+/* さらに狭い幅ならHUDの縮小を強める */
 @media (max-width:380px){
-  .hud { transform: scale(.8); }
+  .hud { transform: scale(.75); transform-origin: top center; }
 }
 
 .bar.hp.low > i {
   background: linear-gradient(90deg,#ff5a5a,#c0392b);
-}
-
 }
 
 /* デスクトップ幅は HUD 右にタイマーぶんの余白を空ける */
@@ -248,8 +266,8 @@ body[data-hard]::after{
   z-index: 12005;
 }
 
-/* スマホ縦持ち時は通常の難易度バッジを非表示（HUD内に統合表示） */
-@media (orientation: portrait) and (max-width: 768px) {
+/* スマホ縦持ち/横持ち時は通常の難易度バッジを非表示（HUD内に統合表示） */
+@media (max-width: 950px) {
   body[data-hc]::after,
   body[data-easy]::after,
   body[data-hard]::after,
@@ -298,45 +316,9 @@ body[data-hc] .hc-badges{ display: flex; }
   box-shadow:0 6px 18px rgba(99,102,241,.25);
 }
 
-/* === Dock area (情報表示エリア) ====================== */
-#dock{
-  position:absolute;
-  display:none;
-  background:rgba(0,0,0,.6);
-  color:#fff;
-  padding:8px;
-  box-sizing:border-box;
-  border:1px solid rgba(255,255,255,.06);
-  backdrop-filter: blur(2px);
-  overflow:auto;
-  pointer-events: none;   /* ← タッチを透過してキャンバスへ渡す */
-}
-#dock.landscape{ border-left:1px solid rgba(255,255,255,.08); }
-#dock.portrait { border-top: 1px solid rgba(255,255,255,.08); }
-
-/* === Top HUD band ===================================== */
-#hudTop{
-  position:absolute;
-  left:0; top:0;
-  right:0;
-  height:48px;
-  width:auto;
-  display:none;           /* 縦向き時のみJSで 'block' にする */
-  color:#fff;
-  background:rgba(0,0,0,.55);
-  border-bottom:1px solid rgba(255,255,255,.1);
-  box-sizing:border-box;
-  padding:4px 8px;
-  backdrop-filter: blur(3px);
-  pointer-events: none;   /* ← 上帯は操作不要なので透過（ボタンは個別でauto） */
-padding-left:  var(--hud-lpad);
-  padding-right: var(--hud-rpad);
-  margin-top:    var(--hud-tpad);
-  box-sizing:    border-box; /* 念のため */
-  /* HUD上段がノッチにかぶらないよう安全領域分だけ下げる */
-#hudTop, .hud{
-  padding-top: calc(4px + var(--safe-top));
-}
+/* === Dock area / hudTop - 非表示（.hudに統合） ====================== */
+#dock, #hudTop {
+  display:none !important;
 }
 
 :root{
@@ -458,10 +440,38 @@ padding-left:  var(--hud-lpad);
   }
 }
 
-/* スマホ縦持ち時は従来のPause/Soundボタンを非表示（HUD内に統合） */
+/* スマホ縦持ち時はPause/Soundボタンを非表示（HUD内に統合） */
 @media (orientation: portrait) and (max-width: 768px) {
   #btnPause, #btnSound {
     display: none !important;
+  }
+  /* HUD内ボタンを表示 */
+  .hud-ctrl-btn {
+    display: inline-flex !important;
+  }
+}
+
+/* スマホ横向きでもHUD内ボタンを表示 */
+@media (orientation: landscape) and (max-width: 950px) {
+  #btnPause, #btnSound {
+    display: none !important;
+  }
+  .hud-ctrl-btn {
+    display: inline-flex !important;
+  }
+  .hud {
+    padding-left: calc(.5rem + env(safe-area-inset-left)) !important;
+  }
+}
+
+/* PC/タブレット（大画面）のみ従来ボタン表示、HUD内ボタン非表示 */
+@media (min-width: 951px) {
+  .hud-ctrl-btn {
+    display: none !important;
+  }
+  /* PC用：HUDの左パディングを広げてPauseボタンを避ける */
+  .hud {
+    padding-left: calc(50px + env(safe-area-inset-left)) !important;
   }
 }
 
@@ -2140,17 +2150,26 @@ document.head.appendChild(link);
 
   
   <div class="hud">
-    <!-- ▼スコア表示を追加 -->
-  <div id="scoreHud" style="font-weight:700; margin:4px 0;">
-    SCORE: <span id="scoreVal">0</span>
+    <!-- 1行目：コントロールとLv/難易度/スコア -->
+    <div id="hudRow1" style="display:flex; align-items:center; gap:8px; width:100%;">
+      <button id="hudPauseBtn" class="hud-ctrl-btn">⏸</button>
+      <button id="hudSoundBtn" class="hud-ctrl-btn">🔊</button>
+      <span class="badge" style="margin-left:8px;">Lv <b id="lv">1</b></span>
+      <span id="hudDiffBadge" class="badge diff-badge" style="display:none;"></span>
+      <span class="badge" style="margin-left:auto;">SCORE: <b id="scoreVal">0</b></span>
+    </div>
+    <!-- 2行目：HP/XPバー -->
+    <div id="hudRow2" style="display:flex; align-items:center; gap:6px; width:100%; margin-top:4px;">
+      <span style="font-size:10px; color:#2ecc71;">HP</span>
+      <div class="bar hp" style="flex:1;"><i id="hpw"></i></div>
+      <span style="font-size:10px; color:#3498db;">XP</span>
+      <div class="bar xp" style="flex:1;"><i id="xpw"></i></div>
+    </div>
   </div>
-    <span class="badge">Lv <b id="lv">1</b></span>
-    <div class="bar hp"><i id="hpw"></i></div>
-    <span id="hpval" class="hpval"></span>   <!-- ★ 追加 -->
-    <div class="bar xp"><i id="xpw"></i></div>
-    <span class="badge">武器: <b id="wep">-</b></span>
-  </div>
-  <!-- ⏸/▶ ボタン（.hud の外！） -->
+  <!-- 非表示の要素（互換性のため残す） -->
+  <span id="hpval" style="display:none;"></span>
+  <span id="wep" style="display:none;">-</span>
+  <!-- ⏸/▶ ボタン（PC用・.hud の外！） -->
   <button id="btnPause" class="hud-btn" aria-label="Pause">⏸</button>
   <div id="levelup"><div id="cardRow"></div></div>
   <div id="chest"><div id="chestRow"></div></div>
@@ -2184,8 +2203,14 @@ function showErrorBanner(msg){
 window.onerror = function(message, source, lineno, colno, error){
   showErrorBanner(`${message} @ ${source}:${lineno}:${colno}`);
 };
-// unhandledrejection も捕まえる
+// unhandledrejection も捕まえる（音楽ファイル関連は除外）
 window.addEventListener('unhandledrejection', e=>{
+  const msg = e.reason && (e.reason.message || String(e.reason));
+  // 音楽ファイルがない場合のエラーは無視（デバッグ時に邪魔）
+  if (msg && (msg.includes('no supported source') || msg.includes('Failed to load'))) {
+    console.warn('Audio load warning (ignored):', msg);
+    return;
+  }
   showErrorBanner('UnhandledPromiseRejection: ' + (e.reason && (e.reason.stack || e.reason.message || e.reason)));
 });
 
@@ -5128,6 +5153,12 @@ function syncPauseButton(){
   const showingPlay = !!state.manualPaused;
   pauseBtn.textContent = showingPlay ? '▶' : '⏸';
   pauseBtn.setAttribute('aria-label', showingPlay ? 'Resume' : 'Pause');
+  
+  // HUD内ボタンも同期
+  const hudPauseBtn = document.getElementById('hudPauseBtn');
+  if (hudPauseBtn) {
+    hudPauseBtn.textContent = showingPlay ? '▶' : '⏸';
+  }
 }
 
 // ポーズメニューを表示
@@ -5560,6 +5591,47 @@ if (pauseBtn){
     } else {
       showPauseMenu();
     }
+  };
+}
+
+// HUD内ポーズボタン（スマホ用）
+const hudPauseBtn = document.getElementById('hudPauseBtn');
+if (hudPauseBtn) {
+  hudPauseBtn.onclick = () => {
+    const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
+    const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
+    if (lvlOpen || chestOpen) return;
+    if (!state.started || state.gameover) return;
+    
+    const existingMenu = document.getElementById('pauseMenuModal');
+    if (existingMenu) {
+      closePauseMenu();
+    } else {
+      showPauseMenu();
+    }
+  };
+}
+
+// HUD内サウンドボタン（スマホ用）
+const hudSoundBtn = document.getElementById('hudSoundBtn');
+if (hudSoundBtn) {
+  hudSoundBtn.onclick = () => {
+    if (typeof initAudioOnce === 'function') initAudioOnce();
+    const next = !window.AUDIO_MUTED;
+    if (typeof window.setAudioMuted === 'function') setAudioMuted(next);
+    else {
+      window.AUDIO_MUTED = next;
+      const AC = window.AC;
+      if (window.bus && bus.master && AC){
+        const t = AC.currentTime;
+        bus.master.gain.setTargetAtTime(next ? 0.0001 : 1.0, t, 0.03);
+      }
+    }
+    soundEnabled = !next;
+    if (typeof saveMute === 'function') saveMute(next);
+    // アイコン更新
+    hudSoundBtn.textContent = next ? '🔇' : '🔊';
+    if (typeof refreshSoundIcon === 'function') refreshSoundIcon();
   };
 }
 
@@ -6268,7 +6340,7 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   // スコア
   if (scoreTop) scoreTop.textContent = (state.score || 0).toLocaleString();
 
-  // 難易度バッジ
+  // 難易度バッジ（古いhudTop用）
   if (diffBadgeTop) {
     const diff = state.mode?.difficulty || 'normal';
     if (diff === 'easy') {
@@ -6285,6 +6357,30 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
       diffBadgeTop.style.display = 'inline';
     } else {
       diffBadgeTop.style.display = 'none';
+    }
+  }
+  
+  // 新HUD難易度バッジ
+  const hudDiffBadge = document.getElementById('hudDiffBadge');
+  if (hudDiffBadge) {
+    const diff = state.mode?.difficulty || 'normal';
+    if (diff === 'easy') {
+      hudDiffBadge.textContent = 'EASY';
+      hudDiffBadge.style.background = '#22c55e';
+      hudDiffBadge.style.color = '#fff';
+      hudDiffBadge.style.display = 'inline';
+    } else if (diff === 'hard') {
+      hudDiffBadge.textContent = 'HARD';
+      hudDiffBadge.style.background = '#f59e0b';
+      hudDiffBadge.style.color = '#fff';
+      hudDiffBadge.style.display = 'inline';
+    } else if (diff === 'hardcore') {
+      hudDiffBadge.textContent = 'HARDCORE';
+      hudDiffBadge.style.background = '#8b5cf6';
+      hudDiffBadge.style.color = '#fff';
+      hudDiffBadge.style.display = 'inline';
+    } else {
+      hudDiffBadge.style.display = 'none';
     }
   }
 
