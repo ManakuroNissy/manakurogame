@@ -540,6 +540,769 @@ link.href = manifestURL;
 document.head.appendChild(link);
 </script>
 
+<!-- 多言語システム -->
+<script>
+// ====================================================================
+// 多言語システム (i18n)
+// ====================================================================
+(function(){
+  // 言語設定をlocalStorageから読み込み（デフォルト: 日本語）
+  const LANG_KEY = 'gameLanguage';
+  let currentLang = 'ja';
+  try {
+    const saved = localStorage.getItem(LANG_KEY);
+    if (saved && (saved === 'ja' || saved === 'en')) currentLang = saved;
+  } catch(e) {}
+
+  // 言語データ
+  const LANG = {
+    ja: {
+      // ===== タイトル画面 =====
+      title_subtitle: '10分間生き延びろ！',
+      title_desc: 'レベルアップで能力を選び、ボスを倒して生存を目指せ。',
+      btn_easy: '😊 Easy（かんたん）',
+      btn_normal: '🎮 Normal（通常）',
+      btn_hard: '💪 Hard（難しい）',
+      btn_hardcore: '🔥 Hardcore（鬼）',
+      btn_ranking: '🏆 RANKING',
+      btn_achievements: '🎖️ 実績',
+      btn_customize: '🎨 カスタマイズ',
+      btn_update_log: '📝 更新履歴',
+      btn_settings: '⚙️ 設定',
+      
+      // ===== 共通UI =====
+      btn_close: '✕ 閉じる',
+      btn_back_title: 'タイトルに戻る',
+      btn_retry: 'リトライ',
+      btn_continue: '続ける',
+      btn_pass: '⏭ パス',
+      btn_reroll: '🔄 リロール',
+      
+      // ===== ステージ選択 =====
+      stage_select_title: 'ステージ選択',
+      stage1_name: 'ステージ 1',
+      stage1_desc: '草原ステージ',
+      stage2_name: 'ステージ 2',
+      stage2_desc: '三角地獄',
+      stage_locked: '🔒 ステージ1クリアで解放',
+      
+      // ===== ゲームプレイ =====
+      level_up: 'レベルアップ！',
+      level_up_desc: '強化を選択してください',
+      treasure_chest: '宝箱発見！',
+      pick_mode: '個選んでね！',
+      start_bonus: '🎁 スタートボーナス',
+      start_bonus_desc_multi: '武器を{0}つ選んでスタート！',
+      start_bonus_desc_single: '武器を1つ選んでスタート！',
+      remaining: 'あと{0}つ選べます！',
+      
+      // ===== 一時停止 =====
+      pause_title: '⏸ 一時停止',
+      pause_elapsed: '経過時間',
+      pause_level: 'レベル',
+      pause_kills: '討伐数',
+      pause_weapons: '⚔️ 所持武器',
+      pause_abilities: '📊 能力強化',
+      pause_no_ability: '能力強化なし',
+      btn_resume: '▶ 再開',
+      btn_pause_title: 'タイトルに戻る',
+      
+      // ===== ゲームオーバー =====
+      gameover_title: 'GAME OVER',
+      gameover_time: '生存時間',
+      gameover_score: 'スコア',
+      
+      // ===== ゲームクリア =====
+      clear_title: 'STAGE CLEAR!',
+      clear_time: 'クリアタイム',
+      clear_score: '最終スコア',
+      clear_bonus_time: 'タイムボーナス',
+      clear_bonus_clear: 'クリアボーナス',
+      clear_next_stage: '➡️ 次のステージへ',
+      
+      // ===== 結果共通 =====
+      result_kills: '撃破数',
+      result_boss_kills: 'ボス撃破',
+      result_level: '到達レベル',
+      result_new_achievements: '🎖️ 今回解除した実績',
+      
+      // ===== ランキング =====
+      ranking_title: '🏆 RANKING',
+      ranking_no_data: 'まだ記録がありません',
+      
+      // ===== 実績 =====
+      achievements_title: '🎖️ 実績',
+      achievements_unlocked: '解除',
+      
+      // ===== カスタマイズ =====
+      customize_title: '🎨 カスタマイズ',
+      customize_color: '🎮 主人公カラー',
+      customize_color_desc: '実績を5つ解除するごとに新しいカラーをゲット！',
+      customize_next: '次のカラー解放まで',
+      customize_more: 'あと{0}つ',
+      customize_all_unlocked: '🌈 全カラー解放済み！',
+      
+      // ===== 設定 =====
+      settings_title: '⚙️ 設定',
+      settings_volume: '🔊 音量設定',
+      settings_bgm: 'BGM',
+      settings_sfx: '効果音',
+      settings_language: '🌐 言語 / Language',
+      
+      // ===== SNS共有 =====
+      share_twitter: 'X(Twitter)',
+      share_line: 'LINE',
+      share_copy: 'コピー',
+      share_copied: '📋 クリップボードにコピーしました！',
+      share_copy_failed: 'コピーできませんでした',
+      
+      // ===== PWA =====
+      pwa_add_home: '📱 ホーム画面に追加',
+      pwa_fullscreen: 'フルスクリーンで快適プレイ！',
+      pwa_add_btn: '追加する',
+      pwa_ios_instruction: '① 画面下の共有ボタン（□↑）をタップ\n② 「ホーム画面に追加」を選択\n③ 右上の「追加」をタップ',
+      pwa_android_instruction: 'ブラウザのメニューから「ホーム画面に追加」を選択してください',
+      
+      // ===== 能力名 =====
+      ability_hp: 'HP上限',
+      ability_speed: '移動速度',
+      ability_regen: 'HP回復',
+      ability_damage: '攻撃力',
+      ability_rate: '攻撃速度',
+      ability_size: '弾サイズ',
+      ability_defense: '耐久力',
+      ability_pickup: '回収範囲',
+      ability_double_item: 'Wドロップ',
+      ability_enabled: '有効',
+      
+      // ===== 難易度バッジ =====
+      diff_easy: 'EASY',
+      diff_normal: 'NORMAL',
+      diff_hard: 'HARD',
+      diff_hardcore: 'HC',
+      
+      // ===== ステータスMAXメッセージ =====
+      max_hp: '💪 HP MAX!',
+      max_speed: '🏃 移動速度MAX!',
+      max_damage: '💥 攻撃力MAX!',
+      max_rate: '⚡ 攻撃速度MAX!',
+      max_size: '🔵 弾サイズMAX!',
+      max_defense: '🛡️ 耐久力MAX!',
+      
+      // ===== 武器名 =====
+      weapon_blaster: 'ブラスター',
+      weapon_shotgun: 'ショットガン',
+      weapon_orbit: 'オービット',
+      weapon_lightning: 'ライトニング',
+      weapon_nova: 'ノヴァ',
+      weapon_rock: 'ロック',
+      weapon_homing: 'ホーミング',
+      weapon_ghost: 'ゴースト',
+      weapon_poison: 'ポイズン',
+      weapon_blade: 'ブレード',
+      weapon_rubber: 'ラバー',
+      weapon_laser: 'レーザー',
+      
+      // ===== 武器ショート名 =====
+      weapon_short_blaster: 'BL',
+      weapon_short_shotgun: 'SG',
+      weapon_short_orbit: 'OB',
+      weapon_short_lightning: 'LT',
+      weapon_short_nova: 'NV',
+      weapon_short_rock: 'RK',
+      weapon_short_homing: 'HM',
+      weapon_short_ghost: 'GH',
+      weapon_short_poison: 'PS',
+      weapon_short_blade: 'BD',
+      weapon_short_rubber: 'RB',
+      weapon_short_laser: 'LS',
+      
+      // ===== 武器説明（追加時） =====
+      weapon_add_shotgun: '扇状に複数弾発射',
+      weapon_add_orbit: '周囲を回転する弾',
+      weapon_add_lightning: '最も近い敵に雷撃',
+      weapon_add_nova: '全方位に衝撃波',
+      weapon_add_rock: '巨大岩が敵を貫通',
+      weapon_add_homing: '敵を追尾するミサイル',
+      weapon_add_ghost: '貫通するゴースト弾',
+      weapon_add_poison: '毒霧で持続ダメージ',
+      weapon_add_blade: '近接斬撃攻撃',
+      weapon_add_rubber: '壁で跳ね返る弾',
+      weapon_add_laser: '高速レーザー',
+      
+      // ===== 武器レベルアップ時 =====
+      weapon_up_blaster: 'ダメージ+20%, 弾速UP',
+      weapon_up_shotgun: '弾数+2, 範囲拡大',
+      weapon_up_orbit: '弾数+1, ダメージUP',
+      weapon_up_lightning: 'ダメージ+30%, 連鎖数UP',
+      weapon_up_nova: '範囲拡大, ダメージUP',
+      weapon_up_rock: 'サイズUP, ダメージUP',
+      weapon_up_homing: '弾数+1, 追尾力UP',
+      weapon_up_ghost: '弾数+1, サイズUP',
+      weapon_up_poison: '範囲拡大, 持続UP',
+      weapon_up_blade: '範囲拡大, ダメージUP',
+      weapon_up_rubber: '弾数+1, 反射回数UP',
+      weapon_up_laser: '弾数+1, 持続UP',
+      
+      // ===== 武器覚醒時 =====
+      weapon_awaken_blaster: '3方向同時発射',
+      weapon_awaken_shotgun: '爆発する炸裂弾',
+      weapon_awaken_orbit: '高速回転＆残像',
+      weapon_awaken_lightning: '範囲雷撃',
+      weapon_awaken_nova: '常時ダメージオーラ',
+      weapon_awaken_rock: '分裂岩',
+      weapon_awaken_homing: '爆発ミサイル',
+      weapon_awaken_ghost: '巨大化＆減速効果',
+      weapon_awaken_poison: '敵を引き寄せる',
+      weapon_awaken_blade: '回転斬撃',
+      weapon_awaken_rubber: '分裂弾',
+      weapon_awaken_laser: '持続照射',
+      
+      // ===== 能力アップグレード =====
+      upgrade_speed: '移動速度アップ',
+      upgrade_speed_desc: '移動速度 +15（上限あり）',
+      upgrade_maxhp: 'HP上限アップ',
+      upgrade_maxhp_desc: 'HP上限 +20（上限あり）',
+      upgrade_regen: 'HP自動回復',
+      upgrade_defense: '耐久力アップ',
+      upgrade_pickup: '吸引範囲アップ',
+      upgrade_pickup_desc: '経験値吸引範囲アップ（Lv3で全域）',
+      upgrade_rate: '攻撃速度アップ',
+      upgrade_damage: '与ダメージアップ',
+      upgrade_size: '弾サイズアップ',
+      upgrade_size_desc: '弾・範囲 +10%（上限あり）',
+      upgrade_double_item: 'アイテム出現率２倍',
+      upgrade_double_item_desc: '回復/核/磁石/宝箱などの出現率が２倍になる',
+      
+      // ===== 実績（基本） =====
+      ach_first_play: '初プレイ',
+      ach_first_play_desc: 'ゲームを開始する',
+      ach_first_kill: '初撃破',
+      ach_first_kill_desc: '敵を1体倒す',
+      ach_first_clear: '初クリア',
+      ach_first_clear_desc: 'ゲームをクリアする',
+      ach_kill_100: '虐殺者',
+      ach_kill_100_desc: '敵100体撃破',
+      ach_kill_500: '大虐殺者',
+      ach_kill_500_desc: '敵500体撃破',
+      ach_boss_10: 'ボスハンター',
+      ach_boss_10_desc: 'ボス10体撃破',
+      ach_level_20: '成長株',
+      ach_level_20_desc: 'レベル20到達',
+      ach_level_25: '熟練者',
+      ach_level_25_desc: 'レベル25到達',
+      ach_speed_11min: 'スピードランナー',
+      ach_speed_11min_desc: '11分以内にクリア',
+      ach_hp_90_clear: '完全勝利',
+      ach_hp_90_clear_desc: 'HP90%以上でクリア',
+      ach_chest_10: '宝箱マニア',
+      ach_chest_10_desc: '宝箱10個開ける',
+      ach_gem_500: 'ジェムコレクター',
+      ach_gem_500_desc: 'ジェム500個取得',
+      ach_play_10: 'ベテラン',
+      ach_play_10_desc: '総プレイ10回',
+      ach_total_kill_5000: '生涯殺戮者',
+      ach_total_kill_5000_desc: '累計撃破5000体',
+      
+      // ===== 実績（難易度別） =====
+      ach_s1_easy_clear: 'ステージ1 Easy',
+      ach_s1_easy_clear_desc: 'ステージ1をEasyでクリア',
+      ach_s1_normal_clear: 'ステージ1 Normal',
+      ach_s1_normal_clear_desc: 'ステージ1をNormalでクリア',
+      ach_s1_hard_clear: 'ステージ1 Hard',
+      ach_s1_hard_clear_desc: 'ステージ1をHardでクリア',
+      ach_s1_hardcore_clear: 'ステージ1 Hardcore',
+      ach_s1_hardcore_clear_desc: 'ステージ1をHardcoreでクリア',
+      ach_s2_easy_clear: 'ステージ2 Easy',
+      ach_s2_easy_clear_desc: 'ステージ2をEasyでクリア',
+      ach_s2_normal_clear: 'ステージ2 Normal',
+      ach_s2_normal_clear_desc: 'ステージ2をNormalでクリア',
+      ach_s2_hard_clear: 'ステージ2 Hard',
+      ach_s2_hard_clear_desc: 'ステージ2をHardでクリア',
+      ach_s2_hardcore_clear: 'ステージ2 Hardcore',
+      ach_s2_hardcore_clear_desc: 'ステージ2をHardcoreでクリア',
+      
+      // ===== 実績（武器系） =====
+      ach_pure_blaster: 'ピュアガンナー',
+      ach_pure_blaster_desc: 'Blasterのみでクリア',
+      ach_weapon_2: '二刀流',
+      ach_weapon_2_desc: '武器2種類のみでクリア',
+      ach_weapon_3: '三銃士',
+      ach_weapon_3_desc: '武器3種類のみでクリア',
+      ach_all_weapons: '武器コレクター',
+      ach_all_weapons_desc: '全武器取得してクリア',
+      ach_awaken_blade: 'ブレードマスター',
+      ach_awaken_blade_desc: 'Blade覚醒でクリア',
+      ach_awaken_shotgun: 'ショットガンマスター',
+      ach_awaken_shotgun_desc: 'Shotgun覚醒でクリア',
+      ach_awaken_lightning: '雷神',
+      ach_awaken_lightning_desc: 'Lightning覚醒でクリア',
+      ach_awaken_nova: 'ノヴァマスター',
+      ach_awaken_nova_desc: 'Nova覚醒でクリア',
+      ach_awaken_homing: 'ホーミングマスター',
+      ach_awaken_homing_desc: 'Homing覚醒でクリア',
+      ach_awaken_ghost: 'ゴーストマスター',
+      ach_awaken_ghost_desc: 'Ghost覚醒でクリア',
+      ach_awaken_rubber: 'ラバーマスター',
+      ach_awaken_rubber_desc: 'Rubber覚醒でクリア',
+      ach_awaken_rock: 'ロックマスター',
+      ach_awaken_rock_desc: 'Rock覚醒でクリア',
+      ach_awaken_orbit: 'オービットマスター',
+      ach_awaken_orbit_desc: 'Orbit覚醒でクリア',
+      ach_awaken_poison: 'ポイズンマスター',
+      ach_awaken_poison_desc: 'Poison覚醒でクリア',
+      ach_awaken_laser: 'レーザーマスター',
+      ach_awaken_laser_desc: 'Laser覚醒でクリア',
+      ach_all_awaken: 'グランドマスター',
+      ach_all_awaken_desc: '累計で全11種類覚醒',
+      
+      // ===== 実績（その他） =====
+      ach_max_hp_clear: 'タンクマスター',
+      ach_max_hp_clear_desc: 'HP MAXでクリア',
+      ach_max_damage_clear: 'パワーハウス',
+      ach_max_damage_clear_desc: '球のダメージMAXでクリア',
+      ach_max_rate_clear: 'マシンガンナー',
+      ach_max_rate_clear_desc: '攻撃速度MAXでクリア',
+      ach_max_speed_clear: 'スピードデーモン',
+      ach_max_speed_clear_desc: '移動速度MAXでクリア',
+      ach_max_all_clear: '究極戦士',
+      ach_max_all_clear_desc: '全7能力MAXでクリア',
+      ach_reroll_20: 'リロールマスター',
+      ach_reroll_20_desc: '1プレイでリロール20回',
+      ach_chest_20: '宝箱ハンター',
+      ach_chest_20_desc: '累計宝箱20個開ける',
+      ach_boss_50: 'ボス殲滅者',
+      ach_boss_50_desc: '累計ボス50体撃破',
+      ach_survivor: '生存者',
+      ach_survivor_desc: 'HP30%以下でクリア',
+      ach_blaster_speed: '得点マスター',
+      ach_blaster_speed_desc: '35万点以上でクリア',
+      ach_all_weapon_master: '真の武器マスター',
+      ach_all_weapon_master_desc: '8種類以上の覚醒クリア達成',
+      ach_no_upgrade: '原始人',
+      ach_no_upgrade_desc: '能力強化なしでクリア（武器はOK）',
+      ach_no_item: '禁欲主義者',
+      ach_no_item_desc: 'アイテムなしでクリア（宝箱除く）',
+      ach_speed_1030: 'ソニック',
+      ach_speed_1030_desc: '10:30クリア',
+      ach_play_100: '廃人',
+      ach_play_100_desc: '総プレイ100回',
+      ach_total_kill_10000: '殲滅者',
+      ach_total_kill_10000_desc: '累計撃破10000体',
+      ach_all_complete: '完璧主義者',
+      ach_all_complete_desc: '全実績コンプリート',
+      
+      // ===== 実績通知 =====
+      ach_unlocked: '実績解除！',
+      
+      // ===== カラー名 =====
+      color_green: 'グリーン',
+      color_blue: 'ブルー',
+      color_red: 'レッド',
+      color_purple: 'パープル',
+      color_orange: 'オレンジ',
+      color_pink: 'ピンク',
+      color_cyan: 'シアン',
+      color_yellow: 'イエロー',
+      color_bronze: 'ブロンズ',
+      color_silver: 'シルバー',
+      color_gold: 'ゴールド',
+      color_rainbow: 'レインボー'
+    },
+    
+    // ===== 英語 =====
+    en: {
+      // ===== Title Screen =====
+      title_subtitle: 'Survive for 10 minutes!',
+      title_desc: 'Level up, choose abilities, defeat bosses, and survive.',
+      btn_easy: '😊 Easy',
+      btn_normal: '🎮 Normal',
+      btn_hard: '💪 Hard',
+      btn_hardcore: '🔥 Hardcore',
+      btn_ranking: '🏆 RANKING',
+      btn_achievements: '🎖️ Achievements',
+      btn_customize: '🎨 Customize',
+      btn_update_log: '📝 Update Log',
+      btn_settings: '⚙️ Settings',
+      
+      // ===== Common UI =====
+      btn_close: '✕ Close',
+      btn_back_title: 'Back to Title',
+      btn_retry: 'Retry',
+      btn_continue: 'Continue',
+      btn_pass: '⏭ Pass',
+      btn_reroll: '🔄 Reroll',
+      
+      // ===== Stage Select =====
+      stage_select_title: 'Stage Select',
+      stage1_name: 'Stage 1',
+      stage1_desc: 'Grassland',
+      stage2_name: 'Stage 2',
+      stage2_desc: 'Triangle Hell',
+      stage_locked: '🔒 Clear Stage 1 to unlock',
+      
+      // ===== Gameplay =====
+      level_up: 'Level Up!',
+      level_up_desc: 'Choose an upgrade',
+      treasure_chest: 'Treasure Chest!',
+      pick_mode: 'Pick {0}!',
+      start_bonus: '🎁 Start Bonus',
+      start_bonus_desc_multi: 'Choose {0} weapons to start!',
+      start_bonus_desc_single: 'Choose 1 weapon to start!',
+      remaining: '{0} more to choose!',
+      
+      // ===== Pause =====
+      pause_title: '⏸ Paused',
+      pause_elapsed: 'Elapsed',
+      pause_level: 'Level',
+      pause_kills: 'Kills',
+      pause_weapons: '⚔️ Weapons',
+      pause_abilities: '📊 Abilities',
+      pause_no_ability: 'No upgrades',
+      btn_resume: '▶ Resume',
+      btn_pause_title: 'Back to Title',
+      
+      // ===== Game Over =====
+      gameover_title: 'GAME OVER',
+      gameover_time: 'Survival Time',
+      gameover_score: 'Score',
+      
+      // ===== Game Clear =====
+      clear_title: 'STAGE CLEAR!',
+      clear_time: 'Clear Time',
+      clear_score: 'Final Score',
+      clear_bonus_time: 'Time Bonus',
+      clear_bonus_clear: 'Clear Bonus',
+      clear_next_stage: '➡️ Next Stage',
+      
+      // ===== Result Common =====
+      result_kills: 'Kills',
+      result_boss_kills: 'Bosses',
+      result_level: 'Level',
+      result_new_achievements: '🎖️ New Achievements',
+      
+      // ===== Ranking =====
+      ranking_title: '🏆 RANKING',
+      ranking_no_data: 'No records yet',
+      
+      // ===== Achievements =====
+      achievements_title: '🎖️ Achievements',
+      achievements_unlocked: 'Unlocked',
+      
+      // ===== Customize =====
+      customize_title: '🎨 Customize',
+      customize_color: '🎮 Player Color',
+      customize_color_desc: 'Unlock new colors every 5 achievements!',
+      customize_next: 'Next unlock at',
+      customize_more: '{0} more',
+      customize_all_unlocked: '🌈 All colors unlocked!',
+      
+      // ===== Settings =====
+      settings_title: '⚙️ Settings',
+      settings_volume: '🔊 Volume',
+      settings_bgm: 'BGM',
+      settings_sfx: 'SFX',
+      settings_language: '🌐 Language',
+      
+      // ===== SNS Share =====
+      share_twitter: 'X(Twitter)',
+      share_line: 'LINE',
+      share_copy: 'Copy',
+      share_copied: '📋 Copied to clipboard!',
+      share_copy_failed: 'Failed to copy',
+      
+      // ===== PWA =====
+      pwa_add_home: '📱 Add to Home Screen',
+      pwa_fullscreen: 'Play in fullscreen!',
+      pwa_add_btn: 'Add',
+      pwa_ios_instruction: '① Tap the Share button (□↑)\n② Select "Add to Home Screen"\n③ Tap "Add"',
+      pwa_android_instruction: 'Select "Add to Home Screen" from the browser menu',
+      
+      // ===== Ability Names =====
+      ability_hp: 'Max HP',
+      ability_speed: 'Move Speed',
+      ability_regen: 'HP Regen',
+      ability_damage: 'Damage',
+      ability_rate: 'Attack Speed',
+      ability_size: 'Bullet Size',
+      ability_defense: 'Defense',
+      ability_pickup: 'Pickup Range',
+      ability_double_item: 'Double Drop',
+      ability_enabled: 'ON',
+      
+      // ===== Difficulty Badge =====
+      diff_easy: 'EASY',
+      diff_normal: 'NORMAL',
+      diff_hard: 'HARD',
+      diff_hardcore: 'HC',
+      
+      // ===== Status MAX Messages =====
+      max_hp: '💪 HP MAX!',
+      max_speed: '🏃 Speed MAX!',
+      max_damage: '💥 Damage MAX!',
+      max_rate: '⚡ Attack Speed MAX!',
+      max_size: '🔵 Bullet Size MAX!',
+      max_defense: '🛡️ Defense MAX!',
+      
+      // ===== Weapon Names =====
+      weapon_blaster: 'Blaster',
+      weapon_shotgun: 'Shotgun',
+      weapon_orbit: 'Orbit',
+      weapon_lightning: 'Lightning',
+      weapon_nova: 'Nova',
+      weapon_rock: 'Rock',
+      weapon_homing: 'Homing',
+      weapon_ghost: 'Ghost',
+      weapon_poison: 'Poison',
+      weapon_blade: 'Blade',
+      weapon_rubber: 'Rubber',
+      weapon_laser: 'Laser',
+      
+      // ===== Weapon Short Names =====
+      weapon_short_blaster: 'BL',
+      weapon_short_shotgun: 'SG',
+      weapon_short_orbit: 'OB',
+      weapon_short_lightning: 'LT',
+      weapon_short_nova: 'NV',
+      weapon_short_rock: 'RK',
+      weapon_short_homing: 'HM',
+      weapon_short_ghost: 'GH',
+      weapon_short_poison: 'PS',
+      weapon_short_blade: 'BD',
+      weapon_short_rubber: 'RB',
+      weapon_short_laser: 'LS',
+      
+      // ===== Weapon Add Desc =====
+      weapon_add_shotgun: 'Fires multiple bullets in a spread',
+      weapon_add_orbit: 'Bullets orbit around you',
+      weapon_add_lightning: 'Strikes the nearest enemy',
+      weapon_add_nova: 'Shockwave in all directions',
+      weapon_add_rock: 'Giant boulder pierces enemies',
+      weapon_add_homing: 'Homing missiles',
+      weapon_add_ghost: 'Piercing ghost bullets',
+      weapon_add_poison: 'Poison cloud deals DOT',
+      weapon_add_blade: 'Close-range slash attack',
+      weapon_add_rubber: 'Bullets bounce off walls',
+      weapon_add_laser: 'High-speed laser',
+      
+      // ===== Weapon Level Up =====
+      weapon_up_blaster: 'Damage +20%, Speed UP',
+      weapon_up_shotgun: 'Bullets +2, Spread wider',
+      weapon_up_orbit: 'Bullets +1, Damage UP',
+      weapon_up_lightning: 'Damage +30%, Chain UP',
+      weapon_up_nova: 'Range wider, Damage UP',
+      weapon_up_rock: 'Size UP, Damage UP',
+      weapon_up_homing: 'Bullets +1, Tracking UP',
+      weapon_up_ghost: 'Bullets +1, Size UP',
+      weapon_up_poison: 'Range wider, Duration UP',
+      weapon_up_blade: 'Range wider, Damage UP',
+      weapon_up_rubber: 'Bullets +1, Bounces UP',
+      weapon_up_laser: 'Bullets +1, Duration UP',
+      
+      // ===== Weapon Awaken =====
+      weapon_awaken_blaster: '3-way shot',
+      weapon_awaken_shotgun: 'Explosive shells',
+      weapon_awaken_orbit: 'High-speed spin + afterimage',
+      weapon_awaken_lightning: 'Area lightning',
+      weapon_awaken_nova: 'Constant damage aura',
+      weapon_awaken_rock: 'Splitting rocks',
+      weapon_awaken_homing: 'Explosive missiles',
+      weapon_awaken_ghost: 'Giant + slow effect',
+      weapon_awaken_poison: 'Pulls enemies',
+      weapon_awaken_blade: 'Spinning slash',
+      weapon_awaken_rubber: 'Splitting bullets',
+      weapon_awaken_laser: 'Continuous beam',
+      
+      // ===== Ability Upgrades =====
+      upgrade_speed: 'Speed Up',
+      upgrade_speed_desc: 'Move Speed +15 (capped)',
+      upgrade_maxhp: 'Max HP Up',
+      upgrade_maxhp_desc: 'Max HP +20 (capped)',
+      upgrade_regen: 'HP Regen',
+      upgrade_defense: 'Defense Up',
+      upgrade_pickup: 'Pickup Range Up',
+      upgrade_pickup_desc: 'XP pickup range up (full at Lv3)',
+      upgrade_rate: 'Attack Speed Up',
+      upgrade_damage: 'Damage Up',
+      upgrade_size: 'Bullet Size Up',
+      upgrade_size_desc: 'Bullet/range +10% (capped)',
+      upgrade_double_item: 'Double Item Drop',
+      upgrade_double_item_desc: 'Double drop rate for healing, nukes, magnets, chests',
+      
+      // ===== Achievements (Basic) =====
+      ach_first_play: 'First Play',
+      ach_first_play_desc: 'Start the game',
+      ach_first_kill: 'First Kill',
+      ach_first_kill_desc: 'Defeat 1 enemy',
+      ach_first_clear: 'First Clear',
+      ach_first_clear_desc: 'Clear the game',
+      ach_kill_100: 'Slayer',
+      ach_kill_100_desc: 'Defeat 100 enemies',
+      ach_kill_500: 'Mass Slayer',
+      ach_kill_500_desc: 'Defeat 500 enemies',
+      ach_boss_10: 'Boss Hunter',
+      ach_boss_10_desc: 'Defeat 10 bosses',
+      ach_level_20: 'Rising Star',
+      ach_level_20_desc: 'Reach level 20',
+      ach_level_25: 'Veteran',
+      ach_level_25_desc: 'Reach level 25',
+      ach_speed_11min: 'Speedrunner',
+      ach_speed_11min_desc: 'Clear in under 11 minutes',
+      ach_hp_90_clear: 'Perfect Victory',
+      ach_hp_90_clear_desc: 'Clear with 90%+ HP',
+      ach_chest_10: 'Chest Maniac',
+      ach_chest_10_desc: 'Open 10 chests',
+      ach_gem_500: 'Gem Collector',
+      ach_gem_500_desc: 'Collect 500 gems',
+      ach_play_10: 'Experienced',
+      ach_play_10_desc: '10 total plays',
+      ach_total_kill_5000: 'Lifetime Killer',
+      ach_total_kill_5000_desc: '5000 total kills',
+      
+      // ===== Achievements (Difficulty) =====
+      ach_s1_easy_clear: 'Stage 1 Easy',
+      ach_s1_easy_clear_desc: 'Clear Stage 1 on Easy',
+      ach_s1_normal_clear: 'Stage 1 Normal',
+      ach_s1_normal_clear_desc: 'Clear Stage 1 on Normal',
+      ach_s1_hard_clear: 'Stage 1 Hard',
+      ach_s1_hard_clear_desc: 'Clear Stage 1 on Hard',
+      ach_s1_hardcore_clear: 'Stage 1 Hardcore',
+      ach_s1_hardcore_clear_desc: 'Clear Stage 1 on Hardcore',
+      ach_s2_easy_clear: 'Stage 2 Easy',
+      ach_s2_easy_clear_desc: 'Clear Stage 2 on Easy',
+      ach_s2_normal_clear: 'Stage 2 Normal',
+      ach_s2_normal_clear_desc: 'Clear Stage 2 on Normal',
+      ach_s2_hard_clear: 'Stage 2 Hard',
+      ach_s2_hard_clear_desc: 'Clear Stage 2 on Hard',
+      ach_s2_hardcore_clear: 'Stage 2 Hardcore',
+      ach_s2_hardcore_clear_desc: 'Clear Stage 2 on Hardcore',
+      
+      // ===== Achievements (Weapons) =====
+      ach_pure_blaster: 'Pure Gunner',
+      ach_pure_blaster_desc: 'Clear with Blaster only',
+      ach_weapon_2: 'Dual Wielder',
+      ach_weapon_2_desc: 'Clear with 2 weapons only',
+      ach_weapon_3: 'Triple Threat',
+      ach_weapon_3_desc: 'Clear with 3 weapons only',
+      ach_all_weapons: 'Weapon Collector',
+      ach_all_weapons_desc: 'Clear with all weapons',
+      ach_awaken_blade: 'Blade Master',
+      ach_awaken_blade_desc: 'Clear with Awakened Blade',
+      ach_awaken_shotgun: 'Shotgun Master',
+      ach_awaken_shotgun_desc: 'Clear with Awakened Shotgun',
+      ach_awaken_lightning: 'Thunder God',
+      ach_awaken_lightning_desc: 'Clear with Awakened Lightning',
+      ach_awaken_nova: 'Nova Master',
+      ach_awaken_nova_desc: 'Clear with Awakened Nova',
+      ach_awaken_homing: 'Homing Master',
+      ach_awaken_homing_desc: 'Clear with Awakened Homing',
+      ach_awaken_ghost: 'Ghost Master',
+      ach_awaken_ghost_desc: 'Clear with Awakened Ghost',
+      ach_awaken_rubber: 'Rubber Master',
+      ach_awaken_rubber_desc: 'Clear with Awakened Rubber',
+      ach_awaken_rock: 'Rock Master',
+      ach_awaken_rock_desc: 'Clear with Awakened Rock',
+      ach_awaken_orbit: 'Orbit Master',
+      ach_awaken_orbit_desc: 'Clear with Awakened Orbit',
+      ach_awaken_poison: 'Poison Master',
+      ach_awaken_poison_desc: 'Clear with Awakened Poison',
+      ach_awaken_laser: 'Laser Master',
+      ach_awaken_laser_desc: 'Clear with Awakened Laser',
+      ach_all_awaken: 'Grand Master',
+      ach_all_awaken_desc: 'Awaken all 11 weapons (cumulative)',
+      
+      // ===== Achievements (Others) =====
+      ach_max_hp_clear: 'Tank Master',
+      ach_max_hp_clear_desc: 'Clear with MAX HP',
+      ach_max_damage_clear: 'Powerhouse',
+      ach_max_damage_clear_desc: 'Clear with MAX Damage',
+      ach_max_rate_clear: 'Machine Gunner',
+      ach_max_rate_clear_desc: 'Clear with MAX Attack Speed',
+      ach_max_speed_clear: 'Speed Demon',
+      ach_max_speed_clear_desc: 'Clear with MAX Move Speed',
+      ach_max_all_clear: 'Ultimate Warrior',
+      ach_max_all_clear_desc: 'Clear with all 7 stats maxed',
+      ach_reroll_20: 'Reroll Master',
+      ach_reroll_20_desc: '20 rerolls in one play',
+      ach_chest_20: 'Chest Hunter',
+      ach_chest_20_desc: 'Open 20 chests (cumulative)',
+      ach_boss_50: 'Boss Slayer',
+      ach_boss_50_desc: '50 boss kills (cumulative)',
+      ach_survivor: 'Survivor',
+      ach_survivor_desc: 'Clear with 30% or less HP',
+      ach_blaster_speed: 'Score Master',
+      ach_blaster_speed_desc: 'Clear with 350,000+ points',
+      ach_all_weapon_master: 'True Weapon Master',
+      ach_all_weapon_master_desc: 'Clear with 8+ different awakened weapons',
+      ach_no_upgrade: 'Primitive',
+      ach_no_upgrade_desc: 'Clear without ability upgrades (weapons OK)',
+      ach_no_item: 'Ascetic',
+      ach_no_item_desc: 'Clear without items (chests OK)',
+      ach_speed_1030: 'Sonic',
+      ach_speed_1030_desc: 'Clear in 10:30',
+      ach_play_100: 'Addict',
+      ach_play_100_desc: '100 total plays',
+      ach_total_kill_10000: 'Annihilator',
+      ach_total_kill_10000_desc: '10,000 total kills',
+      ach_all_complete: 'Perfectionist',
+      ach_all_complete_desc: 'Complete all achievements',
+      
+      // ===== Achievement Notification =====
+      ach_unlocked: 'Achievement Unlocked!',
+      
+      // ===== Color Names =====
+      color_green: 'Green',
+      color_blue: 'Blue',
+      color_red: 'Red',
+      color_purple: 'Purple',
+      color_orange: 'Orange',
+      color_pink: 'Pink',
+      color_cyan: 'Cyan',
+      color_yellow: 'Yellow',
+      color_bronze: 'Bronze',
+      color_silver: 'Silver',
+      color_gold: 'Gold',
+      color_rainbow: 'Rainbow'
+    }
+  };
+
+  // 翻訳関数
+  function t(key, ...args) {
+    let text = LANG[currentLang][key] || LANG.ja[key] || key;
+    // プレースホルダー置換 {0}, {1}, ...
+    args.forEach((arg, i) => {
+      text = text.replace(new RegExp(`\\{${i}\\}`, 'g'), arg);
+    });
+    return text;
+  }
+
+  // 言語取得
+  function getLang() {
+    return currentLang;
+  }
+
+  // 言語設定
+  function setLang(lang) {
+    if (lang === 'ja' || lang === 'en') {
+      currentLang = lang;
+      try {
+        localStorage.setItem(LANG_KEY, lang);
+      } catch(e) {}
+      // UIを更新（遅延呼び出しで確実に関数が存在することを保証）
+      setTimeout(() => {
+        if (typeof window.updateUILanguage === 'function') window.updateUILanguage();
+      }, 0);
+    }
+  }
+
+  // グローバルに公開
+  window.LANG = LANG;
+  window.t = t;
+  window.getLang = getLang;
+  window.setLang = setLang;
+})();
+</script>
+
 </head>
 <body>
 
@@ -618,14 +1381,20 @@ document.head.appendChild(link);
 
 <div id="wrap">
 <div id="start" style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:.5rem;">
+  <!-- 言語切替ボタン（右上） -->
+  <div id="langSwitcher" style="position:absolute; top:10px; right:10px; display:flex; gap:4px; z-index:100;">
+    <button id="langJaBtn" class="langBtn" style="padding:6px 12px; border-radius:6px; border:2px solid #475569; background:#1e293b; color:#fff; font-size:12px; font-weight:bold; cursor:pointer;">日本語</button>
+    <button id="langEnBtn" class="langBtn" style="padding:6px 12px; border-radius:6px; border:2px solid #475569; background:#1e293b; color:#fff; font-size:12px; font-weight:bold; cursor:pointer;">English</button>
+  </div>
+  
   <h1>10min's Survivor</h1>
-  <h2>10分間生き延びろ！</h2>
-  <p>レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
+  <h2 id="titleSubtitle">10分間生き延びろ！</h2>
+  <p id="titleDesc">レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.0.0</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;">難易度モード追加</span>
+    <span style="opacity:0.7;">Ver 2.1.0</span> - 
+    <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
   <!-- 難易度選択ボタン -->
@@ -647,50 +1416,209 @@ document.head.appendChild(link);
 </div>
 </div>
 
+<!-- 言語切替スタイル -->
+<style>
+.langBtn { transition: all 0.2s; }
+.langBtn:hover { background: #334155 !important; }
+.langBtn.active { background: #3b82f6 !important; border-color: #60a5fa !important; }
+</style>
+
+<!-- 言語切替スクリプト -->
+<script>
+(function(){
+  function initLangSwitcher() {
+    const jaBtn = document.getElementById('langJaBtn');
+    const enBtn = document.getElementById('langEnBtn');
+    
+    function updateButtons() {
+      const lang = getLang();
+      if (jaBtn) jaBtn.classList.toggle('active', lang === 'ja');
+      if (enBtn) enBtn.classList.toggle('active', lang === 'en');
+    }
+    
+    if (jaBtn) {
+      jaBtn.onclick = () => { 
+        setLang('ja'); 
+        updateButtons(); 
+        if (typeof window.updateUILanguage === 'function') window.updateUILanguage();
+      };
+    }
+    if (enBtn) {
+      enBtn.onclick = () => { 
+        setLang('en'); 
+        updateButtons(); 
+        if (typeof window.updateUILanguage === 'function') window.updateUILanguage();
+      };
+    }
+    
+    updateButtons();
+  }
+  
+  // UI更新関数（言語変更時に呼ばれる）
+  window.updateUILanguage = function() {
+    const lang = getLang();
+    
+    // タイトル画面
+    const subtitle = document.getElementById('titleSubtitle');
+    const desc = document.getElementById('titleDesc');
+    if (subtitle) subtitle.textContent = t('title_subtitle');
+    if (desc) desc.textContent = t('title_desc');
+    
+    // 難易度ボタン
+    const easyBtn = document.getElementById('startEasyBtn');
+    const normalBtn = document.getElementById('startBtn');
+    const hardBtn = document.getElementById('startHardBtn');
+    const hardcoreBtn = document.getElementById('startHardcoreBtn');
+    if (easyBtn) easyBtn.textContent = t('btn_easy');
+    if (normalBtn) normalBtn.textContent = t('btn_normal');
+    if (hardBtn) hardBtn.textContent = t('btn_hard');
+    if (hardcoreBtn) hardcoreBtn.textContent = t('btn_hardcore');
+    
+    // メニューボタン
+    const rankingBtn = document.getElementById('rankingBtn');
+    const achievementsBtn = document.getElementById('achievementsBtn');
+    const customizeBtn = document.getElementById('customizeBtn');
+    const updateLogBtn = document.getElementById('updateLogBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (rankingBtn) rankingBtn.textContent = t('btn_ranking');
+    if (achievementsBtn) achievementsBtn.textContent = t('btn_achievements');
+    if (customizeBtn) customizeBtn.textContent = t('btn_customize');
+    if (updateLogBtn) updateLogBtn.textContent = t('btn_update_log');
+    if (settingsBtn) settingsBtn.textContent = t('btn_settings');
+    
+    // 言語ボタンの状態を更新
+    const jaBtn = document.getElementById('langJaBtn');
+    const enBtn = document.getElementById('langEnBtn');
+    if (jaBtn) jaBtn.classList.toggle('active', lang === 'ja');
+    if (enBtn) enBtn.classList.toggle('active', lang === 'en');
+    
+    // ゲームオーバー/クリア画面
+    const gameoverTitle = document.getElementById('gameoverTitle');
+    const gameoverSub = document.getElementById('gameoverSub');
+    const gameoverAchTitle = document.getElementById('gameoverAchTitle');
+    const clearTitle = document.getElementById('clearTitle');
+    const clearAchTitle = document.getElementById('clearAchTitle');
+    
+    if (gameoverTitle) gameoverTitle.textContent = t('gameover_title');
+    if (gameoverSub) gameoverSub.textContent = lang === 'ja' ? 'もう一度挑戦しよう!' : 'Try again!';
+    if (gameoverAchTitle) gameoverAchTitle.textContent = t('result_new_achievements');
+    if (clearTitle) clearTitle.textContent = '🎉 ' + t('clear_title') + ' 🎉';
+    if (clearAchTitle) clearAchTitle.textContent = t('result_new_achievements');
+    
+    // リトライ/タイトルボタン
+    const retryBtn = document.getElementById('retryBtn');
+    const replayBtn = document.getElementById('replayBtn');
+    const titleBtnGameover = document.getElementById('titleBtnGameover');
+    const titleBtn = document.getElementById('titleBtn');
+    const clearHardcoreBtn = document.getElementById('hardcoreBtn');
+    
+    if (retryBtn) retryBtn.textContent = t('btn_retry');
+    if (replayBtn) replayBtn.textContent = lang === 'ja' ? 'もう一度遊ぶ' : 'Play Again';
+    if (titleBtnGameover) titleBtnGameover.textContent = t('btn_back_title');
+    if (titleBtn) titleBtn.textContent = t('btn_back_title');
+    if (clearHardcoreBtn) clearHardcoreBtn.textContent = lang === 'ja' ? 'Hardcoreで再挑戦' : 'Hardcore Challenge';
+    
+    // シェアボタン
+    const shareXLabel1 = document.getElementById('shareXLabel1');
+    const shareXLabel2 = document.getElementById('shareXLabel2');
+    const shareLINELabel1 = document.getElementById('shareLINELabel1');
+    const shareLINELabel2 = document.getElementById('shareLINELabel2');
+    const copyLabel1 = document.getElementById('copyLabel1');
+    const copyLabel2 = document.getElementById('copyLabel2');
+    
+    const shareXText = lang === 'ja' ? 'Xでシェア' : 'Share on X';
+    const shareLINEText = lang === 'ja' ? 'LINEで送る' : 'LINE';
+    const copyText = lang === 'ja' ? 'コピー' : 'Copy';
+    
+    if (shareXLabel1) shareXLabel1.textContent = shareXText;
+    if (shareXLabel2) shareXLabel2.textContent = shareXText;
+    if (shareLINELabel1) shareLINELabel1.textContent = shareLINEText;
+    if (shareLINELabel2) shareLINELabel2.textContent = shareLINEText;
+    if (copyLabel1) copyLabel1.textContent = copyText;
+    if (copyLabel2) copyLabel2.textContent = copyText;
+    
+    // カスタマイズモーダルの更新
+    const customizeTitle = document.getElementById('customizeTitle');
+    const closeCustomize = document.getElementById('closeCustomize');
+    const customizeColorTitle = document.getElementById('customizeColorTitle');
+    const customizeColorDesc = document.getElementById('customizeColorDesc');
+    const colorProgressLabel = document.getElementById('colorProgressLabel');
+    
+    if (customizeTitle) customizeTitle.textContent = t('customize_title');
+    if (closeCustomize) closeCustomize.textContent = t('btn_close');
+    if (customizeColorTitle) customizeColorTitle.textContent = lang === 'ja' ? '🎮 主人公カラー' : '🎮 Player Color';
+    if (customizeColorDesc) customizeColorDesc.textContent = lang === 'ja' 
+      ? '実績を5つ解除するごとに新しいカラーをゲット！' 
+      : 'Unlock new colors every 5 achievements!';
+    if (colorProgressLabel) {
+      const progressText = document.getElementById('colorProgressText');
+      colorProgressLabel.innerHTML = (lang === 'ja' ? '次のカラー解放まで: ' : 'Next color unlock: ') + 
+        `<span id="colorProgressText">${progressText ? progressText.textContent : '0/5'}</span>`;
+    }
+    
+    // 設定モーダルも更新（存在する場合）
+    if (typeof updateSettingsModalLanguage === 'function') {
+      updateSettingsModalLanguage();
+    }
+  };
+  
+  // DOMContentLoaded後に初期化
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initLangSwitcher();
+      updateUILanguage();
+    });
+  } else {
+    initLangSwitcher();
+    updateUILanguage();
+  }
+})();
+</script>
+
 <!-- カスタマイズモーダル -->
 <div id="customizeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
   <div style="max-width:550px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-      <h2 style="margin:0; color:#fff; font-size:1.5rem;">🎨 カスタマイズ</h2>
-      <button id="closeCustomize" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">✕ 閉じる</button>
+      <h2 id="customizeTitle" style="margin:0; color:#fff; font-size:1.5rem;">🎨 Customize</h2>
+      <button id="closeCustomize" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">✕ Close</button>
     </div>
     
     <div style="display:flex; gap:1.5rem; align-items:flex-start;">
       <!-- プレビュー -->
       <div style="flex-shrink:0; text-align:center;">
         <canvas id="colorPreviewCanvas" width="100" height="100" style="width:100px; height:100px; position:static; background:#0f172a; border-radius:12px;"></canvas>
-        <div id="colorPreviewName" style="color:#fff; font-size:0.9rem; margin-top:0.5rem;">グリーン</div>
+        <div id="colorPreviewName" style="color:#fff; font-size:0.9rem; margin-top:0.5rem;">Green</div>
       </div>
       
       <!-- カラー選択 -->
       <div style="flex:1;">
-        <h3 style="color:#06b6d4; font-size:1rem; margin:0 0 0.5rem 0;">🎮 主人公カラー</h3>
-        <p style="color:#94a3b8; font-size:0.85rem; margin:0 0 1rem 0;">実績を5つ解除するごとに新しいカラーをゲット！</p>
+        <h3 id="customizeColorTitle" style="color:#06b6d4; font-size:1rem; margin:0 0 0.5rem 0;">🎮 Player Color</h3>
+        <p id="customizeColorDesc" style="color:#94a3b8; font-size:0.85rem; margin:0 0 1rem 0;">Unlock new colors every 5 achievements!</p>
         <div id="colorGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;"></div>
       </div>
     </div>
     
     <div id="colorProgress" style="margin-top:1rem; padding:1rem; background:#334155; border-radius:8px;">
-      <div style="color:#94a3b8; font-size:0.9rem;">次のカラー解放まで：<span id="colorProgressText">0/5</span></div>
+      <div id="colorProgressLabel" style="color:#94a3b8; font-size:0.9rem;">Next color unlock: <span id="colorProgressText">0/5</span></div>
     </div>
   </div>
 </div>
 
 <!-- 設定モーダル -->
-<div id="settingsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:20px; box-sizing:border-box;">
+<div id="settingsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
   <div style="max-width:400px; margin:3rem auto; background:#1e293b; border-radius:16px; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-      <h2 style="margin:0; color:#fff; font-size:1.5rem;">⚙️ 設定</h2>
+      <h2 id="settingsTitle" style="margin:0; color:#fff; font-size:1.5rem;">⚙️ 設定</h2>
       <button id="closeSettings" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">✕ 閉じる</button>
     </div>
     
     <div style="margin-bottom:1.5rem;">
-      <h3 style="color:#f59e0b; font-size:1rem; margin:0 0 1rem 0;">🔊 音量設定</h3>
+      <h3 id="settingsVolumeTitle" style="color:#f59e0b; font-size:1rem; margin:0 0 1rem 0;">🔊 音量設定</h3>
       
       <!-- BGM音量 -->
       <div style="margin-bottom:1rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-          <span style="color:#94a3b8;">BGM</span>
+          <span id="settingsBgmLabel" style="color:#94a3b8;">BGM</span>
           <span id="settingsBgmValue" style="color:#fff; font-weight:bold;">25%</span>
         </div>
         <input type="range" id="settingsBgmVolume" min="0" max="100" value="25" style="width:100%; cursor:pointer;">
@@ -699,68 +1627,77 @@ document.head.appendChild(link);
       <!-- 効果音音量 -->
       <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-          <span style="color:#94a3b8;">効果音</span>
+          <span id="settingsSfxLabel" style="color:#94a3b8;">効果音</span>
           <span id="settingsSfxValue" style="color:#fff; font-weight:bold;">90%</span>
         </div>
         <input type="range" id="settingsSfxVolume" min="0" max="100" value="90" style="width:100%; cursor:pointer;">
       </div>
     </div>
     
-    <p style="color:#64748b; font-size:0.85rem; margin:0; text-align:center;">※ 設定はブラウザに保存されます</p>
+    <!-- 言語設定 -->
+    <div style="margin-bottom:1.5rem;">
+      <h3 id="settingsLangTitle" style="color:#3b82f6; font-size:1rem; margin:0 0 1rem 0;">🌐 言語 / Language</h3>
+      <div style="display:flex; gap:8px;">
+        <button id="settingsLangJa" style="flex:1; padding:10px; border-radius:8px; border:2px solid #475569; background:#1e293b; color:#fff; font-weight:bold; cursor:pointer; transition:all 0.2s;">日本語</button>
+        <button id="settingsLangEn" style="flex:1; padding:10px; border-radius:8px; border:2px solid #475569; background:#1e293b; color:#fff; font-weight:bold; cursor:pointer; transition:all 0.2s;">English</button>
+      </div>
+    </div>
+    
+    <p id="settingsNote" style="color:#64748b; font-size:0.85rem; margin:0; text-align:center;">※ 設定はブラウザに保存されます</p>
   </div>
 </div>
   
   <div id="gameover" style="display:none;">
-    <h2>ゲームオーバー</h2>
-    <div class="sub">もう一度挑戦しよう!</div>
+    <h2 id="gameoverTitle">GAME OVER</h2>
+    <div class="sub" id="gameoverSub">Try again!</div>
     
     <!-- 解除された実績表示エリア -->
     <div id="gameoverAchievements" style="display:none; margin:1rem 0; padding:1rem; background:rgba(102,126,234,0.15); border-radius:8px; max-width:600px;">
-      <h3 style="margin:0 0 0.5rem; font-size:1.1rem; color:#a78bfa;">🎖️ 実績解除！</h3>
+      <h3 id="gameoverAchTitle" style="margin:0 0 0.5rem; font-size:1.1rem; color:#a78bfa;">🎖️ Achievement Unlocked!</h3>
       <div id="gameoverAchievementsList" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
     </div>
     
     <div class="share-buttons">
       <button class="share-btn twitter" onclick="shareToTwitter('gameover')">
-        <span>𝕏</span> Xでシェア
+        <span>𝕏</span> <span class="shareLabel" id="shareXLabel1">Share on X</span>
       </button>
       <button class="share-btn line" onclick="shareToLine('gameover')">
-        <span>📱</span> LINEで送る
+        <span>📱</span> <span class="shareLabel" id="shareLINELabel1">LINE</span>
       </button>
       <button class="share-btn copy" onclick="copyShareText('gameover')">
-        <span>📋</span> コピー
+        <span>📋</span> <span class="shareLabel" id="copyLabel1">Copy</span>
       </button>
     </div>
     <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center; margin-top:1rem;">
-      <button id="retryBtn" class="btn">やり直す</button>
-      <button id="titleBtnGameover" class="btn" style="background:#64748b;" onclick="goToTitle()">タイトルに戻る</button>
+      <button id="retryBtn" class="btn">Retry</button>
+      <button id="titleBtnGameover" class="btn" style="background:#64748b;" onclick="goToTitle()">Title</button>
     </div>
     </div> <!-- ← ここで閉じる -->
 <!-- クリア画面 -->
 <div id="gameclear" style="display:none;">
-  <h2 style="font-size:clamp(28px,6vw,64px); margin:0 0 .75rem;">🎉 GAME CLEAR 🎉</h2>
+  <h2 id="clearTitle" style="font-size:clamp(28px,6vw,64px); margin:0 0 .75rem;">🎉 GAME CLEAR 🎉</h2>
   
   <!-- 解除された実績表示エリア -->
   <div id="clearAchievements" style="display:none; margin:1rem 0; padding:1rem; background:rgba(102,126,234,0.15); border-radius:8px; max-width:600px;">
-    <h3 style="margin:0 0 0.5rem; font-size:1.1rem; color:#a78bfa;">🎖️ 実績解除！</h3>
+    <h3 id="clearAchTitle" style="margin:0 0 0.5rem; font-size:1.1rem; color:#a78bfa;">🎖️ Achievement Unlocked!</h3>
     <div id="clearAchievementsList" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
   </div>
   
   <div class="share-buttons">
     <button class="share-btn twitter" onclick="shareToTwitter('clear')">
-      <span>𝕏</span> Xでシェア
+      <span>𝕏</span> <span class="shareLabel" id="shareXLabel2">Share on X</span>
     </button>
     <button class="share-btn line" onclick="shareToLine('clear')">
-      <span>📱</span> LINEで送る
+      <span>📱</span> <span class="shareLabel" id="shareLINELabel2">LINE</span>
     </button>
     <button class="share-btn copy" onclick="copyShareText('clear')">
-      <span>📋</span> コピー
+      <span>📋</span> <span class="shareLabel" id="copyLabel2">Copy</span>
     </button>
   </div>
   <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center; margin-top:1rem;">
-    <button id="replayBtn" class="btn">もう一度遊ぶ</button>
-    <button id="titleBtn" class="btn" style="background:#64748b;" onclick="goToTitle()">タイトルに戻る</button>
-    <button id="hardcoreBtn" class="btn" style="display:none;background:#8b5cf6;">Hardcoreで再挑戦</button>
+    <button id="replayBtn" class="btn">Play Again</button>
+    <button id="titleBtn" class="btn" style="background:#64748b;" onclick="goToTitle()">Title</button>
+    <button id="hardcoreBtn" class="btn" style="display:none;background:#8b5cf6;">Hardcore Challenge</button>
   </div>
 </div>
   
@@ -1186,7 +2123,7 @@ document.head.appendChild(link);
   <div id="stageSelectModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
     <div style="max-width:800px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-        <h2 style="margin:0; color:#fff; font-size:1.8rem;">▲ ステージ選択</h2>
+        <h2 id="stageSelectTitle" style="margin:0; color:#fff; font-size:1.8rem;">▲ ステージ選択</h2>
         <button id="closeStageSelect" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">閉じる</button>
       </div>
       
@@ -2412,9 +3349,13 @@ function visibleBounds(radius = 0){
     let selectedStage = currentStage;
     
     function renderRankings(stage) {
+      const lang = getLang();
       const rankings = loadRankings(stage);
-      const stageName = stage === 'stage1' ? '■ ステージ1' : '▲ ステージ2';
+      const stageName = stage === 'stage1' ? t('stage1_name') : t('stage2_name');
       const stageColor = stage === 'stage1' ? '#60a5fa' : '#ec4899';
+      const closeText = lang === 'ja' ? '✕ 閉じる' : '✕ CLOSE';
+      const noRecordText = lang === 'ja' ? '記録なし' : 'No Records';
+      const killsText = lang === 'ja' ? '体' : ' kills';
       
       let html = `
         <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:13030;" id="rankingModal">
@@ -2422,18 +3363,18 @@ function visibleBounds(radius = 0){
             
             <!-- ★CLOSEボタンを上部に配置 -->
             <button onclick="document.getElementById('rankingModal').remove();" style="width:100%;padding:10px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-bottom:12px;">
-              ✕ CLOSE
+              ${closeText}
             </button>
             
-            <h2 style="color:#4a90e2;text-align:center;margin:0 0 12px 0;font-size:22px;">🏆 RANKING 🏆</h2>
+            <h2 style="color:#4a90e2;text-align:center;margin:0 0 12px 0;font-size:22px;">🏆 ${t('ranking_title')} 🏆</h2>
             
             <!-- ★ステージ切り替えタブ -->
             <div style="display:flex;gap:8px;margin-bottom:12px;">
               <button id="tabStage1" onclick="window._switchRankingTab('stage1')" style="flex:1;padding:8px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px;${stage === 'stage1' ? 'background:#60a5fa;color:#fff;' : 'background:#334155;color:#94a3b8;'}">
-                ■ ステージ1
+                ■ ${t('stage1_name')}
               </button>
               <button id="tabStage2" onclick="window._switchRankingTab('stage2')" style="flex:1;padding:8px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px;${stage === 'stage2' ? 'background:#ec4899;color:#fff;' : 'background:#334155;color:#94a3b8;'}">
-                ▲ ステージ2
+                ▲ ${t('stage2_name')}
               </button>
             </div>
             
@@ -2441,7 +3382,7 @@ function visibleBounds(radius = 0){
       `;
 
       if (rankings.length === 0) {
-        html += `<p style="color:#999;text-align:center;padding:30px 0;">記録なし</p>`;
+        html += `<p style="color:#999;text-align:center;padding:30px 0;">${noRecordText}</p>`;
       } else {
         rankings.forEach((entry, index) => {
           const isCurrent = currentScore && entry.score === currentScore.score && 
@@ -2455,6 +3396,8 @@ function visibleBounds(radius = 0){
                            entry.mode === 'Hard' ? '#f59e0b' :
                            entry.mode === 'Easy' ? '#22c55e' : '#4a90e2';
           const hasBo = entry.timeBonus && entry.timeBonus > 0;
+          const totalKills = entry.kills + entry.bossKills;
+          const killsDisplay = lang === 'ja' ? `${totalKills}体` : `${totalKills} kills`;
           
           html += `
             <div style="background:${bgColor};border:2px solid ${borderColor};border-radius:8px;padding:10px;margin-bottom:6px;">
@@ -2463,7 +3406,7 @@ function visibleBounds(radius = 0){
                 <span style="font-size:20px;font-weight:bold;color:#fbbf24;">${entry.score.toLocaleString()}</span>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:12px;color:#aaa;">
-                <span>${resultIcon} ${entry.kills + entry.bossKills} kills</span>
+                <span>${resultIcon} ${killsDisplay}</span>
                 <span>⏱️ ${formatTime(entry.time)}${hasBo ? ` 🎁+${entry.timeBonus.toLocaleString()}` : ''}</span>
               </div>
               <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-top:2px;">
@@ -2860,6 +3803,7 @@ function visibleBounds(radius = 0){
   }
 
   function showAchievementsModal() {
+    const lang = getLang();
     const achievements = loadAchievements();
     const totalCount = Object.keys(ACHIEVEMENTS).length;
     const unlockedCount = Object.keys(achievements).length;
@@ -2871,6 +3815,10 @@ function visibleBounds(radius = 0){
       if (tierDiff !== 0) return tierDiff;
       return a.name.localeCompare(b.name);
     });
+    
+    const closeText = lang === 'ja' ? '✕ 閉じる' : '✕ CLOSE';
+    const titleText = t('achievement_title');
+    const unlockText = lang === 'ja' ? '解除' : 'Unlocked';
 
     let html = `
       <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:13030;overflow-y:auto;" id="achievementsModal">
@@ -2878,12 +3826,12 @@ function visibleBounds(radius = 0){
           
           <!-- ★CLOSEボタンを上部に配置 -->
           <button onclick="document.getElementById('achievementsModal').remove();" style="width:100%;padding:10px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-bottom:12px;">
-            ✕ CLOSE
+            ${closeText}
           </button>
           
-          <h2 style="color:#8b5cf6;text-align:center;margin:0 0 10px 0;font-size:28px;">🎖️ 実績</h2>
+          <h2 style="color:#8b5cf6;text-align:center;margin:0 0 10px 0;font-size:28px;">🎖️ ${titleText}</h2>
           <div style="text-align:center;margin-bottom:20px;color:#fff;">
-            <div style="font-size:18px;margin-bottom:8px;">${unlockedCount} / ${totalCount} 解除 (${progress}%)</div>
+            <div style="font-size:18px;margin-bottom:8px;">${unlockedCount} / ${totalCount} ${unlockText} (${progress}%)</div>
             <div style="background:#2a2a3e;border-radius:20px;height:24px;overflow:hidden;">
               <div style="background:linear-gradient(90deg, #8b5cf6, #a78bfa);height:100%;width:${progress}%;transition:width 0.3s;"></div>
             </div>
@@ -2902,14 +3850,18 @@ function visibleBounds(radius = 0){
       const tierColor = tierColors[achievement.tier];
       const bgColor = isUnlocked ? '#2a3a4e' : '#1a1a2e';
       const opacity = isUnlocked ? '1' : '0.5';
+      
+      // 多言語対応：実績名と説明
+      const achName = t('ach_' + achievement.id) || achievement.name;
+      const achDesc = t('ach_' + achievement.id + '_desc') || achievement.desc;
 
       html += `
         <div style="background:${bgColor};border:2px solid ${tierColor};border-radius:8px;padding:12px;margin-bottom:8px;opacity:${opacity};">
           <div style="display:flex;align-items:center;gap:12px;">
             <div style="font-size:32px;">${achievement.icon}</div>
             <div style="flex:1;">
-              <div style="font-size:16px;font-weight:bold;color:#fff;margin-bottom:4px;">${achievement.name}</div>
-              <div style="font-size:13px;color:#aaa;">${achievement.desc}</div>
+              <div style="font-size:16px;font-weight:bold;color:#fff;margin-bottom:4px;">${achName}</div>
+              <div style="font-size:13px;color:#aaa;">${achDesc}</div>
             </div>
             ${isUnlocked ? '<div style="font-size:24px;">✅</div>' : '<div style="font-size:24px;opacity:0.3;">🔒</div>'}
           </div>
@@ -3080,6 +4032,7 @@ function visibleBounds(radius = 0){
     const modal = document.getElementById('customizeModal');
     const colorGrid = document.getElementById('colorGrid');
     const progressText = document.getElementById('colorProgressText');
+    const lang = getLang();
     
     const achievements = loadAchievements();
     const unlockedCount = Object.keys(achievements).length;
@@ -3090,9 +4043,14 @@ function visibleBounds(radius = 0){
     // 次のカラー解放までの進捗
     const nextUnlock = [5,10,15,20,25,30,35,40,45,50].find(n => unlockedCount < n) || 'MAX';
     if (nextUnlock === 'MAX') {
-      progressText.textContent = unlockedCount >= totalAchievements ? '🌈 全カラー解放済み！' : `${unlockedCount}/${totalAchievements}`;
+      const allUnlockedText = lang === 'ja' ? '🌈 全カラー解放済み！' : '🌈 All Colors Unlocked!';
+      progressText.textContent = unlockedCount >= totalAchievements ? allUnlockedText : `${unlockedCount}/${totalAchievements}`;
     } else {
-      progressText.textContent = `${unlockedCount}/${nextUnlock}（あと${nextUnlock - unlockedCount}つ）`;
+      const remaining = nextUnlock - unlockedCount;
+      const progressStr = lang === 'ja' 
+        ? `${unlockedCount}/${nextUnlock}（あと${remaining}つ）`
+        : `${unlockedCount}/${nextUnlock} (${remaining} more)`;
+      progressText.textContent = progressStr;
     }
     
     // カラーグリッド生成
@@ -3113,9 +4071,16 @@ function visibleBounds(radius = 0){
       
       if (!isUnlocked) {
         btn.innerHTML = `<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.5rem;">🔒</span>`;
-        btn.title = key === 'rainbow' ? '全実績コンプリートで解放' : `実績${data.unlockAt}個で解放`;
+        if (key === 'rainbow') {
+          btn.title = lang === 'ja' ? '全実績コンプリートで解放' : 'Unlock all achievements';
+        } else {
+          btn.title = lang === 'ja' ? `実績${data.unlockAt}個で解放` : `Unlock ${data.unlockAt} achievements`;
+        }
       } else {
-        btn.title = data.name;
+        // カラー名の多言語対応
+        const colorNameKey = 'color_' + key;
+        const colorName = (LANG[lang] && LANG[lang][colorNameKey]) || data.name;
+        btn.title = colorName;
         if (isSelected) {
           btn.innerHTML = `<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.5rem;">✓</span>`;
         }
@@ -3136,13 +4101,15 @@ function visibleBounds(radius = 0){
         };
       }
       
-      // ラベル
+      // ラベル（多言語対応）
+      const colorNameKey = 'color_' + key;
+      const colorDisplayName = (LANG[lang] && LANG[lang][colorNameKey]) || data.name;
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'text-align:center;';
       wrapper.appendChild(btn);
       const label = document.createElement('div');
       label.style.cssText = `font-size:0.75rem; color:${isUnlocked ? '#fff' : '#666'}; margin-top:4px;`;
-      label.textContent = data.name;
+      label.textContent = colorDisplayName;
       wrapper.appendChild(label);
       
       colorGrid.appendChild(wrapper);
@@ -3487,15 +4454,15 @@ magnet:{ active:false, time:0, dur:1.0, speed:1800 },
     getDifficultyMods: function() {
       switch(this.difficulty) {
         case 'easy':
-          return { hpMul: 0.6, dmgMul: 0.8, spawnMul: 0.8, bossLimit: 1, startBonusCount: 2 };
+          return { hpMul: 0.6, dmgMul: 0.8, spawnMul: 0.7, bossLimit: 1, startBonusCount: 2, xpMul: 1.3 };
         case 'normal':
-          return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1 };
+          return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 };
         case 'hard':
-          return { hpMul: 1.2, dmgMul: 1.2, spawnMul: 1.2, bossLimit: 99, startBonusCount: 0 };
+          return { hpMul: 1.2, dmgMul: 1.2, spawnMul: 1.2, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 };
         case 'hardcore':
-          return { hpMul: 2.0, dmgMul: 1.5, spawnMul: 1.5, bossLimit: 99, startBonusCount: 0 };
+          return { hpMul: 2.0, dmgMul: 1.5, spawnMul: 1.5, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 };
         default:
-          return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1 };
+          return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 };
       }
     }
   },
@@ -4057,6 +5024,59 @@ if (!window.__START_BOUND) {
       if (bus.ui) bus.ui.gain.value = (savedSfx / 100) * 0.9;
     }
   } catch(e){}
+  
+  // 設定モーダルの言語選択ボタン
+  const settingsLangJa = document.getElementById('settingsLangJa');
+  const settingsLangEn = document.getElementById('settingsLangEn');
+  
+  function updateSettingsLangButtons() {
+    const lang = getLang();
+    if (settingsLangJa) {
+      settingsLangJa.style.background = lang === 'ja' ? '#3b82f6' : '#1e293b';
+      settingsLangJa.style.borderColor = lang === 'ja' ? '#60a5fa' : '#475569';
+    }
+    if (settingsLangEn) {
+      settingsLangEn.style.background = lang === 'en' ? '#3b82f6' : '#1e293b';
+      settingsLangEn.style.borderColor = lang === 'en' ? '#60a5fa' : '#475569';
+    }
+  }
+  
+  if (settingsLangJa) {
+    settingsLangJa.onclick = () => {
+      setLang('ja');
+      updateSettingsLangButtons();
+      updateSettingsModalLanguage();
+    };
+  }
+  if (settingsLangEn) {
+    settingsLangEn.onclick = () => {
+      setLang('en');
+      updateSettingsLangButtons();
+      updateSettingsModalLanguage();
+    };
+  }
+  
+  // 設定モーダルの言語更新
+  window.updateSettingsModalLanguage = function() {
+    const title = document.getElementById('settingsTitle');
+    const closeBtn = document.getElementById('closeSettings');
+    const volTitle = document.getElementById('settingsVolumeTitle');
+    const sfxLabel = document.getElementById('settingsSfxLabel');
+    const langTitle = document.getElementById('settingsLangTitle');
+    const note = document.getElementById('settingsNote');
+    
+    if (title) title.textContent = t('settings_title');
+    if (closeBtn) closeBtn.textContent = t('btn_close');
+    if (volTitle) volTitle.textContent = t('settings_volume');
+    if (sfxLabel) sfxLabel.textContent = t('settings_sfx');
+    if (langTitle) langTitle.textContent = t('settings_language');
+    if (note) note.textContent = getLang() === 'ja' ? '※ 設定はブラウザに保存されます' : '* Settings are saved in your browser';
+    
+    updateSettingsLangButtons();
+  };
+  
+  // 初期化時に言語ボタンの状態を設定
+  updateSettingsLangButtons();
 }
 
 
@@ -4090,6 +5110,7 @@ function syncPauseButton(){
 function showPauseMenu() {
   state.manualPaused = true;
   syncPauseButton();
+  const lang = getLang();
   
   // 既存のポーズメニューがあれば削除
   const existing = document.getElementById('pauseMenuModal');
@@ -4112,7 +5133,7 @@ function showPauseMenu() {
   
   // タイトル
   const title = document.createElement('h2');
-  title.textContent = '⏸ 一時停止';
+  title.textContent = t('pause_title');
   title.style.cssText = 'color: #fff; margin: 0 0 16px 0; font-size: 24px; text-align: center;';
   container.appendChild(title);
   
@@ -4125,11 +5146,15 @@ function showPauseMenu() {
   const seconds = Math.floor(timeSec % 60);
   const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
   
+  const elapsedLabel = t('pause_elapsed');
+  const levelLabel = t('pause_level');
+  const killsLabel = t('pause_kills');
+  
   statusSection.innerHTML = `
     <div style="display: flex; justify-content: space-around; text-align: center; color: #94a3b8; font-size: 14px;">
-      <div><div style="font-size: 20px; color: #fff; font-weight: bold;">⏱ ${timeStr}</div>経過時間</div>
-      <div><div style="font-size: 20px; color: #fff; font-weight: bold;">Lv.${state.player?.level || 1}</div>レベル</div>
-      <div><div style="font-size: 20px; color: #fff; font-weight: bold;">${(state.kills || 0).toLocaleString()}</div>討伐数</div>
+      <div><div style="font-size: 20px; color: #fff; font-weight: bold;">⏱ ${timeStr}</div>${elapsedLabel}</div>
+      <div><div style="font-size: 20px; color: #fff; font-weight: bold;">Lv.${state.player?.level || 1}</div>${levelLabel}</div>
+      <div><div style="font-size: 20px; color: #fff; font-weight: bold;">${(state.kills || 0).toLocaleString()}</div>${killsLabel}</div>
     </div>
   `;
   container.appendChild(statusSection);
@@ -4139,7 +5164,7 @@ function showPauseMenu() {
   weaponSection.style.cssText = 'margin-bottom: 16px;';
   
   const weaponTitle = document.createElement('h3');
-  weaponTitle.textContent = '⚔️ 所持武器';
+  weaponTitle.textContent = t('pause_weapons');
   weaponTitle.style.cssText = 'color: #60a5fa; margin: 0 0 8px 0; font-size: 16px;';
   weaponSection.appendChild(weaponTitle);
   
@@ -4147,6 +5172,7 @@ function showPauseMenu() {
   weaponGrid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;';
   
   const weapons = state.weapons;
+  const awakenText = lang === 'ja' ? '★覚醒' : '★Awaken';
   for (const key in weapons) {
     const w = weapons[key];
     if (w.lv > 0) {
@@ -4155,9 +5181,12 @@ function showPauseMenu() {
         background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.3);
         border-radius: 6px; padding: 8px; font-size: 13px;
       `;
-      const awakenBadge = w.awaken ? '<span style="color:#fbbf24; font-size:11px;"> ★覚醒</span>' : '';
+      const awakenBadge = w.awaken ? `<span style="color:#fbbf24; font-size:11px;"> ${awakenText}</span>` : '';
+      // 武器名を翻訳
+      const weaponNameKey = `weapon_${key}`;
+      const weaponName = LANG[lang][weaponNameKey] || w.name || key;
       item.innerHTML = `
-        <div style="color: #fff; font-weight: bold;">${w.name || key} ${awakenBadge}</div>
+        <div style="color: #fff; font-weight: bold;">${weaponName} ${awakenBadge}</div>
         <div style="color: #94a3b8; font-size: 12px;">Lv.${w.lv}${w.lv >= 3 ? ' (MAX)' : ''}</div>
       `;
       weaponGrid.appendChild(item);
@@ -4171,32 +5200,32 @@ function showPauseMenu() {
   abilitySection.style.cssText = 'margin-bottom: 20px;';
   
   const abilityTitle = document.createElement('h3');
-  abilityTitle.textContent = '📊 能力強化';
+  abilityTitle.textContent = t('pause_abilities');
   abilityTitle.style.cssText = 'color: #10b981; margin: 0 0 8px 0; font-size: 16px;';
   abilitySection.appendChild(abilityTitle);
   
   const abilityGrid = document.createElement('div');
   abilityGrid.style.cssText = 'display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px;';
   
-  // 能力の状態を収集
+  // 能力の状態を収集（多言語対応）
   const abilities = [];
   const p = state.player;
-  const m = state.mods;
+  const mo = state.mods;
   
-  if (p.maxHp > 120) abilities.push({ name: 'HP上限', value: `${Math.floor(p.maxHp)}` });
-  if (p.speed > 180) abilities.push({ name: '移動速度', value: `${Math.floor(p.speed)}` });
-  if (p.regen > 0) abilities.push({ name: 'HP回復', value: `${p.regen.toFixed(1)}/s` });
-  if (m.dmgMul > 1.0) abilities.push({ name: '攻撃力', value: `${Math.round(m.dmgMul * 100)}%` });
-  if (m.rateMul < 1.0) abilities.push({ name: '攻撃速度', value: `${Math.round((1/m.rateMul) * 100)}%` });
-  if (m.sizeMul > 1.0) abilities.push({ name: '弾サイズ', value: `${Math.round(m.sizeMul * 100)}%` });
-  if (m.damageMul < 1.0) abilities.push({ name: '耐久力', value: `-${Math.round((1 - m.damageMul) * 100)}%被ダメ` });
-  if (p.pickupRange > 60) abilities.push({ name: '回収範囲', value: `${Math.floor(p.pickupRange)}` });
-  if (m.doubleItem) abilities.push({ name: 'Wドロップ', value: '有効' });
+  if (p.maxHp > 120) abilities.push({ name: t('ability_hp'), value: `${Math.floor(p.maxHp)}` });
+  if (p.speed > 180) abilities.push({ name: t('ability_speed'), value: `${Math.floor(p.speed)}` });
+  if (p.regen > 0) abilities.push({ name: t('ability_regen'), value: `${p.regen.toFixed(1)}/s` });
+  if (mo.dmgMul > 1.0) abilities.push({ name: t('ability_damage'), value: `${Math.round(mo.dmgMul * 100)}%` });
+  if (mo.rateMul < 1.0) abilities.push({ name: t('ability_rate'), value: `${Math.round((1/mo.rateMul) * 100)}%` });
+  if (mo.sizeMul > 1.0) abilities.push({ name: t('ability_size'), value: `${Math.round(mo.sizeMul * 100)}%` });
+  if (mo.damageMul < 1.0) abilities.push({ name: t('ability_defense'), value: lang === 'ja' ? `-${Math.round((1 - mo.damageMul) * 100)}%被ダメ` : `-${Math.round((1 - mo.damageMul) * 100)}% DMG` });
+  if (p.pickupRange > 60) abilities.push({ name: t('ability_pickup'), value: `${Math.floor(p.pickupRange)}` });
+  if (mo.doubleItem) abilities.push({ name: t('ability_double_item'), value: t('ability_enabled') });
   
   if (abilities.length === 0) {
     const noAbility = document.createElement('div');
     noAbility.style.cssText = 'color: #64748b; font-size: 13px; padding: 8px;';
-    noAbility.textContent = '能力強化なし';
+    noAbility.textContent = t('pause_no_ability');
     abilityGrid.appendChild(noAbility);
   } else {
     for (const ab of abilities) {
@@ -4220,7 +5249,7 @@ function showPauseMenu() {
   volumeSection.style.cssText = 'margin-bottom: 20px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px;';
   
   const volumeTitle = document.createElement('h3');
-  volumeTitle.textContent = '🔊 音量設定';
+  volumeTitle.textContent = t('settings_volume');
   volumeTitle.style.cssText = 'color: #f59e0b; margin: 0 0 12px 0; font-size: 16px;';
   volumeSection.appendChild(volumeTitle);
   
@@ -4237,7 +5266,7 @@ function showPauseMenu() {
   const bgmRow = document.createElement('div');
   bgmRow.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 10px;';
   bgmRow.innerHTML = `
-    <span style="color: #94a3b8; font-size: 14px; width: 60px;">BGM</span>
+    <span style="color: #94a3b8; font-size: 14px; width: 60px;">${t('settings_bgm')}</span>
     <input type="range" id="bgmVolume" min="0" max="100" value="${currentBgmVol}" style="flex: 1; cursor: pointer;">
     <span id="bgmVolValue" style="color: #fff; font-size: 14px; width: 40px; text-align: right;">${currentBgmVol}%</span>
   `;
@@ -4247,7 +5276,7 @@ function showPauseMenu() {
   const sfxRow = document.createElement('div');
   sfxRow.style.cssText = 'display: flex; align-items: center; gap: 10px;';
   sfxRow.innerHTML = `
-    <span style="color: #94a3b8; font-size: 14px; width: 60px;">効果音</span>
+    <span style="color: #94a3b8; font-size: 14px; width: 60px;">${t('settings_sfx')}</span>
     <input type="range" id="sfxVolume" min="0" max="100" value="${currentSfxVol}" style="flex: 1; cursor: pointer;">
     <span id="sfxVolValue" style="color: #fff; font-size: 14px; width: 40px; text-align: right;">${currentSfxVol}%</span>
   `;
@@ -4296,7 +5325,7 @@ function showPauseMenu() {
   
   // ゲームに戻るボタン
   const resumeBtn = document.createElement('button');
-  resumeBtn.textContent = '▶ ゲームに戻る';
+  resumeBtn.textContent = t('btn_resume');
   resumeBtn.style.cssText = `
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: #fff; border: none; padding: 14px 20px; border-radius: 8px;
@@ -4312,7 +5341,7 @@ function showPauseMenu() {
   
   // リタイアボタン
   const retireBtn = document.createElement('button');
-  retireBtn.textContent = '🚪 リタイア（ゲーム終了）';
+  retireBtn.textContent = lang === 'ja' ? '🚪 リタイア（ゲーム終了）' : '🚪 Retire (End Game)';
   retireBtn.style.cssText = `
     background: linear-gradient(135deg, #64748b 0%, #475569 100%);
     color: #fff; border: none; padding: 12px 20px; border-radius: 8px;
@@ -4592,6 +5621,7 @@ function ensureEndScoreNodes(){
 }
 
 function updateEndScore(kind){ // kind: 'over' | 'clear'
+  const lang = getLang();
   // リアルタイムスコアを基準に
   const baseScore = state.score || 0;
   let score = baseScore;
@@ -4626,13 +5656,25 @@ function updateEndScore(kind){ // kind: 'over' | 'clear'
   const best = Math.max(score, prev);
   try { localStorage.setItem(key, String(best)); } catch(_) {}
 
-  if (big) big.textContent = `SCORE  ${score.toLocaleString()}` + (score > prev ? '  ★NEW!' : '');
+  const newText = score > prev ? (lang === 'ja' ? '  ★NEW!' : '  ★NEW!') : '';
+  if (big) big.textContent = `SCORE  ${score.toLocaleString()}${newText}`;
   const totalKills = (state.kills || 0) + (state.bossKills || 0);
   
-  // 詳細表示
-  const detail = kind === 'clear' 
-    ? `Base: ${baseScore.toLocaleString()}  +  Clear: ${clearBonus.toLocaleString()}  +  Time: ${timeBonus.toLocaleString()}  =  Best: ${best.toLocaleString()}`
-    : `Kill: ${totalKills}体   Best: ${best.toLocaleString()}`;
+  // 詳細表示（多言語対応）
+  let detail;
+  if (kind === 'clear') {
+    if (lang === 'ja') {
+      detail = `Base: ${baseScore.toLocaleString()}  +  Clear: ${clearBonus.toLocaleString()}  +  Time: ${timeBonus.toLocaleString()}  =  Best: ${best.toLocaleString()}`;
+    } else {
+      detail = `Base: ${baseScore.toLocaleString()}  +  Clear: ${clearBonus.toLocaleString()}  +  Time: ${timeBonus.toLocaleString()}  =  Best: ${best.toLocaleString()}`;
+    }
+  } else {
+    if (lang === 'ja') {
+      detail = `Kill: ${totalKills}体   Best: ${best.toLocaleString()}`;
+    } else {
+      detail = `Kill: ${totalKills}   Best: ${best.toLocaleString()}`;
+    }
+  }
   if (sub) sub.textContent = detail;
 }
 
@@ -4649,8 +5691,15 @@ function showStageSelect() {
     return;
   }
   
+  const lang = getLang();
   const saveData = window.loadSaveData();
   const isHardcore = window._pendingHardcore || false;
+  
+  // タイトルと閉じるボタンを更新
+  const titleEl = document.getElementById('stageSelectTitle');
+  const closeBtn = document.getElementById('closeStageSelect');
+  if (titleEl) titleEl.textContent = '▲ ' + t('stage_select_title');
+  if (closeBtn) closeBtn.textContent = t('btn_close');
   
   cardsContainer.innerHTML = '';
   
@@ -4665,27 +5714,34 @@ function showStageSelect() {
     if (diffs.hardcore) cleared.push('<span style="color:#8b5cf6;">🔥</span>');
     
     if (cleared.length === 0) {
-      return '<span style="color:#94a3b8;">未クリア</span>';
+      return '<span style="color:#94a3b8;">' + (lang === 'ja' ? '未クリア' : 'Not Cleared') + '</span>';
     }
-    return '<span style="color:#10b981;">✓ クリア済み </span>' + cleared.join(' ');
+    return '<span style="color:#10b981;">✓ ' + (lang === 'ja' ? 'クリア済み' : 'Cleared') + ' </span>' + cleared.join(' ');
   }
   
   // 選択中の難易度を表示
   const difficulty = window._pendingDifficulty || 'normal';
-  const diffNames = { easy: '😊 Easy', normal: '🎮 Normal', hard: '💪 Hard', hardcore: '🔥 Hardcore' };
+  const diffNames = { 
+    easy: t('btn_easy'), 
+    normal: t('btn_normal'), 
+    hard: t('btn_hard'), 
+    hardcore: t('btn_hardcore') 
+  };
   const diffColors = { easy: '#22c55e', normal: '#60a5fa', hard: '#f59e0b', hardcore: '#8b5cf6' };
   
   const modeHeader = document.createElement('div');
   modeHeader.style.cssText = 'margin-bottom:1rem; text-align:center;';
-  modeHeader.innerHTML = `<span style="color:${diffColors[difficulty]}; font-size:1.2rem; font-weight:700;">${diffNames[difficulty]} モード</span>`;
+  const modeText = lang === 'ja' ? 'モード' : 'Mode';
+  modeHeader.innerHTML = `<span style="color:${diffColors[difficulty]}; font-size:1.2rem; font-weight:700;">${diffNames[difficulty]} ${modeText}</span>`;
   cardsContainer.appendChild(modeHeader);
   
   // ステージ1
   const stage1Card = document.createElement('div');
   stage1Card.style.cssText = 'background:#334155; border-radius:12px; padding:1.5rem; cursor:pointer; transition:all 0.2s; margin-bottom:1rem;';
+  const stage1Desc = lang === 'ja' ? '四角い敵との基本ステージ。障害物なし。' : 'Basic stage with square enemies. No obstacles.';
   stage1Card.innerHTML = `
-    <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.4rem;">■ ${STAGES.stage1.name}</h3>
-    <p style="margin:0 0 0.5rem; color:#cbd5e1;">四角い敵との基本ステージ。障害物なし。</p>
+    <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.4rem;">■ ${t('stage1_name')}</h3>
+    <p style="margin:0 0 0.5rem; color:#cbd5e1;">${stage1Desc}</p>
     ${getDifficultyClearStatus(saveData.stageProgress?.stage1)}
   `;
   stage1Card.onmouseenter = () => stage1Card.style.background = '#475569';
@@ -4697,12 +5753,13 @@ function showStageSelect() {
   const stage1Cleared = saveData.stageProgress?.stage1?.cleared || false;
   const stage2Card = document.createElement('div');
   stage2Card.style.cssText = `background:${stage1Cleared ? '#334155' : '#1e293b'}; border-radius:12px; padding:1.5rem; ${stage1Cleared ? 'cursor:pointer;' : 'opacity:0.5;'}`;
+  const stage2Desc = lang === 'ja' ? '三角の敵と障害物のある上級者向けステージ。' : 'Advanced stage with triangle enemies and obstacles.';
   stage2Card.innerHTML = `
-    <h3 style="margin:0 0 0.5rem; color:#ec4899; font-size:1.4rem;">▲ ${STAGES.stage2.name}</h3>
-    <p style="margin:0 0 0.5rem; color:#cbd5e1;">三角の敵と障害物のある上級者向けステージ。</p>
+    <h3 style="margin:0 0 0.5rem; color:#ec4899; font-size:1.4rem;">▲ ${t('stage2_name')}</h3>
+    <p style="margin:0 0 0.5rem; color:#cbd5e1;">${stage2Desc}</p>
     ${stage1Cleared ? 
       getDifficultyClearStatus(saveData.stageProgress?.stage2) :
-      '<span style="color:#ef4444;">🔒 ステージ1をクリアで解放</span>'
+      '<span style="color:#ef4444;">' + t('stage_locked') + '</span>'
     }
   `;
   if (stage1Cleared) {
@@ -4938,6 +5995,7 @@ state.records = JSON.parse(localStorage.getItem('vs_records') || '[]'); // [{sco
 // ★スタートボーナス選択（武器6種類から選択、bonusCountで何個選べるか）
 function showStartBonus(bonusCount = 1) {
   state.paused = true;
+  const lang = getLang();
   let selectedCount = 0;
   const selectedUpgrades = [];
   
@@ -4957,13 +6015,16 @@ function showStartBonus(bonusCount = 1) {
   `;
   
   const title = document.createElement('h2');
-  title.textContent = '🎁 スタートボーナス';
+  title.textContent = t('start_bonus');
   title.style.cssText = 'color: #fbbf24; margin: 0 0 8px 0; font-size: 24px;';
   container.appendChild(title);
   
   const subtitle = document.createElement('p');
   subtitle.id = 'bonusSubtitle';
-  subtitle.textContent = bonusCount > 1 ? `武器を${bonusCount}つ選んでスタート！` : '武器を1つ選んでスタート！';
+  const subtitleText = bonusCount > 1 
+    ? (lang === 'ja' ? `武器を${bonusCount}つ選んでスタート！` : `Choose ${bonusCount} weapons to start!`)
+    : (lang === 'ja' ? '武器を1つ選んでスタート！' : 'Choose 1 weapon to start!');
+  subtitle.textContent = subtitleText;
   subtitle.style.cssText = 'color: #94a3b8; margin: 0 0 16px 0; font-size: 14px;';
   container.appendChild(subtitle);
   
@@ -4993,9 +6054,14 @@ function showStartBonus(bonusCount = 1) {
       color: #fff; cursor: pointer; transition: all 0.2s;
       display: flex; flex-direction: column; align-items: center; gap: 4px;
     `;
+    // 武器名を翻訳
+    const weaponKey = upg.id.replace('add:', '');
+    const weaponNameKey = `weapon_${weaponKey}`;
+    const weaponName = LANG[lang][weaponNameKey] || upg.name;
+    const descText = typeof upg.desc === 'function' ? upg.desc() : upg.desc;
     btn.innerHTML = `
-      <span style="font-size: 12px; font-weight: bold; color: #60a5fa;">${upg.name}</span>
-      <span style="font-size: 10px; color: #94a3b8; line-height: 1.3;">${typeof upg.desc === 'function' ? upg.desc() : upg.desc}</span>
+      <span style="font-size: 12px; font-weight: bold; color: #60a5fa;">${weaponName}</span>
+      <span style="font-size: 10px; color: #94a3b8; line-height: 1.3;">${descText}</span>
     `;
     
     btn.onmouseenter = () => {
@@ -5016,7 +6082,7 @@ function showStartBonus(bonusCount = 1) {
       
       upg.apply();
       selectedCount++;
-      selectedUpgrades.push(upg.name);
+      selectedUpgrades.push(weaponName);
       btn.classList.add('selected');
       btn.style.borderColor = '#22c55e';
       btn.style.background = 'linear-gradient(135deg, #166534 0%, #14532d 100%)';
@@ -5028,7 +6094,8 @@ function showStartBonus(bonusCount = 1) {
       if (sub && bonusCount > 1) {
         const remaining = bonusCount - selectedCount;
         if (remaining > 0) {
-          sub.textContent = `あと${remaining}つ選べます！`;
+          const remainText = lang === 'ja' ? `あと${remaining}つ選べます！` : `${remaining} more to choose!`;
+          sub.textContent = remainText;
         }
       }
       
@@ -5036,7 +6103,8 @@ function showStartBonus(bonusCount = 1) {
       if (selectedCount >= bonusCount) {
         modal.remove();
         state.paused = false;
-        showStartToast(`🎁 ${selectedUpgrades.join('、')}！`);
+        const joinChar = lang === 'ja' ? '、' : ', ';
+        showStartToast(`🎁 ${selectedUpgrades.join(joinChar)}！`);
       }
     };
     
@@ -5047,7 +6115,7 @@ function showStartBonus(bonusCount = 1) {
   
   // パスボタン
   const passBtn = document.createElement('button');
-  passBtn.textContent = '⏭ パス';
+  passBtn.textContent = t('btn_pass');
   passBtn.style.cssText = `
     margin-top: 12px; background: #64748b; color: #fff; border: none;
     padding: 10px 20px; border-radius: 8px; font-size: 14px;
@@ -5385,8 +6453,14 @@ function spawnEnemy(){
     });
   } else if (roll < spinnerProb + dasherProb + sniperProb) {
     // スナイパー（狙撃三角）
-    // ★通常は最大3体まで（8分以降は5体）、ハードコアは4体（8分以降は6体）
-    const baseLimit = state.timeSec >= 480 ? 5 : 3;
+    // ★Easyは最大2体（8分以降は3体）、通常は最大3体（8分以降は5体）、ハードコアは4体（8分以降は6体）
+    const difficulty = state.mode.difficulty || 'normal';
+    let baseLimit;
+    if (difficulty === 'easy') {
+      baseLimit = state.timeSec >= 480 ? 3 : 2;  // Easy: 2/3体
+    } else {
+      baseLimit = state.timeSec >= 480 ? 5 : 3;  // Normal以上: 3/5体
+    }
     const sniperLimit = state.mode.hardcore ? baseLimit + 1 : baseLimit;
     const existingSnipers = state.enemies.filter(en => en.type === 'sniper').length;
     if (existingSnipers >= sniperLimit) return;
@@ -5794,8 +6868,12 @@ function flashBossMsg(ms = 2000, text = '!! BOSS APPROACHING !!') {
     multiplier = 1.5;
   }
 
-  // 耐久力による被ダメージ軽減
-  const finalDmg = Math.round(dmg * multiplier * state.mods.damageMul);
+  // 難易度による敵ダメージ倍率を取得
+  const diffMods = state.mode.getDifficultyMods();
+  const diffDmgMul = diffMods.dmgMul || 1.0;
+
+  // 耐久力による被ダメージ軽減 + 難易度倍率
+  const finalDmg = Math.round(dmg * multiplier * diffDmgMul * state.mods.damageMul);
   state.player.hp -= finalDmg;
   state.player.iTime = 1.0; // 無敵1.0秒
 
@@ -5896,14 +6974,16 @@ if(it.kind==='magnet'){
     state.killScore = (state.killScore || 0) + gained;
     if (scoreVal) scoreVal.textContent = Math.floor(state.score);
   }
-  addEffect('text', { x: state.player.x, y: state.player.y, life: 1.2, text: `一掃(${killed})` });
+  const nukeText = getLang() === 'ja' ? `一掃(${killed})` : `Nuke(${killed})`;
+  addEffect('text', { x: state.player.x, y: state.player.y, life: 1.2, text: nukeText });
 }else if(it.kind==='heal'){
   // アイテムカウント（宝箱除く）
   sessionTracking.itemsCollected++;
   
   const amount = Math.round(state.player.maxHp * 0.35);
   state.player.hp = Math.min(state.player.maxHp, state.player.hp + amount);
-  addEffect('text',{x:state.player.x,y:state.player.y,life:1.2,text:`回復 +${amount}`});
+  const healText = getLang() === 'ja' ? `回復 +${amount}` : `Heal +${amount}`;
+  addEffect('text',{x:state.player.x,y:state.player.y,life:1.2,text:healText});
   addEffect('healSparkles', { x: state.player.x, y: state.player.y, r: 46, life: 0.7, life0: 0.7, count: 14 });
 }else if(it.kind==='chest'){
   // 宝箱はカウントしない
@@ -5912,6 +6992,7 @@ if(it.kind==='magnet'){
   }
 function openChest(pickCount = 2) {
   state.paused = true;
+  const lang = getLang();
 
   // 宝箱開封カウント
   sessionTracking.chestsOpened++;
@@ -5938,9 +7019,16 @@ function openChest(pickCount = 2) {
   // 枚数表示（既存要素があれば更新）
   let picksLeft = pickCount;
   const updatePickHUD = () => {
-    // 例：「2つ選択（残り1/2）」または「1つ選択」
-    const modeText = (pickCount === 1) ? '1つ選択' : `${pickCount}つ選択`;
-    pickModeEl.textContent = (pickCount > 1) ? `${modeText}（残り${picksLeft}/${pickCount}）` : modeText;
+    // 多言語対応
+    let modeText, fullText;
+    if (lang === 'ja') {
+      modeText = (pickCount === 1) ? '1つ選択' : `${pickCount}つ選択`;
+      fullText = (pickCount > 1) ? `${modeText}（残り${picksLeft}/${pickCount}）` : modeText;
+    } else {
+      modeText = (pickCount === 1) ? 'Pick 1' : `Pick ${pickCount}`;
+      fullText = (pickCount > 1) ? `${modeText} (${picksLeft}/${pickCount} left)` : modeText;
+    }
+    pickModeEl.textContent = fullText;
     if (typeof pickLeftEl !== 'undefined' && pickLeftEl) {
       pickLeftEl.textContent = picksLeft;
     }
@@ -5966,7 +7054,10 @@ function openChest(pickCount = 2) {
     c.className = 'card';
     // descが関数の場合は実行、そうでなければそのまま使用
     const descText = typeof u.desc === 'function' ? u.desc() : (u.desc || '');
-    c.innerHTML = `<h3>${u.name}</h3><p>${descText}</p>`;
+    // 多言語対応：u.nameKey があれば翻訳、なければそのまま
+    const nameText = u.nameKey ? t(u.nameKey) : u.name;
+    const descLocalized = u.descKey ? t(u.descKey) : descText;
+    c.innerHTML = `<h3>${nameText}</h3><p>${descLocalized}</p>`;
 
     c.onclick = () => {
       if (picksLeft <= 0 || chosen.has(u)) return;
@@ -6016,10 +7107,14 @@ if (pickCount > 1) {
     const newBtn = chestPassBtn.cloneNode(true);
     chestPassBtn.parentNode.replaceChild(newBtn, chestPassBtn);
     
+    // ボタンテキストを更新
+    newBtn.textContent = t('btn_pass');
+    
     newBtn.onclick = () => {
       // 宝箱パススコアボーナス: +3,000点
       state.score += 3000;
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.4, text: '宝箱パス +3,000' });
+      const bonusText = lang === 'ja' ? '宝箱パス +3,000' : 'Chest Pass +3,000';
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.4, text: bonusText });
       
       // 宝箱を閉じる
       chestEl.style.display = 'none';
@@ -6034,7 +7129,12 @@ if (pickCount > 1) {
 function addXP(v){
   // 時間倍率
   v = Math.round(v * xpMulByTime());
-  // Hardcore補正は削除（難易度調整）
+  
+  // 難易度による経験値倍率（Easyは+20%）
+  const diffMods = state.mode.getDifficultyMods();
+  if (diffMods.xpMul) {
+    v = Math.round(v * diffMods.xpMul);
+  }
 
   state.player.xp += v;
   while (state.player.xp >= state.player.nextXp(state.player.level)) {
@@ -6083,6 +7183,8 @@ function showLevelUp(choices){
   const levelupEl = document.getElementById('levelup');
   const cardRow   = document.getElementById('cardRow');
   if (!levelupEl || !cardRow) return;
+  
+  const lang = getLang();
 
   state.paused = true;
   levelupEl.style.display = 'flex';
@@ -6094,7 +7196,10 @@ function showLevelUp(choices){
     c.className = 'card';
     // descが関数の場合は実行、そうでなければそのまま使用
     const descText = typeof u.desc === 'function' ? u.desc() : (u.desc || '');
-    c.innerHTML = `<h3>${u.name}</h3><p>${descText}</p>`;
+    // 多言語対応：u.nameKey があれば翻訳、なければそのまま
+    const nameText = u.nameKey ? t(u.nameKey) : u.name;
+    const descLocalized = u.descKey ? t(u.descKey) : descText;
+    c.innerHTML = `<h3>${nameText}</h3><p>${descLocalized}</p>`;
     c.onclick = () => {
       // アップグレードカウント（武器以外）
       if (!u.isWeapon) {
@@ -6120,11 +7225,14 @@ function showLevelUp(choices){
   skipCard.className = 'card';
   skipCard.style.background = '#2d2d2d';
   skipCard.style.borderColor = '#666';
-  skipCard.innerHTML = `<h3>🚫 能力をとらない</h3><p>縛りプレイ用。スコア +5000</p>`;
+  const skipTitle = lang === 'ja' ? '🚫 能力をとらない' : '🚫 Skip Upgrade';
+  const skipDesc = lang === 'ja' ? '縛りプレイ用。スコア +5000' : 'For challenge runs. Score +5000';
+  skipCard.innerHTML = `<h3>${skipTitle}</h3><p>${skipDesc}</p>`;
   skipCard.onclick = () => {
     // スコアボーナス
     state.score = (state.score || 0) + 5000;
-    addEffect('text', { x: state.player.x, y: state.player.y, life: 1.2, text: 'スキップボーナス +5000' });
+    const bonusText = lang === 'ja' ? 'スキップボーナス +5000' : 'Skip Bonus +5000';
+    addEffect('text', { x: state.player.x, y: state.player.y, life: 1.2, text: bonusText });
     
     state.paused = false;
     levelupEl.style.display = 'none';
@@ -6141,7 +7249,7 @@ function showLevelUp(choices){
     rr = document.createElement('button');
     rr.id = 'rerollBtn';
     rr.className = 'btn';
-    rr.textContent = 'リロール（1回だけ）';
+    rr.textContent = lang === 'ja' ? 'リロール（1回だけ）' : 'Reroll (once)';
     // レイアウトは控えめに：カード行の下へ配置
     rr.style.margin = '12px auto 0';
     rr.style.display = 'block';
@@ -6149,7 +7257,10 @@ function showLevelUp(choices){
   }
   // 状態反映
   rr.disabled = !!window._rerollUsedThisLevel;
-  rr.textContent = window._rerollUsedThisLevel ? 'リロール使用済み' : 'リロール（1回だけ）';
+  const rerollText = window._rerollUsedThisLevel 
+    ? (lang === 'ja' ? 'リロール使用済み' : 'Reroll Used') 
+    : (lang === 'ja' ? 'リロール（1回だけ）' : 'Reroll (once)');
+  rr.textContent = rerollText;
 
   rr.onclick = () => {
     if (window._rerollUsedThisLevel) return;
@@ -6169,7 +7280,7 @@ function showLevelUp(choices){
     const btn = document.getElementById('rerollBtn');
     if (btn){
       btn.disabled = true;
-      btn.textContent = 'リロール使用済み';
+      btn.textContent = lang === 'ja' ? 'リロール使用済み' : 'Reroll Used';
     }
   };
 
@@ -6951,8 +8062,9 @@ const CAPS = {
 // ===== U（上限付きアップグレード定義）=====
 const U = {
   weaponAdd: (key) => {
-    // 武器ごとの説明文
-    const weaponDescs = {
+    const lang = getLang();
+    // 武器ごとの説明文（日本語）
+    const weaponDescsJa = {
       blaster: '基本武器。強化で弾数アップ。',
       shotgun: '近距離で拡散弾。密集した敵に有効。',
       homing: '敵を自動追尾。確実にヒット。',
@@ -6966,19 +8078,39 @@ const U = {
       rubber: 'ランダム方向に跳弾。壁で反射。',
       laser: '敵を貫通するレーザービーム。レベルアップで威力アップ。'
     };
+    // 英語
+    const weaponDescsEn = {
+      blaster: 'Basic weapon. More shots at higher levels.',
+      shotgun: 'Spread shots at close range. Effective against groups.',
+      homing: 'Auto-tracking missiles. Guaranteed hits.',
+      lightning: 'Chain lightning. Hits multiple enemies.',
+      rock: 'Throws large rocks. Pierces through enemies.',
+      orbit: 'Rotating shield. Deals damage and blocks enemy bullets.',
+      blade: 'Wide slash attack. High damage melee.',
+      ghost: 'Spectral allies shoot in 3 directions.',
+      poison: 'Creates poison pools. DoT + slow effect.',
+      nova: 'Stuns and damages nearby enemies.',
+      rubber: 'Bouncing bullets. Reflects off walls.',
+      laser: 'Piercing laser beam. More power at higher levels.'
+    };
+    
+    const weaponDescs = lang === 'ja' ? weaponDescsJa : weaponDescsEn;
+    const weaponName = t('weapon_' + key) || weapons[key].name;
+    const newWeaponText = lang === 'ja' ? '新武器: ' : 'New: ';
     
     return {
       id: `add:${key}`,
-      name: `新武器: ${weapons[key].name}`,
-      desc: weaponDescs[key] || '入手（最大Lv3まで強化可能）',
+      name: `${newWeaponText}${weaponName}`,
+      desc: weaponDescs[key] || (lang === 'ja' ? '入手（最大Lv3まで強化可能）' : 'Obtain (upgradeable to Lv3)'),
       can: () => weapons[key].lv === 0,
       apply: () => { weapons[key].lv = 1; state.owned.add(key); }
     };
   },
 
   weaponUp: (key) => {
-    // 武器強化時の詳細説明
-    const weaponUpDescs = {
+    const lang = getLang();
+    // 武器強化時の詳細説明（日本語）
+    const weaponUpDescsJa = {
       blaster: 'Lv2で2連射、Lv3で3連射に強化。',
       shotgun: '弾数と集弾率が向上。',
       homing: '追尾弾の数が増加。',
@@ -6992,19 +8124,39 @@ const U = {
       rubber: '跳弾の数が増加。',
       laser: '威力と太さが大幅アップ。'
     };
+    // 英語
+    const weaponUpDescsEn = {
+      blaster: 'Lv2: 2 shots, Lv3: 3 shots.',
+      shotgun: 'More pellets, tighter spread.',
+      homing: 'More homing missiles.',
+      lightning: 'More chain targets. Lv3: 3 targets.',
+      rock: 'Bigger rocks, more damage.',
+      orbit: 'Faster rotation, more damage, wider range.',
+      blade: 'Wider range, more damage.',
+      ghost: 'More ghosts. Lv3: 3 ghosts.',
+      poison: 'Larger pools, longer duration, stronger slow.',
+      nova: 'Larger range, longer stun.',
+      rubber: 'More bouncing bullets.',
+      laser: 'More damage, thicker beam.'
+    };
+    
+    const weaponUpDescs = lang === 'ja' ? weaponUpDescsJa : weaponUpDescsEn;
+    const weaponName = t('weapon_' + key) || weapons[key].name;
+    const upgradeText = lang === 'ja' ? '強化' : ' Upgrade';
     
     return {
       id: `up:${key}`,
-      name: `${weapons[key].name}強化`,
-      desc: weaponUpDescs[key] || '武器レベル+1（最大Lv3）',
+      name: `${weaponName}${upgradeText}`,
+      desc: weaponUpDescs[key] || (lang === 'ja' ? '武器レベル+1（最大Lv3）' : 'Weapon +1 level (max Lv3)'),
       can: () => weapons[key].lv > 0 && weapons[key].lv < 3,
       apply: () => { weapons[key].lv++; }
     };
   },
 
   weaponAwaken: (key) => {
-    // 覚醒時の特別効果説明
-    const awakenDescs = {
+    const lang = getLang();
+    // 覚醒時の特別効果説明（日本語）
+    const awakenDescsJa = {
       blaster: '超高速連射＋射程延長！',
       shotgun: '全方位24発の弾幕追加！',
       homing: '追尾弾が1.5倍に増加＋爆発範囲2倍！',
@@ -7018,11 +8170,30 @@ const U = {
       rubber: '跳弾8発＋反射回数25回！',
       laser: '高威力の極太レーザー！'
     };
+    // 英語
+    const awakenDescsEn = {
+      blaster: 'Rapid fire + extended range!',
+      shotgun: '+24 bullets in all directions!',
+      homing: '1.5x missiles + 2x explosion range!',
+      lightning: '7 targets + faster fire rate!',
+      rock: '3-way shot + 2x size!',
+      orbit: '2x rotation speed + wider range! Perfect defense.',
+      blade: 'Range, damage, speed all boosted!',
+      ghost: '6 ghosts + faster shooting!',
+      poison: '3 pools at once! Wide slow zone.',
+      nova: 'Constant damage aura!',
+      rubber: '8 bullets + 25 bounces!',
+      laser: 'Massive high-power beam!'
+    };
+    
+    const awakenDescs = lang === 'ja' ? awakenDescsJa : awakenDescsEn;
+    const weaponName = t('weapon_' + key) || weapons[key].name;
+    const awakenText = lang === 'ja' ? ' 覚醒' : ' Awaken';
     
     return {
       id: `aw:${key}`,
-      name: `${weapons[key].name} 覚醒`,
-      desc: awakenDescs[key] || '特別な性能を解放！',
+      name: `${weaponName}${awakenText}`,
+      desc: awakenDescs[key] || (lang === 'ja' ? '特別な性能を解放！' : 'Unlock special abilities!'),
       can: () => weapons[key].lv === 3 && !weapons[key].awaken,
       apply: () => { weapons[key].awaken = true; }
     };
@@ -7031,75 +8202,110 @@ const U = {
   // ---- ステータス系（上限付き） ----
   speed: {
     id: 'speed+',
-    name: '移動速度アップ',
+    get name() {
+      return getLang() === 'ja' ? '移動速度アップ' : 'Speed Up';
+    },
     get desc() {
+      const lang = getLang();
       const current = state.player.speed;
       const max = CAPS.speedMax;
       const pct = Math.floor((current / max) * 100);
-      return `+15%移動速度 [${Math.floor(current)}/${max}] (${pct}%)`;
+      return lang === 'ja' 
+        ? `+15%移動速度 [${Math.floor(current)}/${max}] (${pct}%)`
+        : `+15% Speed [${Math.floor(current)}/${max}] (${pct}%)`;
     },
     can: () => state.player.speed < CAPS.speedMax - 1,
     apply: () => {
       state.player.speed = Math.min(CAPS.speedMax, state.player.speed * 1.15);
       if (state.player.speed >= CAPS.speedMax) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💨 移動速度MAX!' });
+        const maxText = getLang() === 'ja' ? '💨 移動速度MAX!' : '💨 Speed MAX!';
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
       }
     }
   },
 
   maxhp: {
     id: 'maxhp+',
-    name: '最大HPアップ',
+    get name() {
+      return getLang() === 'ja' ? '最大HPアップ' : 'Max HP Up';
+    },
     get desc() {
+      const lang = getLang();
       const current = state.player.maxHp;
       const max = CAPS.hpMax;
       const pct = Math.floor((current / max) * 100);
-      return `+15%最大HP [${Math.floor(current)}/${max}] (${pct}%)`;
+      return lang === 'ja'
+        ? `+15%最大HP [${Math.floor(current)}/${max}] (${pct}%)`
+        : `+15% Max HP [${Math.floor(current)}/${max}] (${pct}%)`;
     },
     can: () => state.player.maxHp < CAPS.hpMax - 1,
     apply: () => {
       state.player.maxHp = Math.min(CAPS.hpMax, Math.round(state.player.maxHp * 1.15));
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + Math.round(state.player.maxHp * 0.15));
       if (state.player.maxHp >= CAPS.hpMax) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '❤️ HP MAX!' });
+        const maxText = getLang() === 'ja' ? '❤️ HP MAX!' : '❤️ HP MAX!';
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
       }
     }
   },
 
   regen: {
     id: 'regen',
-    name: '自然回復',
+    get name() {
+      return getLang() === 'ja' ? '自然回復' : 'Regeneration';
+    },
     desc: () => {
+      const lang = getLang();
       const lv = state.regenLv || 0;
-      if (lv === 0) return 'Lv1: 毎秒 最大HPの0.4% 回復';
-      if (lv === 1) return 'Lv2: 毎秒 最大HPの0.8% 回復';
-      if (lv === 2) return 'Lv3: 毎秒 最大HPの1.2% 回復';
-      return '最大レベル';
+      if (lang === 'ja') {
+        if (lv === 0) return 'Lv1: 毎秒 最大HPの0.4% 回復';
+        if (lv === 1) return 'Lv2: 毎秒 最大HPの0.8% 回復';
+        if (lv === 2) return 'Lv3: 毎秒 最大HPの1.2% 回復';
+        return '最大レベル';
+      } else {
+        if (lv === 0) return 'Lv1: Recover 0.4% HP/sec';
+        if (lv === 1) return 'Lv2: Recover 0.8% HP/sec';
+        if (lv === 2) return 'Lv3: Recover 1.2% HP/sec';
+        return 'Max Level';
+      }
     },
     can: () => (state.regenLv || 0) < 3,
     apply: () => {
       state.regenLv = (state.regenLv || 0) + 1;
       const lv = state.regenLv;
       if (lv >= 3) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💚 回復MAX!' });
+        const maxText = getLang() === 'ja' ? '💚 回復MAX!' : '💚 Regen MAX!';
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
       } else {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: `リジェネ Lv${lv}` });
+        const lvText = getLang() === 'ja' ? `リジェネ Lv${lv}` : `Regen Lv${lv}`;
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: lvText });
       }
     }
   },
 
   defense: {
     id: 'defense+',
-    name: '耐久力アップ',
+    get name() {
+      return getLang() === 'ja' ? '耐久力アップ' : 'Defense Up';
+    },
     desc: () => {
+      const lang = getLang();
       const lv = state.defenseLv || 0;
-      const reduction = lv * 6;
-      if (lv === 0) return 'Lv1: 受けるダメージを6%軽減';
-      if (lv === 1) return 'Lv2: 受けるダメージを12%軽減（現在6%）';
-      if (lv === 2) return 'Lv3: 受けるダメージを18%軽減（現在12%）';
-      if (lv === 3) return 'Lv4: 受けるダメージを24%軽減（現在18%）';
-      if (lv === 4) return 'Lv5: 受けるダメージを30%軽減（現在24%）';
-      return '最大レベル（30%軽減）';
+      if (lang === 'ja') {
+        if (lv === 0) return 'Lv1: 受けるダメージを6%軽減';
+        if (lv === 1) return 'Lv2: 受けるダメージを12%軽減（現在6%）';
+        if (lv === 2) return 'Lv3: 受けるダメージを18%軽減（現在12%）';
+        if (lv === 3) return 'Lv4: 受けるダメージを24%軽減（現在18%）';
+        if (lv === 4) return 'Lv5: 受けるダメージを30%軽減（現在24%）';
+        return '最大レベル（30%軽減）';
+      } else {
+        if (lv === 0) return 'Lv1: -6% damage taken';
+        if (lv === 1) return 'Lv2: -12% damage (now -6%)';
+        if (lv === 2) return 'Lv3: -18% damage (now -12%)';
+        if (lv === 3) return 'Lv4: -24% damage (now -18%)';
+        if (lv === 4) return 'Lv5: -30% damage (now -24%)';
+        return 'Max Level (-30%)';
+      }
     },
     can: () => (state.defenseLv || 0) < 5,
     apply: () => {
@@ -7107,74 +8313,107 @@ const U = {
       const lv = state.defenseLv;
       state.mods.damageMul = 1 - (lv * 0.06); // 6%ずつ軽減
       if (lv >= 5) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🛡️ 耐久力MAX!' });
+        const maxText = getLang() === 'ja' ? '🛡️ 耐久力MAX!' : '🛡️ Defense MAX!';
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
       } else {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: `耐久力 Lv${lv}` });
+        const lvText = getLang() === 'ja' ? `耐久力 Lv${lv}` : `Defense Lv${lv}`;
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: lvText });
       }
     }
   },
 
   pickup: {
     id: 'pickup+',
-    name: '吸引範囲アップ',
-    desc: '経験値吸引範囲アップ（Lv3で全域）',
+    get name() {
+      return getLang() === 'ja' ? '吸引範囲アップ' : 'Pickup Range Up';
+    },
+    get desc() {
+      return getLang() === 'ja' 
+        ? '経験値吸引範囲アップ（Lv3で全域）'
+        : 'XP pickup range up (Lv3: full screen)';
+    },
     can: () => state.pickupLv < 3,
     apply: () => { state.pickupLv++; }
   },
 
   atkRate: {
     id: 'rate+',
-    name: '攻撃速度アップ',
+    get name() {
+      return getLang() === 'ja' ? '攻撃速度アップ' : 'Attack Speed Up';
+    },
     get desc() {
+      const lang = getLang();
       const current = state.mods.rateMul;
       const max = CAPS.rateMulMin;
       const pct = Math.floor((1 - current) / (1 - max) * 100);
-      return `クールダウン -10% [${current.toFixed(2)}→${max}] (${pct}%)`;
+      return lang === 'ja'
+        ? `クールダウン -10% [${current.toFixed(2)}→${max}] (${pct}%)`
+        : `Cooldown -10% [${current.toFixed(2)}→${max}] (${pct}%)`;
     },
     can: () => state.mods.rateMul > CAPS.rateMulMin + 1e-6,
     apply: () => {
       state.mods.rateMul = Math.max(CAPS.rateMulMin, state.mods.rateMul * 0.90);
       if (state.mods.rateMul <= CAPS.rateMulMin) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '⚡ 攻撃速度MAX!' });
+        const maxText = getLang() === 'ja' ? '⚡ 攻撃速度MAX!' : '⚡ Attack Speed MAX!';
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
       }
     }
   },
 
   atkDmg: {
     id: 'dmg+',
-    name: '与ダメージアップ',
+    get name() {
+      return getLang() === 'ja' ? '与ダメージアップ' : 'Damage Up';
+    },
     get desc() {
+      const lang = getLang();
       const current = state.mods.dmgMul;
       const max = CAPS.dmgMulMax;
       const pct = Math.floor((current / max) * 100);
-      return `ダメージ +8% [×${current.toFixed(2)}/${max}] (${pct}%)`;
+      return lang === 'ja'
+        ? `ダメージ +8% [×${current.toFixed(2)}/${max}] (${pct}%)`
+        : `Damage +8% [×${current.toFixed(2)}/${max}] (${pct}%)`;
     },
     can: () => state.mods.dmgMul < CAPS.dmgMulMax - 1e-6,
     apply: () => {
       state.mods.dmgMul = Math.min(CAPS.dmgMulMax, state.mods.dmgMul * 1.08);
       if (state.mods.dmgMul >= CAPS.dmgMulMax) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💥 攻撃力MAX!' });
+        const maxText = getLang() === 'ja' ? '💥 攻撃力MAX!' : '💥 Damage MAX!';
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
       }
     }
   },
 
   sizeUp: {
     id: 'size+',
-    name: '弾サイズアップ',
-    desc: '弾・範囲 +10%（上限あり）',
+    get name() {
+      return getLang() === 'ja' ? '弾サイズアップ' : 'Bullet Size Up';
+    },
+    get desc() {
+      return getLang() === 'ja'
+        ? '弾・範囲 +10%（上限あり）'
+        : 'Bullet/Range +10% (capped)';
+    },
     can: () => state.mods.sizeMul < CAPS.sizeMulMax - 1e-6,
     apply: () => {
       state.mods.sizeMul = Math.min(CAPS.sizeMulMax, state.mods.sizeMul * 1.10);
       if (state.mods.sizeMul >= CAPS.sizeMulMax) {
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🔵 弾サイズMAX!' });
+        const maxText = getLang() === 'ja' ? '🔵 弾サイズMAX!' : '🔵 Size MAX!';
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
       }
     }
   },
   
   doubleItem: {
   id:'doubleItem',
-  name:'アイテム出現率２倍',
-  desc:'回復/核/磁石/宝箱などの出現率が２倍になる',
+  get name() {
+    return getLang() === 'ja' ? 'アイテム出現率２倍' : 'Double Item Rate';
+  },
+  get desc() {
+    return getLang() === 'ja'
+      ? '回復/核/磁石/宝箱などの出現率が２倍になる'
+      : 'Double drop rate for healing, nukes, magnets, chests';
+  },
   can: ()=> !state.mods.doubleItem,
   apply: ()=> { state.mods.doubleItem = true; }
 },
@@ -8281,8 +9520,9 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             const distToLaser = Math.hypot(px - closestX, py - closestY);
             
             if(distToLaser < state.player.r + e.laserWidth){
-              // ヒット
-              const finalDmg = Math.round(e.laserDamage * state.mods.damageMul);
+              // ヒット - 難易度倍率も適用
+              const diffMods = state.mode.getDifficultyMods();
+              const finalDmg = Math.round(e.laserDamage * (diffMods.dmgMul || 1.0) * state.mods.damageMul);
               if(state.player.iTime <= 0 && !state._debugInvincible){
                 state.player.hp -= finalDmg;
                 state.player.iTime = 0.5;
@@ -8433,7 +9673,10 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             
             if(distToLaser < state.player.r + 8){
               if(state.player.iTime <= 0 && !state._debugInvincible){
-                state.player.hp -= 30 * state.mods.damageMul;
+                // 難易度倍率も適用
+                const diffMods = state.mode.getDifficultyMods();
+                const finalDmg = Math.round(30 * (diffMods.dmgMul || 1.0) * state.mods.damageMul);
+                state.player.hp -= finalDmg;
                 state.player.iTime = 0.5; // 無敵時間
                 
                 // ★大きくノックバック（レーザーから弾き飛ばす）
@@ -8665,7 +9908,9 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
                 const by = e.y + Math.sin(e.beamAngle)*t;
                 const d = Math.hypot(state.player.x-bx, state.player.y-by);
                 if(d < state.player.r + 15 && state.player.iTime <= 0 && !state._debugInvincible){ // ★当たり判定も太く
-                  state.player.hp -= 40;
+                  const diffMods = state.mode.getDifficultyMods();
+                  const finalDmg = Math.round(40 * (diffMods.dmgMul || 1.0) * state.mods.damageMul);
+                  state.player.hp -= finalDmg;
                   state.player.iTime = 0.5;
                   break;
                 }
@@ -8823,7 +10068,9 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             
             const d = Math.hypot(state.player.x - e.x, state.player.y - e.y);
             if(d < state.player.r + e.size/2 && state.player.iTime <= 0 && !state._debugInvincible){
-              state.player.hp -= 35;
+              const diffMods = state.mode.getDifficultyMods();
+              const finalDmg = Math.round(35 * (diffMods.dmgMul || 1.0) * state.mods.damageMul);
+              state.player.hp -= finalDmg;
               state.player.iTime = 0.8;
             }
             // ★ターゲット座標に到達したら終了
@@ -8900,7 +10147,12 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             if(e.bombWarnTime <= 0){
               for(const t of e.bombTargets){
                 const d = Math.hypot(state.player.x - t.x, state.player.y - t.y);
-                if(d < state.player.r + 86 && state.player.iTime <= 0 && !state._debugInvincible){ state.player.hp -= 50; state.player.iTime = 0.8; } // ★ダメージ50
+                if(d < state.player.r + 86 && state.player.iTime <= 0 && !state._debugInvincible){ 
+                  const diffMods = state.mode.getDifficultyMods();
+                  const finalDmg = Math.round(50 * (diffMods.dmgMul || 1.0) * state.mods.damageMul);
+                  state.player.hp -= finalDmg; 
+                  state.player.iTime = 0.8; 
+                } // ★ダメージ50
                 addEffect('explosion', { x:t.x, y:t.y, r:115, life:0.4 }); // ★さらに1.2倍
               }
               e.bombPhase = 'idle';
@@ -8971,7 +10223,9 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
                    state.player.y > obs.y - halfSize - state.player.r && 
                    state.player.y < obs.y + halfSize + state.player.r){
                   if(state.player.iTime <= 0 && !state._debugInvincible){
-                    state.player.hp -= 40; // ★ダメージ40
+                    const diffMods = state.mode.getDifficultyMods();
+                    const finalDmg = Math.round(40 * (diffMods.dmgMul || 1.0) * state.mods.damageMul);
+                    state.player.hp -= finalDmg; // ★ダメージ40
                     state.player.iTime = 0.5;
                   }
                 }
@@ -9100,7 +10354,9 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             // プレイヤーとの接触ダメージ
             const pdist = Math.hypot(state.player.x - e.x, state.player.y - e.y);
             if(pdist < e.size / 2 + state.player.r && state.player.iTime <= 0 && !state._debugInvincible){
-              state.player.hp -= 60; // ★ダメージ60
+              const diffMods = state.mode.getDifficultyMods();
+              const finalDmg = Math.round(60 * (diffMods.dmgMul || 1.0) * state.mods.damageMul);
+              state.player.hp -= finalDmg; // ★ダメージ60
               state.player.iTime = 1.0;
             }
             // 目標地点に到達したら終了
@@ -9258,9 +10514,10 @@ if(e.phase === 'shoot'){
   const d    = pointLineDist(state.player.x, state.player.y, e.x, e.y, x2, y2);
   const hitR = beamW * 1.00;                // 
   const DPS  = state.mode.hardcore ? 75 : 50; // 体感強化
+  const diffMods = state.mode.getDifficultyMods();
 
   if (d < hitR){
-    const finalDPS = DPS * state.mods.damageMul; // 耐久力による軽減
+    const finalDPS = DPS * (diffMods.dmgMul || 1.0) * state.mods.damageMul; // 難易度+耐久力による軽減
     if (!state._debugInvincible) {
       state.player.hp -= finalDPS * dt;            // 直接HPを削る（ノックバックなし）
       if (state.player.hp <= 0) { gameOver(); return; }
@@ -9478,7 +10735,8 @@ else if(e.phase === 'charge_boom'){
           // プレイヤーへのダメージ
           const distToPlayer = Math.hypot(e.x - state.player.x, e.y - state.player.y);
           if(distToPlayer < R && state.player.iTime <= 0 && !state._debugInvincible){
-            const finalDmg = Math.round(e.explodeDamage * state.mods.damageMul); // 耐久力による軽減
+            const diffMods = state.mode.getDifficultyMods();
+            const finalDmg = Math.round(e.explodeDamage * (diffMods.dmgMul || 1.0) * state.mods.damageMul); // 難易度倍率 + 耐久力による軽減
             state.player.hp -= finalDmg;
             state.player.iTime = 0.8; // ★無敵時間追加
             addEffect('flash', { life: 0.05 });
@@ -9720,7 +10978,10 @@ state.paused = false;                 // ← ポーズ中でも tick が効く�
           const picks = (e.type === 'big') ? 2 : 1;
           const pos = adjustDropPosition(e.x, e.y, 14);
           state.items.push({ kind: 'chest', x: pos.x, y: pos.y, r: 14, t: 0, picks });
-          addEffect('text', { x: e.x, y: e.y, life: 1.2, text: (picks === 2 ? '宝箱×2！' : '宝箱！') });
+          const chestText = picks === 2 
+            ? (getLang() === 'ja' ? '宝箱×2！' : 'Chest ×2!')
+            : (getLang() === 'ja' ? '宝箱！' : 'Chest!');
+          addEffect('text', { x: e.x, y: e.y, life: 1.2, text: chestText });
           spark(e.x, e.y, e.type === 'mid' ? 22 : 34);
         } else {
           // 通常の経験値ドロップ（miniTriangle含む）
@@ -12106,7 +13367,8 @@ function showGameClear(){
         el.style.display = 'none';
         resetGame();
         syncPauseButton();
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.4, text: 'HARDCORE START' });
+        const startText = getLang() === 'ja' ? 'ハードコア開始!' : 'HARDCORE START';
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.4, text: startText });
       };
     }
   }else{
@@ -12120,6 +13382,7 @@ function displayUnlockedAchievements() {
   const unlockedList = window._unlockedThisSession || [];
   const achievementsArea = document.getElementById('clearAchievements');
   const achievementsList = document.getElementById('clearAchievementsList');
+  const lang = getLang();
   
   if (!achievementsArea || !achievementsList) return;
   
@@ -12157,11 +13420,15 @@ function displayUnlockedAchievements() {
     };
     const color = tierColors[achievement.tier] || '#fff';
     
+    // 多言語対応
+    const achName = t('ach_' + achievement.id) || achievement.name;
+    const achDesc = t('ach_' + achievement.id + '_desc') || achievement.desc;
+    
     item.innerHTML = `
       <span style="font-size:1.5rem;">${achievement.icon}</span>
       <div style="flex:1;">
-        <div style="font-weight:700; color:${color};">${achievement.name}</div>
-        <div style="font-size:0.85rem; opacity:0.9;">${achievement.desc}</div>
+        <div style="font-weight:700; color:${color};">${achName}</div>
+        <div style="font-size:0.85rem; opacity:0.9;">${achDesc}</div>
       </div>
     `;
     
@@ -12208,7 +13475,8 @@ if (!e._counted) {
     setTimeout(() => { state.paused = false; }, 800); // 0.8秒後に再開
     const pos = adjustDropPosition(e.x, e.y, 16);
     state.items.push({ kind:'chest', x:pos.x, y:pos.y, r:16, t:0, picks:2 });
-    try { addEffect('text', { x:e.x, y:e.y, life:1.2, text:'宝箱×2！' }); } catch(_){}
+    const chestText = getLang() === 'ja' ? '宝箱×2！' : 'Chest ×2!';
+    try { addEffect('text', { x:e.x, y:e.y, life:1.2, text:chestText }); } catch(_){}
   } else if (e.type === 'mid') {
     playKillSound('mid'); // 中ボス効果音
     state.paused = true; // 画面を一時停止
@@ -12318,7 +13586,10 @@ function finalExplosionAndClear(x, y){
     state.score     = (state.score|0)     + bonus;
     state._finalBonusAwarded = true;
 
-    try { addEffect('text', { x, y, life: 1.3, text: `BOSS TIME BONUS +${bonus.toLocaleString()}` }); } catch(_){}
+    const bonusText = getLang() === 'ja' 
+      ? `ボスタイムボーナス +${bonus.toLocaleString()}` 
+      : `BOSS TIME BONUS +${bonus.toLocaleString()}`;
+    try { addEffect('text', { x, y, life: 1.3, text: bonusText }); } catch(_){}
   }
 
   // 少し見せてからCLEAR
@@ -12342,6 +13613,7 @@ function displayUnlockedAchievementsGameover() {
   const unlockedList = window._unlockedThisSession || [];
   const achievementsArea = document.getElementById('gameoverAchievements');
   const achievementsList = document.getElementById('gameoverAchievementsList');
+  const lang = getLang();
   
   if (!achievementsArea || !achievementsList) return;
   
@@ -12379,11 +13651,15 @@ function displayUnlockedAchievementsGameover() {
     };
     const color = tierColors[achievement.tier] || '#fff';
     
+    // 多言語対応
+    const achName = t('ach_' + achievement.id) || achievement.name;
+    const achDesc = t('ach_' + achievement.id + '_desc') || achievement.desc;
+    
     item.innerHTML = `
       <span style="font-size:1.5rem;">${achievement.icon}</span>
       <div style="flex:1;">
-        <div style="font-weight:700; color:${color};">${achievement.name}</div>
-        <div style="font-size:0.85rem; opacity:0.9;">${achievement.desc}</div>
+        <div style="font-weight:700; color:${color};">${achName}</div>
+        <div style="font-size:0.85rem; opacity:0.9;">${achDesc}</div>
       </div>
     `;
     
