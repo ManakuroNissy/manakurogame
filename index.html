@@ -3817,7 +3817,7 @@ function visibleBounds(radius = 0){
     });
     
     const closeText = lang === 'ja' ? '✕ 閉じる' : '✕ CLOSE';
-    const titleText = t('achievement_title');
+    const titleText = t('achievements_title');
     const unlockText = lang === 'ja' ? '解除' : 'Unlocked';
 
     let html = `
@@ -3829,7 +3829,7 @@ function visibleBounds(radius = 0){
             ${closeText}
           </button>
           
-          <h2 style="color:#8b5cf6;text-align:center;margin:0 0 10px 0;font-size:28px;">🎖️ ${titleText}</h2>
+          <h2 style="color:#8b5cf6;text-align:center;margin:0 0 10px 0;font-size:28px;">${titleText}</h2>
           <div style="text-align:center;margin-bottom:20px;color:#fff;">
             <div style="font-size:18px;margin-bottom:8px;">${unlockedCount} / ${totalCount} ${unlockText} (${progress}%)</div>
             <div style="background:#2a2a3e;border-radius:20px;height:24px;overflow:hidden;">
@@ -3882,19 +3882,26 @@ function visibleBounds(radius = 0){
 
   // === カラーカスタマイズシステム ===
   const PLAYER_COLORS = {
-    green:   { name: 'グリーン',   color: '#4ade80', unlockAt: 0 },  // デフォルト
-    cyan:    { name: '水色',       color: '#22d3ee', unlockAt: 5 },
-    pink:    { name: 'ピンク',     color: '#f472b6', unlockAt: 10 },
-    red:     { name: 'レッド',     color: '#ef4444', unlockAt: 15 },
-    yellow:  { name: 'イエロー',   color: '#facc15', unlockAt: 20 },
-    orange:  { name: 'オレンジ',   color: '#fb923c', unlockAt: 25 },
-    purple:  { name: 'パープル',   color: '#a78bfa', unlockAt: 30 },
-    navy:    { name: '紺色',       color: '#3b82f6', unlockAt: 35 },
-    bronze:  { name: 'ブロンズ',   color: '#cd7f32', unlockAt: 40, shiny: true },
-    silver:  { name: 'シルバー',   color: '#c0c0c0', unlockAt: 45, shiny: true },
-    gold:    { name: 'ゴールド',   color: '#ffd700', unlockAt: 50, shiny: true },
-    rainbow: { name: 'レインボー', color: 'rainbow', unlockAt: -1 }  // コンプリートボーナス
+    green:   { nameJa: 'グリーン',   nameEn: 'Green',   color: '#4ade80', unlockAt: 0 },  // デフォルト
+    cyan:    { nameJa: '水色',       nameEn: 'Cyan',    color: '#22d3ee', unlockAt: 5 },
+    pink:    { nameJa: 'ピンク',     nameEn: 'Pink',    color: '#f472b6', unlockAt: 10 },
+    red:     { nameJa: 'レッド',     nameEn: 'Red',     color: '#ef4444', unlockAt: 15 },
+    yellow:  { nameJa: 'イエロー',   nameEn: 'Yellow',  color: '#facc15', unlockAt: 20 },
+    orange:  { nameJa: 'オレンジ',   nameEn: 'Orange',  color: '#fb923c', unlockAt: 25 },
+    purple:  { nameJa: 'パープル',   nameEn: 'Purple',  color: '#a78bfa', unlockAt: 30 },
+    navy:    { nameJa: 'ネイビー',   nameEn: 'Navy',    color: '#1e3a8a', unlockAt: 35 },
+    bronze:  { nameJa: 'ブロンズ',   nameEn: 'Bronze',  color: '#cd7f32', unlockAt: 40, shiny: true },
+    silver:  { nameJa: 'シルバー',   nameEn: 'Silver',  color: '#c0c0c0', unlockAt: 45, shiny: true },
+    gold:    { nameJa: 'ゴールド',   nameEn: 'Gold',    color: '#ffee66', unlockAt: 50, shiny: true },
+    rainbow: { nameJa: 'レインボー', nameEn: 'Rainbow', color: 'rainbow', unlockAt: -1 }  // コンプリートボーナス
   };
+  
+  // 色名を取得するヘルパー関数
+  function getColorName(key) {
+    const data = PLAYER_COLORS[key];
+    if (!data) return key;
+    return getLang() === 'ja' ? data.nameJa : data.nameEn;
+  }
 
   const COLOR_SAVE_KEY = 'playerColorSetting';
 
@@ -3980,11 +3987,11 @@ function visibleBounds(radius = 0){
         grad.addColorStop(0.65, '#888888'); // やや暗い
         grad.addColorStop(1, '#505050');    // 暗い
       } else if (colorKey === 'gold') {
-        grad.addColorStop(0, '#5c4a00');    // 暗い
-        grad.addColorStop(0.35, '#9a7b00'); // やや暗い
+        grad.addColorStop(0, '#b8960a');    // 暗め（明るく調整）
+        grad.addColorStop(0.35, '#e6c200'); // やや暗い（明るく調整）
         grad.addColorStop(0.5, '#fffde8');  // 中央：白っぽい光
-        grad.addColorStop(0.65, '#9a7b00'); // やや暗い
-        grad.addColorStop(1, '#5c4a00');    // 暗い
+        grad.addColorStop(0.65, '#e6c200'); // やや暗い（明るく調整）
+        grad.addColorStop(1, '#b8960a');    // 暗め（明るく調整）
       }
       ctx.fillStyle = grad;
     } else {
@@ -4010,8 +4017,8 @@ function visibleBounds(radius = 0){
     ctx.arc(cx + 8, cy - 5, 4, 0, Math.PI * 2);
     ctx.fill();
     
-    // 名前更新
-    if (nameEl) nameEl.textContent = data.name;
+    // 名前更新（多言語対応）
+    if (nameEl) nameEl.textContent = getColorName(colorKey);
   }
 
   // プレビューアニメーション（レインボー用）
@@ -4078,8 +4085,7 @@ function visibleBounds(radius = 0){
         }
       } else {
         // カラー名の多言語対応
-        const colorNameKey = 'color_' + key;
-        const colorName = (LANG[lang] && LANG[lang][colorNameKey]) || data.name;
+        const colorName = getColorName(key);
         btn.title = colorName;
         if (isSelected) {
           btn.innerHTML = `<span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1.5rem;">✓</span>`;
@@ -4102,8 +4108,7 @@ function visibleBounds(radius = 0){
       }
       
       // ラベル（多言語対応）
-      const colorNameKey = 'color_' + key;
-      const colorDisplayName = (LANG[lang] && LANG[lang][colorNameKey]) || data.name;
+      const colorDisplayName = getColorName(key);
       const wrapper = document.createElement('div');
       wrapper.style.cssText = 'text-align:center;';
       wrapper.appendChild(btn);
@@ -11687,11 +11692,11 @@ if (playerColorVal === 'rainbow') {
     grad.addColorStop(0.65, '#888888');
     grad.addColorStop(1, '#505050');
   } else if (playerColorKey === 'gold') {
-    grad.addColorStop(0, '#5c4a00');
-    grad.addColorStop(0.35, '#9a7b00');
+    grad.addColorStop(0, '#b8960a');
+    grad.addColorStop(0.35, '#e6c200');
     grad.addColorStop(0.5, '#fffde8');
-    grad.addColorStop(0.65, '#9a7b00');
-    grad.addColorStop(1, '#5c4a00');
+    grad.addColorStop(0.65, '#e6c200');
+    grad.addColorStop(1, '#b8960a');
   }
   ctx.fillStyle = grad;
 } else {
