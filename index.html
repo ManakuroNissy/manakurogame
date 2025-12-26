@@ -1464,6 +1464,91 @@ document.head.appendChild(link);
     updateButtons();
   }
   
+  // 更新履歴モーダルを言語に応じて更新
+  function updateUpdateLogModal(lang) {
+    const modal = document.getElementById('updateLogModal');
+    if (!modal) return;
+    
+    const isJa = lang === 'ja';
+    const closeText = isJa ? '閉じる' : 'Close';
+    const titleText = isJa ? '📝 更新履歴' : '📝 Update Log';
+    
+    modal.innerHTML = `
+    <div style="max-width:700px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <h2 style="margin:0; color:#fff; font-size:1.8rem;">${titleText}</h2>
+        <button onclick="document.getElementById('updateLogModal').style.display='none'" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">${closeText}</button>
+      </div>
+      
+      <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 2.1.2 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 2.1.2 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">${isJa ? '🎮 ステージ2：ロックの新演出' : '🎮 Stage 2: Rock New Effects'}</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>${isJa ? 'ロックが壁に当たった時の衝撃エフェクト追加（岩の破片＆衝撃波リング）' : 'Added impact effects when Rock hits walls (debris & shockwave ring)'}</li>
+            <li>${isJa ? '壁に当たると跳ね返り→0.5秒静止→フェードアウトして消滅' : 'Bounces back → 0.5s pause → fades out when hitting walls'}</li>
+            <li>${isJa ? '衝撃波リングに攻撃判定追加（ロックの50%ダメージ＆ノックバック）' : 'Shockwave ring deals 50% Rock damage with knockback'}</li>
+            <li>${isJa ? 'ロックが大きいほど衝撃波も大きくなる' : 'Bigger rocks create bigger shockwaves'}</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">${isJa ? '📱 UI改善' : '📱 UI Improvements'}</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>${isJa ? 'スマホ版HUDを整理（⏸🔊ボタンをHUD内に統合）' : 'Reorganized mobile HUD (⏸🔊 buttons integrated into HUD)'}</li>
+            <li>${isJa ? 'HUD 1行目：ポーズ/サウンド/Lv/難易度/スコア' : 'HUD Row 1: Pause/Sound/Lv/Difficulty/Score'}</li>
+            <li>${isJa ? 'HUD 2行目：HP/XPバー' : 'HUD Row 2: HP/XP bars'}</li>
+            <li>${isJa ? 'PC版でも自機の上にHP数値を表示' : 'HP numbers now shown above player on PC'}</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">${isJa ? '🐛 バグ修正' : '🐛 Bug Fixes'}</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>${isJa ? 'タイトル画面で▶️ボタンが表示されるバグを修正' : 'Fixed ▶️ button showing on title screen'}</li>
+            <li>${isJa ? 'リトライ時に前回の武器エフェクトが一瞬残るバグを修正' : 'Fixed weapon effects briefly remaining on retry'}</li>
+            <li>${isJa ? 'クリア画面で自機が動かせてしまうバグを修正' : 'Fixed player movement on clear screen'}</li>
+            <li>${isJa ? '英語版スタートボーナスの武器説明が日本語だったのを修正' : 'Fixed Japanese weapon descriptions in English start bonus'}</li>
+            <li>${isJa ? '既存のクリア/ハイスコア記録から実績を自動解放' : 'Auto-unlock achievements from existing records'}</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 2.0.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">${isJa ? '🎮 新機能：難易度モード' : '🎮 New: Difficulty Modes'}</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li><strong>Easy</strong>: ${isJa ? '敵HP 60%、攻撃力 80%、敵の数 80%、スタートボーナス2つ' : 'Enemy HP 60%, ATK 80%, spawn 80%, 2 start bonuses'}</li>
+            <li><strong>Normal</strong>: ${isJa ? '従来のバランス、スタートボーナス1つ' : 'Standard balance, 1 start bonus'}</li>
+            <li><strong>Hard</strong>: ${isJa ? '敵HP 1.2倍、攻撃力 1.2倍、敵の数 1.2倍' : 'Enemy HP 1.2x, ATK 1.2x, spawn 1.2x'}</li>
+            <li><strong>Hardcore</strong>: ${isJa ? '敵HP 2倍、攻撃力 1.5倍、敵の数 1.5倍' : 'Enemy HP 2x, ATK 1.5x, spawn 1.5x'}</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">${isJa ? '🎨 新機能：カスタマイズ' : '🎨 New: Customization'}</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>${isJa ? '主人公のカラーを変更可能に（全12色）' : 'Change player color (12 colors)'}</li>
+            <li>${isJa ? '実績を5つ解除するごとに新カラーをゲット' : 'Unlock new colors every 5 achievements'}</li>
+            <li>${isJa ? '全実績コンプリートでレインボーカラー解放！' : 'Complete all achievements for Rainbow color!'}</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.x -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.15); border-left:4px solid #10b981; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#34d399; font-size:1.3rem;">Ver 1.8.x <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24-25</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>${isJa ? '音量設定機能追加（BGM/効果音）' : 'Added volume settings (BGM/SFX)'}</li>
+            <li>${isJa ? 'ステージ2追加（三角敵＆障害物）' : 'Added Stage 2 (triangle enemies & obstacles)'}</li>
+            <li>${isJa ? '新武器レーザー追加' : 'Added new weapon: Laser'}</li>
+            <li>${isJa ? '実績システム追加' : 'Added achievement system'}</li>
+            <li>${isJa ? '多言語対応（日本語/英語）' : 'Added multilingual support (JP/EN)'}</li>
+          </ul>
+        </div>
+        
+      </div>
+    </div>
+    `;
+  }
+  
   // UI更新関数（言語変更時に呼ばれる）
   window.updateUILanguage = function() {
     const lang = getLang();
@@ -1495,6 +1580,9 @@ document.head.appendChild(link);
     if (customizeBtn) customizeBtn.textContent = t('btn_customize');
     if (updateLogBtn) updateLogBtn.textContent = t('btn_update_log');
     if (settingsBtn) settingsBtn.textContent = t('btn_settings');
+    
+    // 更新履歴モーダルの翻訳
+    updateUpdateLogModal(lang);
     
     // 言語ボタンの状態を更新
     const jaBtn = document.getElementById('langJaBtn');
@@ -1713,453 +1801,9 @@ document.head.appendChild(link);
   
   <canvas id="cv"></canvas>
   
-  <!-- 更新履歴モーダル -->
-  <div id="updateLogModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
-    <div style="max-width:700px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-        <h2 style="margin:0; color:#fff; font-size:1.8rem;">📝 更新履歴</h2>
-        <button onclick="document.getElementById('updateLogModal').style.display='none'" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">閉じる</button>
-      </div>
-      
-      <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
-        
-        <!-- Ver 2.1.2 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 2.1.2 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#93c5fd;">🎮 ステージ2：ロックの新演出</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ロックが壁に当たった時の衝撃エフェクト追加（岩の破片＆衝撃波リング）</li>
-            <li>壁に当たると跳ね返り→0.5秒静止→フェードアウトして消滅</li>
-            <li>衝撃波リングに攻撃判定追加（ロックの50%ダメージ＆ノックバック）</li>
-            <li>ロックが大きいほど衝撃波も大きくなる</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#93c5fd;">📱 UI改善</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>スマホ版HUDを整理（⏸🔊ボタンをHUD内に統合）</li>
-            <li>HUD 1行目：ポーズ/サウンド/Lv/難易度/スコア</li>
-            <li>HUD 2行目：HP/XPバー</li>
-            <li>PC版でも自機の上にHP数値を表示</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#93c5fd;">🐛 バグ修正</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>タイトル画面で▶️ボタンが表示されるバグを修正</li>
-            <li>リトライ時に前回の武器エフェクトが一瞬残るバグを修正</li>
-            <li>クリア画面で自機が動かせてしまうバグを修正</li>
-            <li>英語版スタートボーナスの武器説明が日本語だったのを修正</li>
-            <li>既存のクリア/ハイスコア記録から実績を自動解放</li>
-            <li>更新履歴の年を2024→2025に修正</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 2.0.0 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#86efac;">🎮 新機能：難易度モード</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li><strong>Easy（かんたん）</strong>：敵HP 60%、攻撃力 80%、敵の数 80%、中ボス・大ボスは同時に1体まで、スタートボーナス2つ選択可能</li>
-            <li><strong>Normal（通常）</strong>：従来のバランス、スタートボーナス1つ</li>
-            <li><strong>Hard（難しい）</strong>：敵HP 1.2倍、攻撃力 1.2倍、敵の数 1.2倍、スタートボーナスなし</li>
-            <li><strong>Hardcore（鬼）</strong>：敵HP 2倍、攻撃力 1.5倍、敵の数 1.5倍、スタートボーナスなし</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#86efac;">⚙️ UI改善</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>タイトル画面に4つの難易度選択ボタンを追加</li>
-            <li>プレイ中に難易度モードを表示（画面左上）</li>
-            <li>ランキングに難易度モードを表示（色分け）</li>
-            <li>SNSシェア時に難易度モードを表示</li>
-            <li>ステージ選択画面で難易度別クリア状況を表示（😊Easy/🎮Normal/💪Hard/🔥Hardcore）</li>
-            <li>クリアフラグをステージ＆難易度別に保存</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#86efac;">🎖️ 実績の調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>実績ボタンの色をピンクに変更</li>
-            <li>難易度別クリア実績を追加（ステージ1×4難易度 + ステージ2×4難易度 = 計8種）</li>
-            <li>「ハードコアミニマリスト」実績を削除（難易度が無関係な縛り系実績と分離）</li>
-            <li>武器縛り系の実績は難易度に関係なく達成可能に</li>
-            <li>新実績追加：リロールマスター、宝箱ハンター、ボス殲滅者、生存者</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#86efac;">🎨 新機能：カスタマイズ</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>主人公のカラーを変更可能に（タイトル画面「カスタマイズ」）</li>
-            <li>実績を5つ解除するごとに新カラーをゲット（全12色）</li>
-            <li>全実績コンプリートでレインボーカラー解放！</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#86efac;">⚖️ バランス調整（ステージ2）</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ダッシャーの速度を85%に低下（640→544）</li>
-            <li>Hardcoreのスナイパー上限を緩和（5/7→4/6）</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.8 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.15); border-left:4px solid #10b981; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#34d399; font-size:1.3rem;">Ver 1.8.8 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#6ee7b7;">🔊 新機能</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>タイトル画面に設定ボタン追加（BGM/効果音の音量調整）</li>
-            <li>一時停止メニューでも音量調整可能</li>
-            <li>音量設定はブラウザに保存</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#6ee7b7;">🐛 バグ修正</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>タイトルに戻るボタンが押せなくなる問題を修正</li>
-            <li>ゲームオーバー/クリア時のランキング自動表示を削除</li>
-            <li>ゲームオーバー処理の統合（重複関数の整理）</li>
-            <li>ピラートラップのノックバック効果が消えていた問題を修正</li>
-            <li>被ダメージ時の無敵時間が付与されない箇所を修正</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#6ee7b7;">⚖️ バランス調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>miniTriangle：HP 16→8に戻し、経験値ドロップ復活</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.7 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 1.8.7 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#93c5fd;">⚖️ 武器バランス調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>レーザー：基本ダメージ 36→32、Lv上昇 +30→+25</li>
-            <li>ブレード：基本ダメージ 60→52</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#93c5fd;">🐛 バグ修正</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ステージ1ラスボスの突進が必中だった問題を修正</li>
-            <li>タイトルに戻った後にステージ選択できなくなる問題を修正</li>
-            <li>タイトルに戻った後にランキングが表示される問題を修正</li>
-            <li>やり直す/もう一度遊ぶボタンの状態リセット漏れを修正</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.6 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(239,68,68,0.15); border-left:4px solid #ef4444; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#f87171; font-size:1.3rem;">Ver 1.8.6 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#fca5a5;">🔥 ハードコアモード強化</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>スナイパー出現数：通常3/5体 → ハードコア5/7体</li>
-            <li>大ボス・ラスボスのHP倍率：1.3倍 → 1.5倍</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#fca5a5;">▲ ステージ2調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>大ボス反射球のスピード1.2倍（400→480）</li>
-            <li>大ボス突進をターゲット座標方式に変更</li>
-            <li>スピナー高速回転中：ブレード・ノヴァ・オービット・ポイズンも無効に</li>
-            <li>ピラートラップ：継続ダメージ → 一撃30ダメージに変更</li>
-            <li>miniTriangle：HP2倍（16）、ダメージ10、経験値ドロップなし</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.5 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 1.8.5 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#93c5fd;">⚔️ ブレード完全リニューアル</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>新エフェクト：主人公中心から半径が広がる斬撃</li>
-            <li>交互に逆向きの流れ＋放射線エフェクト</li>
-            <li>3セグメント描画で軽量化</li>
-            <li>連撃数変更：Lv1=2連撃 → Lv2=4連撃 → Lv3=6連撃 → 覚醒=12連撃</li>
-            <li>レベルごとに半径拡大：60px → 90px → 120px → 180px（覚醒）</li>
-            <li>CT 1.1秒固定（連撃が長くなる分、実質CTが短縮）</li>
-            <li>基礎ダメージ60（2連撃で合計120ダメージ）</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.4 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(147,51,234,0.15); border-left:4px solid #9333ea; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#a855f7; font-size:1.3rem;">Ver 1.8.4 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#d8b4fe;">👹 ステージ2 ラスボス演出強化</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ボスの色を強い紫色に変更、オーラエフェクト追加</li>
-            <li>ホーミング光球：スピード130、寿命5.5秒に調整</li>
-            <li>回転突進の演出改善：
-              <ul style="margin:0.3rem 0; padding-left:1rem;">
-                <li>点滅→高速回転しながらフェードアウト＆サイズアップで消失</li>
-                <li>突進中はボス本体とバリア三角が白く光る</li>
-                <li>バリアも高速回転して接触面積UP</li>
-                <li>突進スピード700に調整</li>
-              </ul>
-            </li>
-            <li>回転突進中は他の攻撃（光球・爆撃・柱・回転弾幕）を発動しない</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.3 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(239,68,68,0.15); border-left:4px solid #ef4444; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#f87171; font-size:1.3rem;">Ver 1.8.3 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#fecaca;">🎮 UI改善</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>タイトルに戻った時のリセット処理を改善</li>
-            <li>一時停止ボタンはゲームプレイ中のみ表示</li>
-            <li>ランキング表示の無限ループバグを修正</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fecaca;">👹 ステージ2 大ボス調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>体当たりが主人公を正確に追尾するように改善</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fecaca;">👹 ステージ2 ラスボス調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ホーミング光球：オービットで消えない、スピード控えめに調整</li>
-            <li>爆撃攻撃：重ならないよう分散配置に改善</li>
-            <li>回転突進：2秒の点滅予告→画面外から突進→画面内で停止</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fecaca;">⚔️ 敵調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ピラートラップのダメージを2倍に増加（20→40/秒）</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.2 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(99,102,241,0.15); border-left:4px solid #6366f1; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#818cf8; font-size:1.3rem;">Ver 1.8.2 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#c7d2fe;">⏸ ポーズメニュー追加</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>一時停止中に所持武器・能力強化の一覧を表示</li>
-            <li>「ゲームに戻る」ボタンで再開</li>
-            <li>「リタイア」ボタンでゲーム終了（ゲームオーバー扱い）</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.1 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.15); border-left:4px solid #10b981; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#10b981; font-size:1.3rem;">Ver 1.8.1 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#a7f3d0;">🔊 音声バグ修正</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>起動時に常に音声ONで開始するように修正</li>
-            <li>以前のミュート設定が残ってBGMが鳴らない問題を解消</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#a7f3d0;">🎁 スタートボーナス改善</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>武器のみ6種類から選択する仕様に変更</li>
-            <li>選択中にゲームが動いてしまうバグを修正</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.0 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(251,191,36,0.15); border-left:4px solid #fbbf24; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 1.8.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#fef3c7;">🎁 スタートボーナス</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>通常モード開始時に6種類から能力を1つ選択可能</li>
-            <li>ハードコアモードでは無効（チャレンジ性維持）</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">🏆 ランキング改善</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ステージ1とステージ2のランキングを分離</li>
-            <li>タブで切り替え可能に</li>
-            <li>CLOSEボタンを上部に配置（スマホで押しやすく）</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">⚖️ 難易度調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>プレイヤー初期HP: 110→120</li>
-            <li>プレイヤー初期速度: 170→180</li>
-            <li>ブラスター初期攻撃力: 12→15</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">📡 レーザー説明文追加</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>入手時・強化時・覚醒時の説明を完備</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">📱 PWA対応</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>スマホブラウザで「ホーム画面に追加」バナー表示</li>
-            <li>PWAとして起動でフルスクリーンプレイ可能</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.6 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(236,72,153,0.15); border-left:4px solid #ec4899; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#f472b6; font-size:1.3rem;">Ver 1.6 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/23</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#fbcfe8;">👹 ステージ2 ラスボス大改修</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>サイズ2倍に巨大化、HP40%削減でスピード感UP</li>
-            <li>明るいマゼンタカラーで視認性向上</li>
-            <li>新攻撃「ホーミング光球」：ランダム方向に3発、ゆっくり追尾</li>
-            <li>新攻撃「回転弾幕」：高速回転しながら大量の弾をばら撒く</li>
-            <li>新攻撃「柱飛ばし」：柱が光り、矢印で方向を予告して飛んでくる</li>
-            <li>爆撃15箇所に増加、シールド回転高速化</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fbcfe8;">📡 レーザー覚醒強化</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>覚醒時：0.8秒間継続照射で敵を焼き尽くす</li>
-            <li>照射中は敵を自動追尾</li>
-            <li>基本ダメージ2倍、レベルボーナス大幅増加</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fbcfe8;">🎮 UI改善</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>レベルアップ選択肢：3択→4択に増加</li>
-            <li>宝箱選択肢：5択→6択に増加</li>
-            <li>スマホでもカードが見やすいレイアウトに最適化</li>
-            <li>タイトル画面からステージ選択への導線改善</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#fbcfe8;">⚔️ その他バランス調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ノヴァ覚醒オーラダメージ1.5倍</li>
-            <li>スナイパーの色を薄い黄色に変更</li>
-            <li>スピナーが低頻度で弾を発射するように</li>
-            <li>ピラートラップの警告重複バグ修正</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.5.0 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(168,85,247,0.1); border-left:4px solid #a855f7; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#c084fc; font-size:1.3rem;">Ver 1.5.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/22</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#e9d5ff;">⚔️ 武器バランス大幅調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ホーミング：威力1.4倍、弾速1.2倍に強化</li>
-            <li>ショットガン：威力1.8倍に強化（近距離最強に）</li>
-            <li>ブレード：威力1.5倍、スタン時間1.5倍に強化</li>
-            <li>ポイズン：鈍足効果強化（45%→60%減速）</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#e9d5ff;">🛡️ 新能力追加</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>耐久力アップ（全5段階）：受けるダメージを最大30%軽減</li>
-            <li>防御特化ビルドが可能に</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#e9d5ff;">🎁 宝箱パス機能</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>宝箱でも「パス」ボタンを追加（縛りプレイ完全対応）</li>
-            <li>パスボーナス：+3,000点</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#e9d5ff;">🔥 ハードコア難易度調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>敵の攻撃力：1.3倍→1.5倍に戻す</li>
-            <li>耐久力軽減：最大40%→30%に調整</li>
-            <li>適正な難易度バランスに</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.4.1 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(14,165,233,0.1); border-left:4px solid #0ea5e9; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#38bdf8; font-size:1.3rem;">Ver 1.4.1 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/22</span></h3>
-          <h4 style="margin:0.5rem 0; color:#7dd3fc;">⚖️ ハードコア難易度調整＋BGM修正</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>経験値減少ペナルティを削除（0.75倍→1.0倍）</li>
-            <li>敵の攻撃力を削減（1.5倍→1.3倍）</li>
-            <li>ハードコアモードでBGMが再生されないバグ修正</li>
-            <li>より適正な難易度に調整</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.4.0 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.1); border-left:4px solid #10b981; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#10b981; font-size:1.3rem;">Ver 1.4.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/22</span></h3>
-          <h4 style="margin:0.5rem 0; color:#a7f3d0;">🎯 出現予告システム実装</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ボム敵・ワープ敵の出現前に予告マーカーを表示</li>
-            <li>突然出現による理不尽な死を解消</li>
-            <li>予告時間：ボム0.8秒、ワープ0.6秒</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#a7f3d0;">⚖️ 難易度バランス調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>レーザー予告時間延長（0.6秒→1.0秒）</li>
-            <li>ハードコア敵の自動回復を削除</li>
-            <li>ハードコアボスHP倍率削減（1.5倍→1.3倍）</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#a7f3d0;">🎖️ UI改善</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>クリア・ゲームオーバー時に解除した実績を表示</li>
-            <li>実績のティアカラー表示</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.3.0 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(139,92,246,0.1); border-left:4px solid #8b5cf6; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#a78bfa; font-size:1.3rem;">Ver 1.3.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/21</span></h3>
-          <h4 style="margin:0.5rem 0; color:#c4b5fd;">🔥 ハードコアモード強化</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>敵HP：2倍</li>
-            <li>敵の数：1.5倍</li>
-            <li>敵の攻撃力：1.5倍</li>
-            <li>敵の攻撃頻度：2倍</li>
-            <li>タイトル画面から選択可能に</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#c4b5fd;">⚔️ 武器バランス調整</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ラバーショット：ダメージ減少、球数調整</li>
-            <li>ロック：ダメージ0.55倍に減少</li>
-          </ul>
-          
-          <h4 style="margin:0.8rem 0 0.3rem; color:#c4b5fd;">🎮 新機能</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>レベルアップ時に能力をとらない選択肢（縛りプレイ用）</li>
-            <li>スキップボーナス：+5,000点</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.2.0 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(251,191,36,0.1); border-left:4px solid #fbbf24; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 1.2.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/20</span></h3>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>武器説明文を追加（全11武器）</li>
-            <li>レベルアップ時の説明を強化</li>
-            <li>覚醒時の特別効果説明</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.1.0 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.1); border-left:4px solid #3b82f6; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 1.1.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/19</span></h3>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>SNS共有機能実装（X/LINE/コピー）</li>
-            <li>ランキングシステム</li>
-            <li>実績システム（50種類以上）</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.0.0 -->
-        <div style="padding:1rem; background:rgba(100,116,139,0.1); border-left:4px solid #64748b; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#94a3b8; font-size:1.3rem;">Ver 1.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/18</span></h3>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>初回リリース</li>
-            <li>11種類の武器システム</li>
-            <li>ボス戦システム</li>
-            <li>レベルアップシステム</li>
-          </ul>
-        </div>
-        
-      </div>
-    </div>
-  </div>
-  
+  <!-- 更新履歴モーダル（内容はJSで動的生成） -->
+  <div id="updateLogModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;"></div>
+
   <!-- ステージ選択モーダル -->
   <div id="stageSelectModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
     <div style="max-width:800px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
@@ -9067,6 +8711,13 @@ if (b.type === 'rock') {
   const spinRate = 1.4;     // ★ 自転速度(rad/秒)。ゆっくり=0.8〜1.6、速め=3〜6
   b.spin += spinRate * dt;
   
+  // ★ボスへのヒットクールダウンを減少
+  if (b.hitCooldowns) {
+    for (const id in b.hitCooldowns) {
+      b.hitCooldowns[id] -= dt;
+    }
+  }
+  
   // ★壁ヒット後の跳ね返り＆静止処理
   if (b.hitWall) {
     if (b.wallBounceTime > 0) {
@@ -9291,6 +8942,14 @@ for(let j=state.enemies.length-1;j>=0;j--){
     // --- ヒット ---
     let dmg = b.dmg;
     if(b.type === 'rock'){
+      // ★全敵への連続ダメージ抑制（0.1秒クールダウン）
+      if (!b.hitCooldowns) b.hitCooldowns = {};
+      const enemyId = e.id || j;
+      if (b.hitCooldowns[enemyId] && b.hitCooldowns[enemyId] > 0) {
+        continue; // クールダウン中はダメージなし
+      }
+      b.hitCooldowns[enemyId] = 0.1;
+      
       // ボス種へボーナス
       if (e.type==='mid' || e.type==='big' || e.type==='final') {
         dmg *= (b.bossMul || 1.0);
