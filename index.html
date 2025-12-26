@@ -1403,7 +1403,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.1.1</span> - 
+    <span style="opacity:0.7;">Ver 2.1.2</span> - 
     <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
@@ -1722,6 +1722,37 @@ document.head.appendChild(link);
       </div>
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 2.1.2 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 2.1.2 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">🎮 ステージ2：ロックの新演出</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ロックが壁に当たった時の衝撃エフェクト追加（岩の破片＆衝撃波リング）</li>
+            <li>壁に当たると跳ね返り→0.5秒静止→フェードアウトして消滅</li>
+            <li>衝撃波リングに攻撃判定追加（ロックの50%ダメージ＆ノックバック）</li>
+            <li>ロックが大きいほど衝撃波も大きくなる</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">📱 UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>スマホ版HUDを整理（⏸🔊ボタンをHUD内に統合）</li>
+            <li>HUD 1行目：ポーズ/サウンド/Lv/難易度/スコア</li>
+            <li>HUD 2行目：HP/XPバー</li>
+            <li>PC版でも自機の上にHP数値を表示</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">🐛 バグ修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトル画面で▶️ボタンが表示されるバグを修正</li>
+            <li>リトライ時に前回の武器エフェクトが一瞬残るバグを修正</li>
+            <li>クリア画面で自機が動かせてしまうバグを修正</li>
+            <li>英語版スタートボーナスの武器説明が日本語だったのを修正</li>
+            <li>既存のクリア/ハイスコア記録から実績を自動解放</li>
+            <li>更新履歴の年を2024→2025に修正</li>
+          </ul>
+        </div>
         
         <!-- Ver 2.0.0 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
@@ -9035,6 +9066,28 @@ for(let i=state.bullets.length-1;i>=0;i--){
 if (b.type === 'rock') {
   const spinRate = 1.4;     // ★ 自転速度(rad/秒)。ゆっくり=0.8〜1.6、速め=3〜6
   b.spin += spinRate * dt;
+  
+  // ★壁ヒット後の跳ね返り＆静止処理
+  if (b.hitWall) {
+    if (b.wallBounceTime > 0) {
+      // 跳ね返り中（移動する）
+      b.wallBounceTime -= dt;
+      // 減速
+      b.vx *= 0.92;
+      b.vy *= 0.92;
+    } else if (b.wallStayTime > 0) {
+      // 静止中（移動しない）
+      b.wallStayTime -= dt;
+      b.vx = 0;
+      b.vy = 0;
+      // 徐々に透明に
+      b.wallFade = 1 - (0.5 - b.wallStayTime) / 0.5;
+    } else {
+      // 静止時間終了 → 消滅
+      state.bullets.splice(i, 1);
+      continue;
+    }
+  }
 }
 
   // 移動と寿命処理
@@ -9099,6 +9152,61 @@ if (b.type === 'rock') {
             state.bullets.splice(i, 1);
             continue;
           }
+        } else if (b.type === 'rock' && !b.hitWall) {
+          // ★ロックは壁に当たったら跳ね返り＆静止演出
+          const dx = b.x - obs.x;
+          const dy = b.y - obs.y;
+          const len = Math.hypot(dx, dy) || 1;
+          const nx = dx / len;
+          const ny = dy / len;
+          
+          // 跳ね返り（弱め）
+          const bounceSpeed = 80;
+          b.vx = nx * bounceSpeed;
+          b.vy = ny * bounceSpeed;
+          
+          // 障害物から押し出す
+          const overlap = b.r - Math.sqrt(distSq);
+          b.x += nx * (overlap + 2);
+          b.y += ny * (overlap + 2);
+          
+          // 壁ヒットフラグ＆静止タイマー開始
+          b.hitWall = true;
+          b.wallBounceTime = 0.15;  // 跳ね返り時間
+          b.wallStayTime = 0.5;     // 静止時間
+          
+          // ★派手な衝撃エフェクト
+          // 大量のスパーク
+          spark(b.x, b.y, 20);
+          
+          // 岩の破片エフェクト（茶色系）
+          for (let k = 0; k < 8; k++) {
+            const ang = Math.random() * Math.PI * 2;
+            const spd = 60 + Math.random() * 100;
+            state.effects.push({
+              type: 'rockDebris',
+              x: b.x,
+              y: b.y,
+              vx: Math.cos(ang) * spd,
+              vy: Math.sin(ang) * spd,
+              size: 3 + Math.random() * 5,
+              life: 0.4 + Math.random() * 0.3,
+              maxLife: 0.6
+            });
+          }
+          
+          // 衝撃波リング（攻撃判定付き）
+          state.effects.push({
+            type: 'impactRing',
+            x: b.x,
+            y: b.y,
+            radius: b.r,
+            maxRadius: b.r * 3.5,
+            life: 0.3,
+            maxLife: 0.3,
+            dmg: b.dmg * 0.5,  // ロックの50%ダメージ
+            hitEnemies: new Set()  // 既にダメージを与えた敵を記録
+          });
         } else {
           // その他の物理弾は消滅
           state.bullets.splice(i, 1);
@@ -11275,6 +11383,40 @@ state.paused = false;                 // ← ポーズ中でも tick が効く�
       if (e.vx) e.x += e.vx * dt;
 if (e.vy) e.y += e.vy * dt;
 
+      // ★衝撃波リングの攻撃判定
+      if (e.type === 'impactRing' && e.dmg) {
+        const progress = 1 - (e.life / e.maxLife);
+        const currentRadius = e.radius + (e.maxRadius - e.radius) * progress;
+        
+        // 敵との衝突判定
+        for (const enemy of state.enemies) {
+          if (e.hitEnemies.has(enemy)) continue;  // 既にヒット済み
+          
+          const dx = enemy.x - e.x;
+          const dy = enemy.y - e.y;
+          const dist = Math.hypot(dx, dy);
+          
+          // リングの内側から外側の範囲にいる敵にダメージ
+          if (dist <= currentRadius + (enemy.r || 15)) {
+            e.hitEnemies.add(enemy);
+            
+            // ダメージ処理
+            const finalDmg = e.dmg * (enemy.type === 'mid' || enemy.type === 'big' || enemy.type === 'final' ? 1.1 : 1.0);
+            enemy.hp -= finalDmg;
+            
+            // ノックバック（中心から外側へ）
+            if (dist > 0) {
+              const kb = 150;
+              enemy.kbx = (enemy.kbx || 0) + (dx / dist) * kb;
+              enemy.kby = (enemy.kby || 0) + (dy / dist) * kb;
+            }
+            
+            // ヒットエフェクト
+            spark(enemy.x, enemy.y, 3);
+          }
+        }
+      }
+
       e.life-=dt; 
       if(e.life<=0){ state.effects.splice(i,1); }
     }
@@ -11602,8 +11744,15 @@ for (const it of state.items){
 // bullets
 for (const b of state.bullets){
   if (b.type === 'rock'){
-    // 既存そのまま
-    ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.spin||0);
+    ctx.save(); 
+    ctx.translate(b.x,b.y); 
+    ctx.rotate(b.spin||0);
+    
+    // ★壁ヒット後のフェードアウト
+    if (b.hitWall && b.wallFade !== undefined) {
+      ctx.globalAlpha = Math.max(0.2, b.wallFade);
+    }
+    
     ctx.fillStyle = '#b39c82';
     const n=8, r=b.r;
     ctx.beginPath();
@@ -11611,7 +11760,9 @@ for (const b of state.bullets){
       const a=(i/n)*Math.PI*2, px=Math.cos(a)*r, py=Math.sin(a)*r;
       if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
     }
-    ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.closePath(); ctx.fill(); 
+    ctx.globalAlpha = 1;
+    ctx.restore();
 
     } else if (b.type === 'slash') {
       // 三日月っぽい斬撃
@@ -12575,8 +12726,39 @@ if(state.weapons.orbit.lv>0){
 
  // effects
 for (const ef of state.effects) {
+  // ★ロック破片エフェクト
+  if (ef.type === 'rockDebris') {
+    const a = Math.max(0, ef.life / ef.maxLife);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#a08060';
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, ef.size * a, 0, Math.PI * 2);
+    ctx.fill();
+    // 輪郭
+    ctx.strokeStyle = '#705030';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+  // ★衝撃波リングエフェクト
+  else if (ef.type === 'impactRing') {
+    const progress = 1 - (ef.life / ef.maxLife);
+    const currentRadius = ef.radius + (ef.maxRadius - ef.radius) * progress;
+    const a = 1 - progress;
+    ctx.save();
+    ctx.globalAlpha = a * 0.8;
+    ctx.strokeStyle = '#ffcc66';
+    ctx.lineWidth = 4 * a + 1;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#ff9900';
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, currentRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
   // ★ボス消失エフェクト
-  if (ef.type === 'bossVanish') {
+  else if (ef.type === 'bossVanish') {
     const a = Math.max(0, ef.life / 0.6);
     const t = 1 - a;
     ctx.save();
