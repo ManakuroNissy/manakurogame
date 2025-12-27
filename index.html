@@ -902,7 +902,7 @@ document.head.appendChild(link);
       ach_kill_500: '大虐殺者',
       ach_kill_500_desc: '敵500体撃破',
       ach_boss_10: 'ボスハンター',
-      ach_boss_10_desc: 'ボス10体撃破',
+      ach_boss_10_desc: 'ボス8体撃破',
       ach_level_20: '成長株',
       ach_level_20_desc: 'レベル20到達',
       ach_level_25: '熟練者',
@@ -1261,7 +1261,7 @@ document.head.appendChild(link);
       ach_kill_500: 'Mass Slayer',
       ach_kill_500_desc: 'Defeat 500 enemies',
       ach_boss_10: 'Boss Hunter',
-      ach_boss_10_desc: 'Defeat 10 bosses',
+      ach_boss_10_desc: 'Defeat 8 bosses',
       ach_level_20: 'Rising Star',
       ach_level_20_desc: 'Reach level 20',
       ach_level_25: 'Veteran',
@@ -1514,7 +1514,7 @@ document.head.appendChild(link);
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
     <span style="opacity:0.7;">Ver 2.3.10</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
+    <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">v2.3.11</span>
   </div>
   
   <!-- 難易度選択ボタン -->
@@ -3746,7 +3746,7 @@ function visibleBounds(radius = 0){
     first_clear: { id: 'first_clear', name: '初クリア', desc: 'ゲームをクリアする', icon: '✅', tier: 'silver' },
     kill_100: { id: 'kill_100', name: '虐殺者', desc: '敵100体撃破', icon: '💀', tier: 'bronze' },
     kill_500: { id: 'kill_500', name: '大虐殺者', desc: '敵500体撃破', icon: '💀💀', tier: 'silver' },
-    boss_10: { id: 'boss_10', name: 'ボスハンター', desc: 'ボス10体撃破', icon: '🏰', tier: 'silver' },
+    boss_10: { id: 'boss_10', name: 'ボスハンター', desc: 'ボス8体撃破', icon: '🏰', tier: 'silver' },
     level_20: { id: 'level_20', name: '成長株', desc: 'レベル20到達', icon: '📊', tier: 'bronze' },
     level_25: { id: 'level_25', name: '熟練者', desc: 'レベル25到達', icon: '🎓', tier: 'silver' },
     speed_11min: { id: 'speed_11min', name: 'スピードランナー', desc: '11分以内にクリア', icon: '⚡', tier: 'gold' },
@@ -4127,7 +4127,7 @@ function visibleBounds(radius = 0){
     if (totalKills >= 500) unlockAchievement('kill_500');
     
     // ボス撃破数（現在のプレイ）
-    if (state.bossKills >= 10) unlockAchievement('boss_10');
+    if (state.bossKills >= 8) unlockAchievement('boss_10');  // ★10→8体に緩和
     
     // 累積撃破数
     achievementProgress.totalKills++;
@@ -4143,6 +4143,7 @@ function visibleBounds(radius = 0){
     
     saveProgress();
   }
+  window.checkKillAchievements = checkKillAchievements;  // ★グローバルに公開
 
   function checkLevelAchievements() {
     if (state.player.level >= 20) unlockAchievement('level_20');
