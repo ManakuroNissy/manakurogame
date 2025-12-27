@@ -39,6 +39,17 @@ html, body {
   height:100%;
 }
 
+/* モーダルはスクロール可能に */
+#achievementsModal,
+#rankingModal,
+#updateLogModal,
+#stageSelectModal,
+#customizeModal,
+#settingsModal {
+  touch-action: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
 
 @supports not (height: 100dvh) {
   #wrap { height:100svh; }
@@ -6964,7 +6975,17 @@ if (pcTimer){
 {
   const wrapEl = document.getElementById('wrap');
   if (wrapEl) {
-    wrapEl.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+    wrapEl.addEventListener('touchmove', e => {
+      // モーダル内のスクロールは許可
+      const modalIds = ['achievementsModal', 'rankingModal', 'updateLogModal', 'stageSelectModal', 'customizeModal', 'settingsModal', 'start'];
+      const isInModal = modalIds.some(id => {
+        const modal = document.getElementById(id);
+        return modal && modal.contains(e.target);
+      });
+      if (!isInModal) {
+        e.preventDefault();
+      }
+    }, { passive: false });
   } else {
     console.warn('[init] #wrap element not found (skipped touchmove preventDefault)');
   }
@@ -6980,10 +7001,18 @@ if (pcTimer){
     }
   }, { passive: false });
   
-  // iOS Safari のプルダウンリフレッシュ防止
+  // iOS Safari のプルダウンリフレッシュ防止（モーダル内は許可）
   document.addEventListener('touchmove', e => {
     if (e.touches.length === 1) {
-      e.preventDefault();
+      // モーダル内のスクロールは許可
+      const modalIds = ['achievementsModal', 'rankingModal', 'updateLogModal', 'stageSelectModal', 'customizeModal', 'settingsModal', 'start'];
+      const isInModal = modalIds.some(id => {
+        const modal = document.getElementById(id);
+        return modal && modal.contains(e.target);
+      });
+      if (!isInModal) {
+        e.preventDefault();
+      }
     }
   }, { passive: false });
   
