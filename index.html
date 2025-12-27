@@ -3866,22 +3866,29 @@ function visibleBounds(radius = 0){
       position: fixed;
       top: 20px;
       left: 20px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, rgba(102,126,234,0.7) 0%, rgba(118,75,162,0.7) 100%);
       color: #fff;
-      padding: 16px 20px;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      padding: 12px 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       z-index: 10001;
-      font-size: 14px;
-      max-width: 300px;
+      font-size: 12px;
+      max-width: 220px;
+      pointer-events: none;
       animation: slideInLeft 0.3s ease-out;
     `;
     
+    const lang = getLang();
+    const unlockText = lang === 'ja' ? '実績解除！' : 'Achievement!';
+    
     notification.innerHTML = `
-      <div style="font-size: 24px; margin-bottom: 4px;">${achievement.icon}</div>
-      <div style="font-weight: bold; margin-bottom: 4px;">実績解除！</div>
-      <div style="font-size: 16px; font-weight: bold;">${achievement.name}</div>
-      <div style="font-size: 12px; opacity: 0.9; margin-top: 4px;">${achievement.desc}</div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size: 20px;">${achievement.icon}</span>
+        <div>
+          <div style="font-size:10px; opacity:0.9;">${unlockText}</div>
+          <div style="font-weight: bold;">${achievement.name}</div>
+        </div>
+      </div>
     `;
 
     document.body.appendChild(notification);
@@ -13663,7 +13670,7 @@ for (const ef of state.effects) {
     // 外側グロー（シアン）
     ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = ef.width * 2;
-    ctx.globalAlpha = a * 0.5;
+    ctx.globalAlpha = a * 0.7;  // ★0.5→0.7（より見やすく）
     ctx.beginPath();
     ctx.moveTo(ef.x, ef.y);
     ctx.lineTo(endX, endY);
@@ -13672,7 +13679,7 @@ for (const ef of state.effects) {
     // メインビーム（白）
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = ef.width * 0.8;
-    ctx.globalAlpha = a * 0.7;
+    ctx.globalAlpha = a * 0.9;  // ★0.7→0.9（より見やすく）
     ctx.beginPath();
     ctx.moveTo(ef.x, ef.y);
     ctx.lineTo(endX, endY);
@@ -14368,11 +14375,23 @@ function showGameClear(){
     // このセッションで解除された実績をリセット
     window._unlockedThisSession = [];
     
+    // ★クリア前のカラー数を記録
+    const colorsBefore = getUnlockedColors().length;
+    
     // 実績チェック
     checkAchievementsOnClear();
     
+    // ★新しく解除されたカラーをチェック
+    const colorsAfter = getUnlockedColors();
+    const newColorsCount = colorsAfter.length - colorsBefore;
+    
     // 解除された実績を表示
     displayUnlockedAchievements();
+    
+    // ★新カラー解除を表示
+    if (newColorsCount > 0) {
+      displayNewColorUnlock(colorsAfter.slice(-newColorsCount));
+    }
 
     // スコア保存（ランキングは自動表示しない）
     const scoreData = createScoreData('clear');
@@ -14455,6 +14474,53 @@ function displayUnlockedAchievements() {
       <div style="flex:1;">
         <div style="font-weight:700; color:${color};">${achName}</div>
         <div style="font-size:0.85rem; opacity:0.9;">${achDesc}</div>
+      </div>
+    `;
+    
+    achievementsList.appendChild(item);
+  }
+}
+
+// ★新カラー解除を表示する関数
+function displayNewColorUnlock(newColors) {
+  const achievementsArea = document.getElementById('clearAchievements');
+  const achievementsList = document.getElementById('clearAchievementsList');
+  const lang = getLang();
+  
+  if (!achievementsArea || !achievementsList) return;
+  
+  // 表示エリアを表示
+  achievementsArea.style.display = 'block';
+  
+  for (const colorKey of newColors) {
+    const colorData = PLAYER_COLORS[colorKey];
+    if (!colorData) continue;
+    
+    const item = document.createElement('div');
+    item.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2));
+      border: 1px solid #ffd700;
+      border-radius: 6px;
+      font-size: 0.9rem;
+    `;
+    
+    const colorName = lang === 'ja' ? colorData.nameJa : colorData.name;
+    const unlockText = lang === 'ja' ? '新カラー解除！' : 'New Color Unlocked!';
+    
+    // カラープレビュー
+    const previewStyle = colorKey === 'rainbow' 
+      ? 'background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #8b00ff);'
+      : `background: ${colorData.color};`;
+    
+    item.innerHTML = `
+      <div style="width:32px; height:32px; border-radius:50%; ${previewStyle} border:2px solid #fff;"></div>
+      <div style="flex:1;">
+        <div style="font-weight:700; color:#ffd700;">🎨 ${unlockText}</div>
+        <div style="font-size:0.85rem;">${colorName}</div>
       </div>
     `;
     
