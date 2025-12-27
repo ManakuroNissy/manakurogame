@@ -4053,8 +4053,10 @@ function visibleBounds(radius = 0){
     if (weaponCount === 11) unlockAchievement('all_weapons'); // ★10→11（laser追加）
     
     // 覚醒実績
+    let sessionAwakenCount = 0;  // ★1試合の覚醒数をカウント
     for (const key in weapons) {
       if (weapons[key].awaken) {
+        sessionAwakenCount++;  // ★カウント
         unlockAchievement(`awaken_${key}`);
         
         // 累積覚醒カウント
