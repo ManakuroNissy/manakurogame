@@ -1843,10 +1843,17 @@ document.head.appendChild(link);
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
           <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.3.6 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/27</span></h3>
           
-          <h4 style="margin:0.5rem 0; color:#86efac;">🐛 バグ修正：ダメージ倍率の二重適用</h4>
+          <h4 style="margin:0.5rem 0; color:#86efac;">🐛 バグ修正：ダメージ倍率</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>minion敵（bomber）の爆発ダメージが難易度倍率を二重に適用していた問題を修正</li>
             <li>ラスボスレーザーのDPSがハードコアモードで二重倍率になっていた問題を修正</li>
+            <li>bom敵（自爆型）の爆発ダメージに難易度倍率が適用されていなかった問題を修正</li>
+            <li>PWA版でゲーム開始時に「Failed to start the audio device」エラーが表示される問題を修正</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">⚖️ バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>bom敵の爆発ダメージを60→50に軽減</li>
+            <li>minion敵（近接）の爆発機能を削除（シンプルな接触ダメージのみに）</li>
           </ul>
         </div>
 
@@ -2428,7 +2435,7 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
     if (done) return; done = true;
     try{
       if (window.initAudioOnce) initAudioOnce();
-      if (window.AC && AC.state === 'suspended') AC.resume();
+      if (window.AC && AC.state === 'suspended') AC.resume().catch(()=>{});
       // 少し遅延してタイトルBGMを再生（bus初期化を待つ）
       setTimeout(() => {
         try {
@@ -2605,7 +2612,7 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
   // 初回タップ/キーでAudioを解錠
   function unlock(){
     initAudioOnce();
-    if (window.AC && AC.state === 'suspended') AC.resume();
+    if (window.AC && AC.state === 'suspended') AC.resume().catch(()=>{});
     document.removeEventListener('pointerdown', unlock, {passive:true});
     document.removeEventListener('keydown', unlock, {passive:true});
   }
@@ -5103,7 +5110,7 @@ if (!startBtn) {
       try{
         // AudioContext を確実に用意＆再開（BGMはstartStageで再生）
         if (window.initAudioOnce) initAudioOnce();
-        if (window.AC && AC.state === 'suspended') AC.resume();
+        if (window.AC && AC.state === 'suspended') AC.resume().catch(()=>{});
       }catch(e){
         console.warn('Audio init error:', e);
       }
@@ -6445,7 +6452,7 @@ async function startStage(stageId, hardcore) {
     // ★BGM再生処理を追加
     try {
       if (window.initAudioOnce) initAudioOnce();
-      if (window.AC && AC.state === 'suspended') AC.resume();
+      if (window.AC && AC.state === 'suspended') AC.resume().catch(()=>{});
       // タイトルBGMを停止
       if (window.titleBgm) titleBgm.stop();
       // メインBGMを再生
@@ -7346,7 +7353,7 @@ function spawnEnemy(){
     addEffect('text', { x: spawnX, y: spawnY - 40, life: 0.8, text: '⚠️', size: 28 });
 
     // 0.8秒後に実際に出現
-    const explodeDmg = 60;  // 難易度倍率は爆発時に適用
+    const explodeDmg = 50 * diffMods.dmgMul;  // 難易度倍率を適用
     setTimeout(() => {
       if (!state.paused && state.started) {
         state.enemies.push({
@@ -7458,13 +7465,8 @@ function spawnEnemy(){
     const sp = 30 + dForSpeed*4.5;
 
     state.enemies.push({
-      x, y, size:24, hp, maxHp:hp, speed:sp, type:'minion', // ★18→24に拡大
-      hitFlash:0, kbx:0, kby:0,
-      // 近接爆発用
-      blinkTimer: 0,      // 点滅タイマー
-      explodeRadius: 50,  // 爆発範囲
-      explodeDamage: 15 * diffMods.dmgMul,  // 爆発ダメージ（難易度倍率適用）
-      nearThreshold: 80   // この距離以内で点滅開始
+      x, y, size:24, hp, maxHp:hp, speed:sp, type:'minion',
+      hitFlash:0, kbx:0, kby:0
     });
   }
 }
@@ -10590,40 +10592,6 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
           e.x = newX;
           e.y = newY;
         }
-        
-        // 近接爆発処理
-        const distToPlayer = Math.hypot(state.player.x - e.x, state.player.y - e.y);
-        
-        if (distToPlayer < e.nearThreshold) {
-          // プレイヤーに近い → 点滅開始
-          e.blinkTimer += dt;
-          
-          if (e.blinkTimer >= 1.0) {
-            // 1秒経過 → 爆発！
-            addEffect('explosion', { x: e.x, y: e.y, r: e.explodeRadius, life: 0.3 });
-            
-            // プレイヤーへのダメージ
-            const distToExplosion = Math.hypot(state.player.x - e.x, state.player.y - e.y);
-            if (distToExplosion < e.explodeRadius && state.player.iTime <= 0 && !state._debugInvincible) {
-              const dmg = e.explodeDamage * state.mods.damageMul;
-              state.player.hp -= dmg;
-              state.player.iTime = 0.5; // ★無敵時間追加
-              addEffect('text', { x: state.player.x, y: state.player.y - 20, life: 0.8, text: `-${Math.floor(dmg)}` });
-              addEffect('flash', { life: 0.05 });
-              
-              // ノックバック
-              const kbAng = Math.atan2(state.player.y - e.y, state.player.x - e.x);
-              state.player.kbx = Math.cos(kbAng) * 180;
-              state.player.kby = Math.sin(kbAng) * 180;
-            }
-            
-            // 敵自身も消滅
-            state.enemies.splice(state.enemies.indexOf(e), 1);
-          }
-        } else {
-          // 離れている → タイマーリセット
-          e.blinkTimer = 0;
-        }
 
       }else if(e.type==='shooter'){
         if(e.phase==='move'){
@@ -13104,16 +13072,9 @@ if(state.weapons.orbit.lv>0){
       
     // === 既存の敵（通常） ===
     }else{
-    // 色設定（minion近接爆発の点滅）
+    // minion敵の色設定
     if(e.type==='minion'){
-      if (e.blinkTimer > 0) {
-        // 点滅（点滅速度を加速）
-        const blinkSpeed = 5 + (e.blinkTimer * 10); // 時間経過で速くなる
-        const blinkPhase = Math.sin(state.t * blinkSpeed * Math.PI);
-        ctx.fillStyle = blinkPhase > 0 ? '#ff0000' : '#e74c3c';
-      } else {
-        ctx.fillStyle = '#e74c3c';
-      }
+      ctx.fillStyle = '#e74c3c';
     }
     
     // ステージ2の三角ボス描画
