@@ -1514,7 +1514,7 @@ document.head.appendChild(link);
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
     <span style="opacity:0.7;">Ver 2.3.10</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">v2.3.11</span>
+    <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
   <!-- 難易度選択ボタン -->
@@ -9031,6 +9031,7 @@ const U = {
       id: `add:${key}`,
       name: `${newWeaponText}${weaponName}`,
       desc: weaponDescs[key] || (lang === 'ja' ? '入手（最大Lv3まで強化可能）' : 'Obtain (upgradeable to Lv3)'),
+      isWeapon: true,  // ★武器フラグ
       can: () => weapons[key].lv === 0,
       apply: () => { weapons[key].lv = 1; state.owned.add(key); }
     };
@@ -9077,6 +9078,7 @@ const U = {
       id: `up:${key}`,
       name: `${weaponName}${upgradeText}`,
       desc: weaponUpDescs[key] || (lang === 'ja' ? '武器レベル+1（最大Lv3）' : 'Weapon +1 level (max Lv3)'),
+      isWeapon: true,  // ★武器フラグ
       can: () => weapons[key].lv > 0 && weapons[key].lv < 3,
       apply: () => { weapons[key].lv++; }
     };
@@ -9123,6 +9125,7 @@ const U = {
       id: `aw:${key}`,
       name: `${weaponName}${awakenText}`,
       desc: awakenDescs[key] || (lang === 'ja' ? '特別な性能を解放！' : 'Unlock special abilities!'),
+      isWeapon: true,  // ★武器フラグ
       can: () => weapons[key].lv === 3 && !weapons[key].awaken,
       apply: () => { weapons[key].awaken = true; }
     };
@@ -11963,6 +11966,11 @@ if(!(e.type === 'spinner' && e.spinPhase === 'highspin')){
 }
       // 敵死亡処理
       if(e.hp <= 0) {
+          
+          // ★キルカウント（実績用）を先に処理
+          if (typeof safeKillEnemy === 'function') {
+            safeKillEnemy(e);
+          }
           
           // ▼ キルスコア（敵種別で配点）
 {
