@@ -1497,7 +1497,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.3.2</span> - 
+    <span style="opacity:0.7;">Ver 2.3.3</span> - 
     <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
@@ -1839,9 +1839,9 @@ document.head.appendChild(link);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
-        <!-- Ver 2.3.2 -->
+        <!-- Ver 2.3.3 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(245,158,11,0.15); border-left:4px solid #f59e0b; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 2.3.2 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
+          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 2.3.3 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
           
           <h4 style="margin:0.5rem 0; color:#fcd34d;">📺 広告スキンシステム追加</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
@@ -2424,7 +2424,8 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
           if (window.titleBgm && !window.AUDIO_MUTED && (!window.state || !state.started)){
             titleBgm.load('title.mp3');
             titleBgm.setVolume(0.15);
-            titleBgm.play();
+            const p = titleBgm.play();
+            if (p && p.catch) p.catch(() => {});
           }
         } catch(e) { console.warn('titleBgm delayed start error:', e); }
       }, 100);
@@ -2462,7 +2463,14 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
       }
       BG.el.src = url;
     },
-    play(){ try{ BG.el && BG.el.play(); }catch(_){ /* autoplay規制はStart押下で回避 */ } },
+    play(){ 
+      try{ 
+        if (BG.el) {
+          const p = BG.el.play();
+          if (p && p.catch) p.catch(() => {}); // エラーを無視
+        }
+      }catch(_){ /* 無視 */ } 
+    },
     pause(){ BG.el && BG.el.pause(); },
     stop(){ if(BG.el){ BG.el.pause(); BG.el.currentTime = 0; } },
     setVolume(v){ BG.vol = v; if (BG.gain) BG.gain.gain.value = (window.AUDIO_MUTED ? 0 : v); },
@@ -2520,9 +2528,9 @@ window.AUDIO_MUTED = !!window.AUDIO_MUTED; // 未定義なら false で初期化
       try{ 
         if (TBG.el) {
           const p = TBG.el.play();
-          if (p && p.catch) p.catch(e => console.warn('titleBgm play error:', e)); 
+          if (p && p.catch) p.catch(() => {}); // エラーを無視（iOS autoplay制限）
         }
-      }catch(e){ console.warn('titleBgm play exception:', e); } 
+      }catch(e){ /* 無視 */ } 
     },
     pause(){ TBG.el && TBG.el.pause(); },
     stop(){ if(TBG.el){ TBG.el.pause(); TBG.el.currentTime = 0; } },
@@ -6073,7 +6081,8 @@ function goToTitle() {
     if (window.titleBgm && !window.AUDIO_MUTED) {
       titleBgm.load('title.mp3');
       titleBgm.setVolume(0.15);
-      titleBgm.play();
+      const p = titleBgm.play();
+      if (p && p.catch) p.catch(() => {});
     }
   } catch(e) {}
   
@@ -12204,8 +12213,8 @@ for (const obs of state.obstacles) {
     ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#ffff00';
     ctx.lineWidth = 4;
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 30;
+    // shadowColor削除
+    // shadowBlur削除
   } else {
     ctx.fillStyle = '#4a4a4a';
     ctx.strokeStyle = '#2a2a2a';
@@ -12298,12 +12307,12 @@ for (const b of state.bullets){
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.fillStyle = '#a56bff';      // 紫
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#cfa9ff';    // 薄紫に光らせる
+    // shadowBlur削除
+    // shadowColor削除    // 薄紫に光らせる
     ctx.beginPath();
     ctx.arc(0, 0, b.r, 0, Math.PI*2);
     ctx.fill();
-    ctx.shadowBlur = 0;
+    // shadowBlur削除
     ctx.restore();
 
   } else if (b.type === 'rubber') {
@@ -12311,22 +12320,22 @@ for (const b of state.bullets){
     ctx.save();
     ctx.translate(b.x, b.y);
     ctx.fillStyle = '#ffeb3b';      // 黄色
-    ctx.shadowBlur = 8;
-    ctx.shadowColor = '#ffd700';
+    // shadowBlur削除
+    // shadowColor削除
     ctx.beginPath();
     ctx.arc(0, 0, b.r, 0, Math.PI*2);
     ctx.fill();
-    ctx.shadowBlur = 0;
+    // shadowBlur削除
     ctx.restore();
 
   } else {
     // ★ 自分の通常弾：白系に変更（見分けやすい軽い発光）
     ctx.save();
     ctx.fillStyle = '#f5f7ff';          // 明るい白
-    ctx.shadowBlur = 8;                  // うっすら光る
-    ctx.shadowColor = '#ffffff';
+    // shadowBlur削除                  // うっすら光る
+    // shadowColor削除
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
-    ctx.shadowBlur = 0;
+    // shadowBlur削除
     ctx.restore();
   }
 }
@@ -12352,8 +12361,8 @@ for (const b of state.bullets){
       g.addColorStop(0.60, '#9b59b6');
       g.addColorStop(1.00, '#6c3483');
       ctx.fillStyle = g;
-      ctx.shadowColor = '#9b59b6';
-      ctx.shadowBlur = 10;
+      // shadowColor削除
+      // shadowBlur削除
       ctx.beginPath();
       ctx.arc(x, y, rVis, 0, Math.PI * 2);
       ctx.fill();
@@ -12378,8 +12387,8 @@ for (const b of state.bullets){
       g.addColorStop(0.6, '#ffd700');
       g.addColorStop(1.0, '#ff8c00');
       ctx.fillStyle = g;
-      ctx.shadowColor = '#ffd700';
-      ctx.shadowBlur = 30;
+      // shadowColor削除
+      // shadowBlur削除
       ctx.beginPath();
       ctx.arc(x, y, b.r, 0, Math.PI * 2);
       ctx.fill();
@@ -12399,8 +12408,8 @@ for (const b of state.bullets){
       ctx.translate(x, y);
       ctx.rotate(b.rotation || 0);
       ctx.fillStyle = '#ff6b35';
-      ctx.shadowBlur = 5;
-      ctx.shadowColor = '#ff6b35';
+      // shadowBlur削除
+      // shadowColor削除
       const size = b.r * 1.5;
       ctx.beginPath();
       ctx.moveTo(size, 0);
@@ -12418,8 +12427,8 @@ for (const b of state.bullets){
       ctx.translate(x, y);
       ctx.rotate(b.rotation || 0);
       ctx.fillStyle = '#00ff88';
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#00ff88';
+      // shadowBlur削除
+      // shadowColor削除
       // 細長い形状
       const len = b.r * 4;  // 長さ
       const wid = b.r * 0.8; // 幅（細い）
@@ -12448,8 +12457,8 @@ for (const b of state.bullets){
       ctx.translate(x, y);
       ctx.globalAlpha = b.alpha || 0.6;
       ctx.fillStyle = '#9b59b6';
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = '#9b59b6';
+      // shadowBlur削除
+      // shadowColor削除
       ctx.beginPath();
       ctx.arc(0, 0, b.r, 0, Math.PI * 2);
       ctx.fill();
@@ -12850,8 +12859,8 @@ if(state.weapons.orbit.lv>0){
       
       // 小さな赤い三角形
       ctx.fillStyle = '#e74c3c';
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = '#ff6666';
+      // shadowBlur削除
+      // shadowColor削除
       
       const size = e.size;
       ctx.beginPath();
@@ -12886,11 +12895,11 @@ if(state.weapons.orbit.lv>0){
         if(e.spinPhase === 'highspin'){
           ctx.fillStyle='#4a4a4a'; // 高速回転中は濃いグレー
           // グロウエフェクト
-          ctx.shadowBlur = 15;
-          ctx.shadowColor = '#666';
+          // shadowBlur削除
+          // shadowColor削除
         }else{
           ctx.fillStyle='#9b59b6'; // 通常は紫
-          ctx.shadowBlur = 0;
+          // shadowBlur削除
         }
       }else if(e.type==='sniper'){
         // スナイパーは薄い黄色
@@ -12904,13 +12913,13 @@ if(state.weapons.orbit.lv>0){
       }else if(e.type==='orbiter'){
         // オービターは緑色
         ctx.fillStyle='#27ae60';
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = '#2ecc71';
+        // shadowBlur削除
+        // shadowColor削除
       }else if(e.type==='pillarTrap'){
         // ピラートラップは赤紫（危険色）
         ctx.fillStyle='#c0392b';
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#ff0000';
+        // shadowBlur削除
+        // shadowColor削除
       }else{
         // ダッシャーはフェーズで色変更
         if(e.phase === 'dash'){
@@ -12992,8 +13001,8 @@ if(state.weapons.orbit.lv>0){
         // 回転レーザー（4方向）
         ctx.strokeStyle = '#ff0000';
         ctx.lineWidth = 6;
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#ff0000';
+        // shadowBlur削除
+        // shadowColor削除
         ctx.globalAlpha = 0.8;
         
         for(let i = 0; i < 4; i++){
@@ -13004,7 +13013,7 @@ if(state.weapons.orbit.lv>0){
           ctx.stroke();
         }
         ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
+        // shadowBlur削除
         
       } else {
         // スピナーは通常の三角形
@@ -13056,8 +13065,8 @@ if(state.weapons.orbit.lv>0){
           ctx.globalAlpha = blinkPhase ? 0.9 : 0.5;
           ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = 3;
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = '#ff0000';
+          // shadowBlur削除
+          // shadowColor削除
           
           ctx.beginPath();
           ctx.moveTo(e.x, e.y);
@@ -13133,19 +13142,19 @@ if(state.weapons.orbit.lv>0){
       if(scaleMul !== 1.0) ctx.scale(scaleMul, scaleMul);
       if(e.isGhost) ctx.globalAlpha = e.alpha || 0.7;
       
-      if(e.type === 'mid'){ ctx.fillStyle = '#00bcd4'; ctx.shadowBlur = 15; ctx.shadowColor = '#00bcd4'; }
-      else if(e.type === 'big'){ ctx.fillStyle = '#ff6b35'; ctx.shadowBlur = 20; ctx.shadowColor = '#ff6b35'; }
+      if(e.type === 'mid'){ ctx.fillStyle = '#00bcd4'; }
+      else if(e.type === 'big'){ ctx.fillStyle = '#ff6b35'; }
       else if(e.type === 'final'){ 
         // ★回転アタック中は白く光る
         if(e.chargeGlow){
           ctx.fillStyle = '#ffffff';
-          ctx.shadowBlur = 60;
-          ctx.shadowColor = '#ffffff';
+          // shadowBlur削除
+          // shadowColor削除
         } else {
           // ★強い紫色
           ctx.fillStyle = '#9333ea';
-          ctx.shadowBlur = 50;
-          ctx.shadowColor = '#a855f7';
+          // shadowBlur削除
+          // shadowColor削除
         }
       }
       
@@ -13183,13 +13192,13 @@ if(state.weapons.orbit.lv>0){
           // ★回転突進中は白く光る
           if(e.chargeGlow){
             ctx.fillStyle = '#ffffff';
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = '#ffffff';
+            // shadowBlur削除
+            // shadowColor削除
             ctx.globalAlpha = 0.95;
           } else {
             ctx.fillStyle = '#666';
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = '#888';
+            // shadowBlur削除
+            // shadowColor削除
             ctx.globalAlpha = 0.9;
           }
           
@@ -13293,8 +13302,8 @@ for (const ef of state.effects) {
     ctx.globalAlpha = a * 0.8;
     ctx.strokeStyle = '#ffcc66';
     ctx.lineWidth = 4 * a + 1;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#ff9900';
+    // shadowBlur削除
+    // shadowColor削除
     ctx.beginPath();
     ctx.arc(ef.x, ef.y, currentRadius, 0, Math.PI * 2);
     ctx.stroke();
@@ -13311,8 +13320,8 @@ for (const ef of state.effects) {
       ctx.globalAlpha = (0.8 - ring * 0.2) * a;
       ctx.strokeStyle = ring === 0 ? '#a855f7' : (ring === 1 ? '#9333ea' : '#7c3aed');
       ctx.lineWidth = 12 - ring * 3;
-      ctx.shadowBlur = 30;
-      ctx.shadowColor = '#a855f7';
+      // shadowBlur削除
+      // shadowColor削除
       ctx.beginPath();
       ctx.arc(ef.x, ef.y, ringRadius, 0, Math.PI * 2);
       ctx.stroke();
@@ -13340,8 +13349,8 @@ for (const ef of state.effects) {
     ctx.save();
     ctx.globalAlpha = a;
     ctx.fillStyle = '#d8b4fe';
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#a855f7';
+    // shadowBlur削除
+    // shadowColor削除
     ctx.beginPath();
     ctx.arc(ef.x, ef.y, 6 * a, 0, Math.PI * 2);
     ctx.fill();
@@ -13356,8 +13365,8 @@ for (const ef of state.effects) {
     ctx.globalAlpha = 0.85 * a;
     ctx.strokeStyle = '#6fbaff';
     ctx.lineWidth = 6;
-    ctx.shadowBlur = 18;
-    ctx.shadowColor = '#9fd3ff';
+    // shadowBlur削除
+    // shadowColor削除
     ctx.beginPath();
     ctx.arc(ef.x, ef.y, ef.r * (1 - a * 0.55), 0, Math.PI * 2);
     ctx.stroke();
@@ -13370,7 +13379,7 @@ for (const ef of state.effects) {
     ctx.fill();
 
     // 内側ハイライト輪
-    ctx.shadowBlur = 0;
+    // shadowBlur削除
     ctx.globalAlpha = 0.95 * a;
     ctx.strokeStyle = '#e7fbff';
     ctx.lineWidth = 3;
@@ -13417,14 +13426,14 @@ for (const ef of state.effects) {
   ctx.globalAlpha = 0.6 * a;
   ctx.strokeStyle = '#ff4444';
   ctx.lineWidth = 8;
-  ctx.shadowBlur = 20;
-  ctx.shadowColor = '#ff0000';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath();
   ctx.arc(ef.x, ef.y, ef.r * (0.5 + t * 0.5), 0, Math.PI * 2);
   ctx.stroke();
   ctx.globalAlpha = 0.4 * a;
   ctx.fillStyle = '#ffaa00';
-  ctx.shadowBlur = 15;
+  // shadowBlur削除
   ctx.beginPath();
   ctx.arc(ef.x, ef.y, ef.r * (0.3 + t * 0.4), 0, Math.PI * 2);
   ctx.fill();
@@ -13448,8 +13457,8 @@ for (const ef of state.effects) {
   ctx.globalAlpha = a;
   ctx.strokeStyle = '#ff3333';
   ctx.lineWidth = ef.width;
-  ctx.shadowBlur = 30;
-  ctx.shadowColor = '#ff0000';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath();
   ctx.moveTo(ef.x, ef.y);
   ctx.lineTo(ef.x + Math.cos(ef.angle) * ef.length, ef.y + Math.sin(ef.angle) * ef.length);
@@ -13468,8 +13477,8 @@ for (const ef of state.effects) {
   ctx.strokeStyle = '#ffff00';
   ctx.lineWidth = 4;
   ctx.setLineDash([15, 10]);
-  ctx.shadowBlur = 10;
-  ctx.shadowColor = '#ffff00';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath();
   ctx.moveTo(ef.x, ef.y);
   ctx.lineTo(ef.x + Math.cos(ef.angle) * ef.length, ef.y + Math.sin(ef.angle) * ef.length);
@@ -13481,8 +13490,8 @@ for (const ef of state.effects) {
   ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.02) * 0.3;
   ctx.strokeStyle = '#ff0000';
   ctx.lineWidth = 4;
-  ctx.shadowBlur = 15;
-  ctx.shadowColor = '#ff0000';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath();
   ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI * 2);
   ctx.stroke();
@@ -13499,8 +13508,8 @@ for (const ef of state.effects) {
   ctx.strokeStyle = '#ffff00';
   ctx.fillStyle = '#ffff00';
   ctx.lineWidth = 4;
-  ctx.shadowBlur = 15;
-  ctx.shadowColor = '#ffff00';
+  // shadowBlur削除
+  // shadowColor削除
   
   // 矢印の線
   ctx.beginPath();
@@ -13535,8 +13544,8 @@ for (const ef of state.effects) {
   // メインビーム（白）
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = ef.width;
-  ctx.shadowBlur = 20;
-  ctx.shadowColor = '#ff0000';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath();
   ctx.moveTo(ef.x, ef.y);
   ctx.lineTo(
@@ -13596,8 +13605,8 @@ for (const ef of state.effects) {
     // 外側グロー（シアン）
     ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = ef.width * 2.5;
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = '#00ffff';
+    // shadowBlur削除
+    // shadowColor削除
     ctx.globalAlpha = a * 0.4;
     ctx.beginPath();
     ctx.moveTo(ef.x, ef.y);
@@ -13645,8 +13654,8 @@ for (const ef of state.effects) {
   ctx.globalAlpha = (0.45 + boost*0.6) * a;  // 2段目は少し明るく
   ctx.strokeStyle = '#4cc3ff';
   ctx.lineCap     = 'round';
-  ctx.shadowBlur  = 10; // 軽量化
-  ctx.shadowColor = '#9fd3ff';
+  // shadowBlur削除 // 軽量化
+  // shadowColor削除
   for (let i = 0; i < LAYERS; i++) {
     const t = i / (LAYERS - 1);
     const lw   = W * (0.52 - 0.36 * t);
@@ -13658,7 +13667,7 @@ for (const ef of state.effects) {
   }
 
   // --- 白ハイライト ---
-  ctx.shadowBlur  = 0;
+  // shadowBlur削除
   ctx.globalAlpha = (0.88 + boost*0.1) * a;
   ctx.strokeStyle = '#e8fbff';
   ctx.lineWidth   = Math.max(2, W * 0.18);
@@ -13834,15 +13843,15 @@ for (const ef of state.effects) {
   ctx.globalAlpha = 0.35 * a;
   ctx.strokeStyle = '#7fd9ff';       // 薄いシアン系
   ctx.lineWidth = (ef.w || 48) * 2;  // 外ハロは太め
-  ctx.shadowBlur = 28;
-  ctx.shadowColor = '#90e4ff';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath();
   ctx.moveTo(ef.x1, ef.y1);
   ctx.lineTo(ef.x2, ef.y2);
   ctx.stroke();
 
   // 内側の軸（さらに薄い）
-  ctx.shadowBlur = 0;
+  // shadowBlur削除
   ctx.globalAlpha = 0.22 * a;
   ctx.strokeStyle = '#dff6ff';
   ctx.lineWidth = (ef.w || 48);
@@ -13863,15 +13872,15 @@ for (const ef of state.effects) {
   ctx.globalAlpha = 0.95 * a;
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = (ef.w || 48) * 3; // さらに太く
-  ctx.shadowBlur = 32;
-  ctx.shadowColor = '#ffffff';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath();
   ctx.moveTo(ef.x1, ef.y1);
   ctx.lineTo(ef.x2, ef.y2);
   ctx.stroke();
 
   // 内側ハイライト
-  ctx.shadowBlur = 0;
+  // shadowBlur削除
   ctx.globalAlpha = 1.0 * a;
   ctx.strokeStyle = '#f5fbff';
   ctx.lineWidth = Math.max(8, ((ef.w || 48) * 3) - 8);
@@ -13890,15 +13899,15 @@ for (const ef of state.effects) {
     // 塗り（白）
     ctx.globalAlpha = 0.35 + 0.45 * a;
     ctx.fillStyle = '#ffffff';
-    ctx.shadowBlur = 28;
-    ctx.shadowColor = '#ffffff';
+    // shadowBlur削除
+    // shadowColor削除
     ctx.beginPath();
     ctx.arc(ef.x, ef.y, r * 0.92, 0, Math.PI * 2);
     ctx.fill();
 
     // 輪郭（白）
     ctx.globalAlpha = 0.9;
-    ctx.shadowBlur = 0;
+    // shadowBlur削除
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 6;
     ctx.beginPath();
@@ -13916,8 +13925,8 @@ for (const ef of state.effects) {
   ctx.globalAlpha = 0.95 * a;
   ctx.strokeStyle = '#fff4c1';
   ctx.lineWidth = 12;
-  ctx.shadowBlur = 36;
-  ctx.shadowColor = '#fffbe3';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath();
   ctx.arc(ef.x, ef.y, R, 0, Math.PI * 2);
   ctx.stroke();
@@ -13938,11 +13947,11 @@ for (const ef of state.effects) {
   const r = ef.r0 + (ef.r1 - ef.r0) * (1 - a);     // だんだん小→大 でも OK（好み）
   ctx.globalAlpha = 0.4 * a;
   ctx.fillStyle = '#ffffff';
-  ctx.shadowBlur = 20;
-  ctx.shadowColor = '#ffffff';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath(); ctx.arc(ef.x, ef.y, r * 0.9, 0, Math.PI*2); ctx.fill();
   ctx.globalAlpha = 0.9 * a;
-  ctx.shadowBlur = 0;
+  // shadowBlur削除
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 4;
   ctx.beginPath(); ctx.arc(ef.x, ef.y, r, 0, Math.PI*2); ctx.stroke();
@@ -13958,12 +13967,12 @@ for (const ef of state.effects) {
   ctx.globalAlpha = 0.28 * a;
   ctx.strokeStyle = '#ffd27a';
   ctx.lineWidth = w * 1.6;
-  ctx.shadowBlur = 24;
-  ctx.shadowColor = '#ffe4ad';
+  // shadowBlur削除
+  // shadowColor削除
   ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.stroke();
 
   // ★ 主リングを破線にする（ダッシュ間隔は好みで調整）
-  ctx.shadowBlur = 0;
+  // shadowBlur削除
   ctx.globalAlpha = 0.9 * a;
   ctx.strokeStyle = '#fff4c1';
   ctx.lineWidth = w;
@@ -14010,8 +14019,8 @@ for (const ef of state.effects) {
   ctx.globalAlpha = 0.26 * alpha;
   ctx.strokeStyle = '#ffd27a';
   ctx.lineWidth   = w * 1.5;
-  ctx.shadowBlur  = 22;
-  ctx.shadowColor = '#ffe4ad';
+  // shadowBlur削除
+  // shadowColor削除
 
   for(let s=0;s<segCount;s++){
     const a0 = rot + s*segSpan + gapSpan;      // 穴の後ろから描き始め
@@ -14032,7 +14041,7 @@ for (const ef of state.effects) {
   }
 
   // 主リング
-  ctx.shadowBlur  = 0;
+  // shadowBlur削除
   ctx.globalAlpha = 0.9 * alpha;
   ctx.strokeStyle = '#fff4c1';
   ctx.lineWidth   = w;
@@ -14094,8 +14103,7 @@ for (const ef of state.effects) {
       ctx.globalAlpha = 0.9 * a;
       ctx.strokeStyle = r.color;
       ctx.lineWidth = r.w;
-      ctx.shadowBlur = r.blur;
-      ctx.shadowColor = r.color;
+      // shadowBlur/shadowColor削除
       ctx.beginPath();
       ctx.arc(ef.x, ef.y, ef.R * (1 - a * 0.7) * r.mul, 0, Math.PI * 2);
       ctx.stroke();
@@ -14146,15 +14154,15 @@ for (const ef of state.effects) {
   ctx.strokeStyle = '#6a93c2';   // 青黒寄り
   ctx.lineWidth   = ef.thick;
   ctx.lineJoin    = 'round';
-  ctx.shadowBlur  = 10;          // 14 → 10（まぶしさ軽減）
-  ctx.shadowColor = '#3c5b86';   // 暗い青の光
+  // shadowBlur削除          // 14 → 10（まぶしさ軽減）
+  // shadowColor削除   // 暗い青の光
   ctx.beginPath();
   ctx.moveTo(pts[0][0], pts[0][1]);
   for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
   ctx.stroke();
 
   // 内側ハイライト：白ではなく淡い青で目に優しく
-  ctx.shadowBlur  = 0;
+  // shadowBlur削除
   ctx.lineWidth   = Math.max(2, ef.thick - 2);
   ctx.globalAlpha = 0.72 * a;    // 0.9 → 0.72
   ctx.strokeStyle = '#b7cbea';   // 淡い青
