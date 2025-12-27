@@ -1486,7 +1486,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.3.0</span> - 
+    <span style="opacity:0.7;">Ver 2.3.1</span> - 
     <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
@@ -1819,8 +1819,8 @@ document.head.appendChild(link);
   <canvas id="cv"></canvas>
   
   <!-- 更新履歴モーダル -->
-  <div id="updateLogModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
-    <div style="max-width:700px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+  <div id="updateLogModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; padding:10px; box-sizing:border-box; overflow-y:auto;">
+    <div style="max-width:700px; margin:0 auto; background:#1e293b; border-radius:16px; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
         <h2 style="margin:0; color:#fff; font-size:1.8rem;">📝 更新履歴</h2>
         <button onclick="document.getElementById('updateLogModal').style.display='none'" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">閉じる</button>
@@ -1828,9 +1828,9 @@ document.head.appendChild(link);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
-        <!-- Ver 2.3.0 -->
+        <!-- Ver 2.3.1 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(245,158,11,0.15); border-left:4px solid #f59e0b; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 2.3.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
+          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 2.3.1 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
           
           <h4 style="margin:0.5rem 0; color:#fcd34d;">📺 広告スキンシステム追加</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
@@ -3544,8 +3544,8 @@ function visibleBounds(radius = 0){
       const killsText = lang === 'ja' ? '体' : ' kills';
       
       let html = `
-        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:13030;" id="rankingModal">
-          <div style="background:#1a1a2e;border:3px solid #4a90e2;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:80vh;display:flex;flex-direction:column;">
+        <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:flex-start;justify-content:center;z-index:13030;overflow-y:auto;padding:10px;box-sizing:border-box;" id="rankingModal">
+          <div style="background:#1a1a2e;border:3px solid #4a90e2;border-radius:12px;padding:20px;max-width:500px;width:90%;max-height:none;display:flex;flex-direction:column;margin:auto;">
             
             <!-- ★CLOSEボタンを上部に配置 -->
             <button onclick="document.getElementById('rankingModal').remove();" style="width:100%;padding:10px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-bottom:12px;">
@@ -4054,8 +4054,8 @@ function visibleBounds(radius = 0){
     const unlockText = lang === 'ja' ? '解除' : 'Unlocked';
 
     let html = `
-      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:13030;overflow-y:auto;" id="achievementsModal">
-        <div style="background:#1a1a2e;border:3px solid #8b5cf6;border-radius:12px;padding:20px;max-width:700px;width:90%;max-height:85vh;display:flex;flex-direction:column;">
+      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:flex;align-items:flex-start;justify-content:center;z-index:13030;overflow-y:auto;padding:10px;box-sizing:border-box;" id="achievementsModal">
+        <div style="background:#1a1a2e;border:3px solid #8b5cf6;border-radius:12px;padding:20px;max-width:700px;width:90%;max-height:none;display:flex;flex-direction:column;margin:auto;">
           
           <!-- ★CLOSEボタンを上部に配置 -->
           <button onclick="document.getElementById('achievementsModal').remove();" style="width:100%;padding:10px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;cursor:pointer;margin-bottom:12px;">
