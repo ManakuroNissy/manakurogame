@@ -1497,7 +1497,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.3.3</span> - 
+    <span style="opacity:0.7;">Ver 2.3.6</span> - 
     <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
@@ -1839,9 +1839,20 @@ document.head.appendChild(link);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
-        <!-- Ver 2.3.3 -->
+        <!-- Ver 2.3.6 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.3.6 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/27</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🐛 バグ修正：ダメージ倍率の二重適用</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>minion敵（bomber）の爆発ダメージが難易度倍率を二重に適用していた問題を修正</li>
+            <li>ラスボスレーザーのDPSがハードコアモードで二重倍率になっていた問題を修正</li>
+          </ul>
+        </div>
+
+        <!-- Ver 2.3.5 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(245,158,11,0.15); border-left:4px solid #f59e0b; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 2.3.3 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
+          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 2.3.5 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
           
           <h4 style="margin:0.5rem 0; color:#fcd34d;">📺 広告スキンシステム追加</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
@@ -7335,7 +7346,7 @@ function spawnEnemy(){
     addEffect('text', { x: spawnX, y: spawnY - 40, life: 0.8, text: '⚠️', size: 28 });
 
     // 0.8秒後に実際に出現
-    const explodeDmg = 60 * diffMods.dmgMul;  // 難易度によるダメージ倍率
+    const explodeDmg = 60;  // 難易度倍率は爆発時に適用
     setTimeout(() => {
       if (!state.paused && state.started) {
         state.enemies.push({
@@ -10651,7 +10662,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
           e.cd -= dt;
           if(e.cd<=0){
             const angS = Math.atan2(state.player.y-e.y, state.player.x-e.x);
-            state.enemyBullets.push({ x:e.x, y:e.y, vx:Math.cos(angS)*200, vy:Math.sin(angS)*200, r:4, dmg: (state.mode.hardcore ? 10*1.5 : 10), life:60 }); // 1.3 → 1.5
+            state.enemyBullets.push({ x:e.x, y:e.y, vx:Math.cos(angS)*200, vy:Math.sin(angS)*200, r:4, dmg: 10, life:60 }); // ハードコア倍率はplayerHit内で適用
             e.cd = state.mode.hardcore ? rnd(0.95, 1.05) : rnd(1.9, 2.1); // ハードコアで半分の間隔
           }
         }
@@ -10804,7 +10815,7 @@ if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
             const n = 8;
             for(let k=0;k<n;k++){
               const ang = (Math.PI*2*k)/n;
-              state.enemyBullets.push({ x:e.x,y:e.y, vx:Math.cos(ang)*120, vy:Math.sin(ang)*120, r:4, dmg:(state.mode.hardcore ? 18 : 12), life:3 });
+              state.enemyBullets.push({ x:e.x,y:e.y, vx:Math.cos(ang)*120, vy:Math.sin(ang)*120, r:4, dmg:12, life:3 }); // ハードコア倍率はplayerHit内で適用
             }
             e.cd = 7.0;
           }
@@ -11273,7 +11284,7 @@ if(e.phase === 'shoot'){
       state.enemyBullets.push({
         x:e.x, y:e.y,
         vx:Math.cos(a2)*180, vy:Math.sin(a2)*180, // 少し速く
-        r:4, dmg: (state.mode.hardcore ? 18*1.5 : 18), life:3.8 // 1.3 → 1.5
+        r:4, dmg: 18, life:3.8 // ハードコア倍率はplayerHit内で適用
       });
     }
     e.shootCD = 1.8; // ★ 2.6→1.8
@@ -11349,7 +11360,7 @@ if(e.phase === 'shoot'){
   // 当たり判定：レーザーは連続HIT（無敵時間を無視して削る）
   const d    = pointLineDist(state.player.x, state.player.y, e.x, e.y, x2, y2);
   const hitR = beamW * 1.00;                // 
-  const DPS  = state.mode.hardcore ? 75 : 50; // 体感強化
+  const DPS  = 50; // 基礎DPS（難易度倍率はdiffMods.dmgMulで統一的に適用）
   const diffMods = state.mode.getDifficultyMods();
 
   if (d < hitR){
@@ -11498,7 +11509,7 @@ else if(e.phase === 'charge_boom'){
                 state.enemyBullets.push({
                   x:e.x, y:e.y,
                   vx:Math.cos(a2)*160, vy:Math.sin(a2)*160,
-                  r:4, dmg:(state.mode.hardcore ? 14*1.5 : 14), life:3.5 // 1.3 → 1.5
+                  r:4, dmg:14, life:3.5 // ハードコア倍率はplayerHit内で適用
                 });
               }
               e.cd = 3.0;
@@ -11571,8 +11582,8 @@ else if(e.phase === 'charge_boom'){
           // プレイヤーへのダメージ
           const distToPlayer = Math.hypot(e.x - state.player.x, e.y - state.player.y);
           if(distToPlayer < R && state.player.iTime <= 0 && !state._debugInvincible){
-            const diffMods = state.mode.getDifficultyMods();
-            const finalDmg = Math.round(e.explodeDamage * (diffMods.dmgMul || 1.0) * state.mods.damageMul); // 難易度倍率 + 耐久力による軽減
+            // 難易度倍率はe.explodeDamage生成時に適用済み、耐久力による軽減のみ適用
+            const finalDmg = Math.round(e.explodeDamage * state.mods.damageMul);
             state.player.hp -= finalDmg;
             state.player.iTime = 0.8; // ★無敵時間追加
             addEffect('flash', { life: 0.05 });
@@ -11614,7 +11625,7 @@ else if(e.phase === 'charge_boom'){
               vx:Math.cos(a)*speed, 
               vy:Math.sin(a)*speed,
               r:7, // 5 → 7 (大きく)
-              dmg: (state.mode.hardcore ? 16*1.5 : 16), // 1.3 → 1.5
+              dmg: 16, // ハードコア倍率はplayerHit内で適用
               life:3.5, // 5 → 3.5 に短縮
               type:'homing', // ホーミング弾として識別
               turnSpeed: 2.5 // 旋回速度
@@ -11684,7 +11695,7 @@ else if(e.phase === 'charge_boom'){
             e.phase = 'shoot';
             e.phaseTimer = 0.8; // レーザー持続時間
             // レーザーを生成
-            const laserDmg = state.mode.hardcore ? 25*1.5 : 25; // 1.3 → 1.5
+            const laserDmg = 25; // ハードコア倍率はplayerHit内で適用
             const laserLength = Math.abs(x2 - e.x);
             state.enemyBullets.push({
               x: e.x, y: e.y,
@@ -11732,7 +11743,8 @@ let touchDmg =
             ? (e.dmg || 8)  // ★miniTriangle敵のダメージ
             : 18;
 
-if (state.mode.hardcore) touchDmg *= 1.5; // 1.3 → 1.5に戻す
+// ハードコア倍率はplayerHit内のdiffMods.dmgMulで適用されるので、ここでは不要
+// if (state.mode.hardcore) touchDmg *= 1.5;
 
 
       if (dist2(e.x, e.y, state.player.x, state.player.y) < (state.player.r + e.size * 0.6) ** 2) {
