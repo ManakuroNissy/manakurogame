@@ -1839,16 +1839,18 @@ document.head.appendChild(link);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
-        <!-- Ver 2.3.6 -->
+        <!-- Ver 2.3.9 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
           <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.3.9 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/27</span></h3>
           
-          <h4 style="margin:0.5rem 0; color:#86efac;">🐛 バグ修正：ダメージ倍率</h4>
+          <h4 style="margin:0.5rem 0; color:#86efac;">🐛 バグ修正</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
             <li>ラスボスレーザーのDPSがハードコアモードで二重倍率になっていた問題を修正</li>
             <li>bom敵（自爆型）の爆発ダメージに難易度倍率が適用されていなかった問題を修正</li>
             <li>PWA版でゲーム開始時に「Failed to start the audio device」エラーが表示される問題を修正</li>
             <li>ロックが敵を倒すと貫通しなくなるバグを修正</li>
+            <li>リトライ時にブレード覚醒の攻撃が一瞬残るバグを修正</li>
+            <li>ステージ選択画面のクリア状況が実績と一致しない問題を修正</li>
           </ul>
           
           <h4 style="margin:0.5rem 0; color:#86efac;">⚖️ バランス調整</h4>
@@ -1859,7 +1861,7 @@ document.head.appendChild(link);
             <li>レーザー覚醒時のクールダウンを半分に短縮（0.8秒→0.4秒）</li>
             <li>レーザー覚醒時に初撃ダメージを追加（雑魚敵を即座に処理可能に）</li>
             <li>ブレード覚醒時のクールダウンを0.2秒短縮（1.1秒→0.9秒）</li>
-            <li>ラスボスのHPを固定46,000に変更（時間による増加を廃止）</li>
+            <li>ラスボスのHPを固定50,000に変更（時間による増加を廃止）</li>
           </ul>
           
           <h4 style="margin:0.5rem 0; color:#86efac;">🪨 ロック大幅調整</h4>
@@ -1868,9 +1870,15 @@ document.head.appendChild(link);
             <li>レベルアップ毎のダメージ増加を10→15に強化</li>
             <li>覚醒時にさらに+20ダメージ追加</li>
             <li>速度を80%に減速（190→152）して敵に長く当たるように</li>
-            <li>寿命を3.4秒→4.25秒に延長</li>
+            <li>寿命を4秒に変更</li>
             <li>クールダウンを廃止（消えたらすぐ発射）</li>
             <li>ヒットクールダウンを0.04秒に設定</li>
+            <li>寿命切れ時に衝撃波を発生（30%ダメージ）</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">📺 画面表示改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>横画面でHUDの下にゲーム画面が重ならないよう修正</li>
           </ul>
         </div>
 
@@ -6388,12 +6396,15 @@ function showStageSelect() {
   function getDifficultyClearStatus(stageKey) {
     const cleared = [];
     
+    // 実績データをロード
+    const achievements = loadAchievements();
+    
     // 実績データからクリア状況を確認
     const prefix = stageKey === 'stage1' ? 's1' : 's2';
-    if (isAchievementUnlocked(`${prefix}_easy_clear`)) cleared.push('<span style="color:#22c55e;">😊</span>');
-    if (isAchievementUnlocked(`${prefix}_normal_clear`)) cleared.push('<span style="color:#60a5fa;">🎮</span>');
-    if (isAchievementUnlocked(`${prefix}_hard_clear`)) cleared.push('<span style="color:#f59e0b;">💪</span>');
-    if (isAchievementUnlocked(`${prefix}_hardcore_clear`)) cleared.push('<span style="color:#8b5cf6;">🔥</span>');
+    if (achievements[`${prefix}_easy_clear`]) cleared.push('<span style="color:#22c55e;">😊</span>');
+    if (achievements[`${prefix}_normal_clear`]) cleared.push('<span style="color:#60a5fa;">🎮</span>');
+    if (achievements[`${prefix}_hard_clear`]) cleared.push('<span style="color:#f59e0b;">💪</span>');
+    if (achievements[`${prefix}_hardcore_clear`]) cleared.push('<span style="color:#8b5cf6;">🔥</span>');
     
     if (cleared.length === 0) {
       return '<span style="color:#94a3b8;">' + (lang === 'ja' ? '未クリア' : 'Not Cleared') + '</span>';
