@@ -1854,6 +1854,9 @@ document.head.appendChild(link);
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
             <li>bom敵の爆発ダメージを60→50に軽減</li>
             <li>minion敵（近接）の爆発機能を削除（シンプルな接触ダメージのみに）</li>
+            <li>レーザー覚醒時のクールダウンを半分に短縮（0.8秒→0.4秒）</li>
+            <li>レーザー覚醒時に初撃ダメージを追加（雑魚敵を即座に処理可能に）</li>
+            <li>ブレード覚醒時のクールダウンを0.2秒短縮（1.1秒→0.9秒）</li>
           </ul>
         </div>
 
@@ -8370,8 +8373,9 @@ update(dt){
 
   playShotSound('blade');
 
-  // CT固定1.1秒（連撃が長くなる分、実質CTが短くなる）
-  this.cd = 1.1 * state.mods.rateMul;
+  // CT（覚醒時は0.2秒短縮）
+  const baseCd = this.awaken ? 0.9 : 1.1;
+  this.cd = baseCd * state.mods.rateMul;
 }
 
 },
@@ -8622,7 +8626,7 @@ for (const e of state.enemies){
           
           if(this.beamTimer <= 0){
             this.beamActive = false;
-            this.cd = 0.8; // ★0.8秒のクールダウン
+            this.cd = 0.4; // ★覚醒時クールダウン（0.8→0.4に短縮）
           }
           return;
         }
@@ -8649,6 +8653,28 @@ for (const e of state.enemies){
           this.beamDmg = dmg * 2.5; // ★毎秒ダメージ（貫通あるので控えめ）
           this.beamWidth = width;
           this.beamRange = range;
+          
+          // ★初撃ダメージ（通常時と同等以上の瞬間ダメージ）
+          const endX = state.player.x + Math.cos(angle) * range;
+          const endY = state.player.y + Math.sin(angle) * range;
+          for(const e of state.enemies){
+            if(e.invincible) continue;
+            const dx = endX - state.player.x;
+            const dy = endY - state.player.y;
+            const len = Math.hypot(dx, dy);
+            const t = Math.max(0, Math.min(1, 
+              ((e.x - state.player.x) * dx + (e.y - state.player.y) * dy) / (len * len)
+            ));
+            const closestX = state.player.x + t * dx;
+            const closestY = state.player.y + t * dy;
+            const distToLaser = Math.hypot(e.x - closestX, e.y - closestY);
+            const hitRadius = (e.size || 15) / 2 + width / 2;
+            if(distToLaser < hitRadius){
+              e.hp -= dmg; // ★初撃は通常覚醒ダメージ（330）
+              e.hitFlash = Math.max(e.hitFlash, 0.15);
+            }
+          }
+          
           playShotSound('laser');
           return;
         }
