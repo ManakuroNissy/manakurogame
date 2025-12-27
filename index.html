@@ -44,15 +44,16 @@ html, body {
   #wrap { height:100svh; }
 }
 
-canvas {
+#cv {
   position:absolute;
   top:0; left:0; right:0; bottom:0;
   width:100%; height:100%;
   display:block;
 }
-#start { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:50; pointer-events:auto; }
+#start { position:absolute; inset:0; display:flex; align-items:flex-start; justify-content:center; background:rgba(0,0,0,.6); z-index:50; pointer-events:auto; overflow-y:auto; padding:20px 10px; }
 .hud {
   position:absolute; left:0; right:0; top:0;
+  width:100%;
   display:none; flex-direction:column; padding:.5rem .75rem;
   pointer-events:none;
   background: rgba(0,0,0,0.7);
@@ -62,6 +63,7 @@ canvas {
   padding-top:  calc(.5rem + env(safe-area-inset-top));
   padding-left: calc(.5rem + env(safe-area-inset-left));
   padding-right:calc(.5rem + env(safe-area-inset-right));
+  box-sizing: border-box;
 }
 /* HUD内コントロールボタン */
 .hud-ctrl-btn {
@@ -81,23 +83,26 @@ canvas {
   .bar { flex:1; height:.6rem; background:#1a1a1a; border:1px solid #333; border-radius:.4rem; overflow:hidden; }
   .bar > i { display:block; height:100%; width:0%; background:linear-gradient(90deg,#2ecc71,#27ae60); }
   .xp > i { background:linear-gradient(90deg,#3498db,#2980b9); }
-  #levelup, #chest { position:absolute; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:12;}
+  #levelup, #chest { position:absolute; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; flex-direction:column; z-index:12;}
 /* === Game Over / Clear overlay (centered & stacked) === */
 #gameover, #gameclear{
   position: fixed;
   inset: 0;
   display: none;             /* JSで flex に切替 */
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;  /* 上寄せに変更 */
   flex-direction: column;    /* ← 縦に並べる（改行と同義） */
   gap: 14px;                 /* 行間 */
   text-align: center;        /* 中央寄せ */
   z-index: 13040;
   background: rgba(0,0,0,.65);
   pointer-events: auto;
+  overflow-y: auto;          /* スクロール可能 */
+  padding: 20px 10px;        /* 上下に余白 */
 }
 #gameover > *, #gameclear > *{
   pointer-events: auto;
+  flex-shrink: 0;            /* 縮まないように */
 }
 
   #cardRow, #chestRow { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; width:min(900px,96vw); }
@@ -185,6 +190,57 @@ canvas {
   .share-btn.twitter { background:#1DA1F2; color:#fff; }
   .share-btn.line { background:#06C755; color:#fff; }
   .share-btn.copy { background:#6c757d; color:#fff; }
+
+/* 横向きで縦が狭い場合（スマホ横向き対応） */
+@media (orientation:landscape) and (max-height:500px){
+  #start { padding: 10px; }
+  #start h1 { font-size: clamp(20px, 4vw, 32px) !important; margin: 0 0 0.3rem !important; }
+  #start h2 { font-size: clamp(14px, 2.5vw, 18px) !important; margin: 0 0 0.3rem !important; }
+  #start p { font-size: clamp(12px, 2vw, 14px) !important; margin: 0 0 0.5rem !important; }
+  #difficultySelect { gap: 4px !important; margin-top: 4px !important; }
+  #difficultySelect .btn { padding: 0.4rem 1rem !important; font-size: 0.85rem !important; }
+  #start .btn { padding: 0.4rem 0.8rem !important; font-size: 0.8rem !important; }
+  
+  #gameover, #gameclear { padding: 10px 5px; gap: 8px; }
+  #gameover h2, #gameclear h2 { font-size: clamp(18px, 4vw, 28px) !important; margin: 0.2rem 0 0.3rem !important; }
+  .final-score { font-size: clamp(24px, 6vw, 40px) !important; }
+  .final-sub { font-size: clamp(10px, 2vw, 14px) !important; }
+  .share-buttons { gap: 0.4rem; margin-top: 0.5rem; }
+  .share-btn { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+  .share-btn .shareLabel { display: none; }
+  
+  /* ステージ選択モーダル */
+  #stageSelectModal { padding: 5px !important; align-items: flex-start !important; }
+  #stageSelectModal > div { margin: 0 auto !important; padding: 0.6rem !important; }
+  #stageSelectModal h2 { font-size: 1rem !important; margin-bottom: 0.3rem !important; }
+  #stageSelectModal #stageCards { gap: 0.4rem !important; }
+  #stageSelectModal .stage-card { padding: 0.4rem 0.6rem !important; }
+  #stageSelectModal .stage-card h3 { font-size: 0.9rem !important; margin-bottom: 0.2rem !important; }
+  #stageSelectModal .stage-card p { font-size: 0.7rem !important; margin: 0.1rem 0 !important; }
+  #stageSelectModal button { padding: 4px 10px !important; font-size: 0.75rem !important; }
+  /* ステージカードを横並び2列に */
+  #stageSelectModal #stageCards { 
+    display: grid !important; 
+    grid-template-columns: repeat(2, 1fr) !important; 
+  }
+  
+  /* カスタマイズモーダル */
+  #customizeModal { padding: 5px !important; align-items: flex-start !important; }
+  #customizeModal > div { margin: 0 auto !important; padding: 0.5rem !important; }
+  #customizeModal h2 { font-size: 1rem !important; margin-bottom: 0.3rem !important; }
+  #customizeModal h3 { font-size: 0.8rem !important; margin: 0 0 0.2rem 0 !important; }
+  #customizeModal p { font-size: 0.65rem !important; margin: 0 0 0.3rem 0 !important; }
+  #customizeModal button { padding: 4px 10px !important; font-size: 0.75rem !important; }
+  /* プレビューを小さく、横並びレイアウト維持 */
+  #customizeModal #colorPreviewCanvas { width: 50px !important; height: 50px !important; }
+  #customizeModal #colorGrid { gap: 4px !important; }
+  #customizeModal #colorGrid > div { font-size: 0.6rem !important; }
+  #customizeModal #colorGrid button { width: 36px !important; height: 36px !important; }
+  #customizeModal #colorProgress { padding: 0.4rem !important; margin-top: 0.4rem !important; }
+  /* 広告スキンセクションもコンパクト化 */
+  #customizeModal #adSkinSection { margin-top: 0.5rem !important; padding-top: 0.5rem !important; }
+}
+
   /* 縦持ちのときはHUDを少し縮小 */
 @media (orientation:portrait){
   .hud { transform: scale(.9); transform-origin: top center; opacity:.9; }
@@ -458,9 +514,28 @@ body[data-hc] .hc-badges{ display: flex; }
   }
   .hud-ctrl-btn {
     display: inline-flex !important;
+    padding: 4px 8px !important;
+    font-size: 14px !important;
   }
   .hud {
-    padding-left: calc(.5rem + env(safe-area-inset-left)) !important;
+    padding: 4px 8px !important;
+    padding-left: calc(4px + env(safe-area-inset-left)) !important;
+    padding-right: calc(4px + env(safe-area-inset-right)) !important;
+  }
+  /* バッジを小さく */
+  .hud .badge {
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+  }
+  /* HP/XPバーを細く */
+  #hudRow2 {
+    margin-top: 2px !important;
+  }
+  .hud .bar {
+    height: 6px !important;
+  }
+  .hud .bar + span, .hud span[style*="font-size:10px"] {
+    font-size: 8px !important;
   }
 }
 
@@ -532,8 +607,8 @@ const manifestData = {
   short_name: "10min's",
   description: "10分間生き延びろ！サバイバーライクゲーム",
   start_url: "./",
-  display: "fullscreen",
-  orientation: "landscape",
+  display: "standalone",  // fullscreen → standalone に変更（回転対応）
+  orientation: "any",  // 縦横両対応
   background_color: "#0f172a",
   theme_color: "#3b82f6",
   icons: [{
@@ -616,6 +691,10 @@ document.head.appendChild(link);
       pause_no_ability: '能力強化なし',
       btn_resume: '▶ 再開',
       btn_pause_title: 'タイトルに戻る',
+      
+      // ===== 広告機能（準備中） =====
+      revive_btn: '広告で復活（準備中）',
+      ad_reroll_btn: '広告リロール（準備中）',
       
       // ===== ゲームオーバー =====
       gameover_title: 'GAME OVER',
@@ -971,6 +1050,10 @@ document.head.appendChild(link);
       pause_no_ability: 'No upgrades',
       btn_resume: '▶ Resume',
       btn_pause_title: 'Back to Title',
+      
+      // ===== Ad Features (Coming Soon) =====
+      revive_btn: 'Revive with Ad (Coming Soon)',
+      ad_reroll_btn: 'Ad Reroll (Coming Soon)',
       
       // ===== Game Over =====
       gameover_title: 'GAME OVER',
@@ -1403,7 +1486,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.1.2</span> - 
+    <span style="opacity:0.7;">Ver 2.3.0</span> - 
     <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
@@ -1464,91 +1547,6 @@ document.head.appendChild(link);
     updateButtons();
   }
   
-  // 更新履歴モーダルを言語に応じて更新
-  function updateUpdateLogModal(lang) {
-    const modal = document.getElementById('updateLogModal');
-    if (!modal) return;
-    
-    const isJa = lang === 'ja';
-    const closeText = isJa ? '閉じる' : 'Close';
-    const titleText = isJa ? '📝 更新履歴' : '📝 Update Log';
-    
-    modal.innerHTML = `
-    <div style="max-width:700px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-        <h2 style="margin:0; color:#fff; font-size:1.8rem;">${titleText}</h2>
-        <button onclick="document.getElementById('updateLogModal').style.display='none'" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">${closeText}</button>
-      </div>
-      
-      <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
-        
-        <!-- Ver 2.1.2 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 2.1.2 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#93c5fd;">${isJa ? '🎮 ステージ2：ロックの新演出' : '🎮 Stage 2: Rock New Effects'}</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>${isJa ? 'ロックが壁に当たった時の衝撃エフェクト追加（岩の破片＆衝撃波リング）' : 'Added impact effects when Rock hits walls (debris & shockwave ring)'}</li>
-            <li>${isJa ? '壁に当たると跳ね返り→0.5秒静止→フェードアウトして消滅' : 'Bounces back → 0.5s pause → fades out when hitting walls'}</li>
-            <li>${isJa ? '衝撃波リングに攻撃判定追加（ロックの50%ダメージ＆ノックバック）' : 'Shockwave ring deals 50% Rock damage with knockback'}</li>
-            <li>${isJa ? 'ロックが大きいほど衝撃波も大きくなる' : 'Bigger rocks create bigger shockwaves'}</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#93c5fd;">${isJa ? '📱 UI改善' : '📱 UI Improvements'}</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>${isJa ? 'スマホ版HUDを整理（⏸🔊ボタンをHUD内に統合）' : 'Reorganized mobile HUD (⏸🔊 buttons integrated into HUD)'}</li>
-            <li>${isJa ? 'HUD 1行目：ポーズ/サウンド/Lv/難易度/スコア' : 'HUD Row 1: Pause/Sound/Lv/Difficulty/Score'}</li>
-            <li>${isJa ? 'HUD 2行目：HP/XPバー' : 'HUD Row 2: HP/XP bars'}</li>
-            <li>${isJa ? 'PC版でも自機の上にHP数値を表示' : 'HP numbers now shown above player on PC'}</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#93c5fd;">${isJa ? '🐛 バグ修正' : '🐛 Bug Fixes'}</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>${isJa ? 'タイトル画面で▶️ボタンが表示されるバグを修正' : 'Fixed ▶️ button showing on title screen'}</li>
-            <li>${isJa ? 'リトライ時に前回の武器エフェクトが一瞬残るバグを修正' : 'Fixed weapon effects briefly remaining on retry'}</li>
-            <li>${isJa ? 'クリア画面で自機が動かせてしまうバグを修正' : 'Fixed player movement on clear screen'}</li>
-            <li>${isJa ? '英語版スタートボーナスの武器説明が日本語だったのを修正' : 'Fixed Japanese weapon descriptions in English start bonus'}</li>
-            <li>${isJa ? '既存のクリア/ハイスコア記録から実績を自動解放' : 'Auto-unlock achievements from existing records'}</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 2.0.0 -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
-          
-          <h4 style="margin:0.5rem 0; color:#86efac;">${isJa ? '🎮 新機能：難易度モード' : '🎮 New: Difficulty Modes'}</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li><strong>Easy</strong>: ${isJa ? '敵HP 60%、攻撃力 80%、敵の数 80%、スタートボーナス2つ' : 'Enemy HP 60%, ATK 80%, spawn 80%, 2 start bonuses'}</li>
-            <li><strong>Normal</strong>: ${isJa ? '従来のバランス、スタートボーナス1つ' : 'Standard balance, 1 start bonus'}</li>
-            <li><strong>Hard</strong>: ${isJa ? '敵HP 1.2倍、攻撃力 1.2倍、敵の数 1.2倍' : 'Enemy HP 1.2x, ATK 1.2x, spawn 1.2x'}</li>
-            <li><strong>Hardcore</strong>: ${isJa ? '敵HP 2倍、攻撃力 1.5倍、敵の数 1.5倍' : 'Enemy HP 2x, ATK 1.5x, spawn 1.5x'}</li>
-          </ul>
-          
-          <h4 style="margin:0.5rem 0; color:#86efac;">${isJa ? '🎨 新機能：カスタマイズ' : '🎨 New: Customization'}</h4>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>${isJa ? '主人公のカラーを変更可能に（全12色）' : 'Change player color (12 colors)'}</li>
-            <li>${isJa ? '実績を5つ解除するごとに新カラーをゲット' : 'Unlock new colors every 5 achievements'}</li>
-            <li>${isJa ? '全実績コンプリートでレインボーカラー解放！' : 'Complete all achievements for Rainbow color!'}</li>
-          </ul>
-        </div>
-        
-        <!-- Ver 1.8.x -->
-        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.15); border-left:4px solid #10b981; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#34d399; font-size:1.3rem;">Ver 1.8.x <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24-25</span></h3>
-          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>${isJa ? '音量設定機能追加（BGM/効果音）' : 'Added volume settings (BGM/SFX)'}</li>
-            <li>${isJa ? 'ステージ2追加（三角敵＆障害物）' : 'Added Stage 2 (triangle enemies & obstacles)'}</li>
-            <li>${isJa ? '新武器レーザー追加' : 'Added new weapon: Laser'}</li>
-            <li>${isJa ? '実績システム追加' : 'Added achievement system'}</li>
-            <li>${isJa ? '多言語対応（日本語/英語）' : 'Added multilingual support (JP/EN)'}</li>
-          </ul>
-        </div>
-        
-      </div>
-    </div>
-    `;
-  }
-  
   // UI更新関数（言語変更時に呼ばれる）
   window.updateUILanguage = function() {
     const lang = getLang();
@@ -1581,9 +1579,6 @@ document.head.appendChild(link);
     if (updateLogBtn) updateLogBtn.textContent = t('btn_update_log');
     if (settingsBtn) settingsBtn.textContent = t('btn_settings');
     
-    // 更新履歴モーダルの翻訳
-    updateUpdateLogModal(lang);
-    
     // 言語ボタンの状態を更新
     const jaBtn = document.getElementById('langJaBtn');
     const enBtn = document.getElementById('langEnBtn');
@@ -1602,6 +1597,13 @@ document.head.appendChild(link);
     if (gameoverAchTitle) gameoverAchTitle.textContent = t('result_new_achievements');
     if (clearTitle) clearTitle.textContent = '🎉 ' + t('clear_title') + ' 🎉';
     if (clearAchTitle) clearAchTitle.textContent = t('result_new_achievements');
+    
+    // 復活ボタン（準備中）
+    const reviveBtn = document.getElementById('reviveAdBtn');
+    if (reviveBtn) {
+      const reviveSpan = reviveBtn.querySelector('[data-i18n="revive_btn"]');
+      if (reviveSpan) reviveSpan.textContent = t('revive_btn');
+    }
     
     // リトライ/タイトルボタン
     const retryBtn = document.getElementById('retryBtn');
@@ -1674,30 +1676,37 @@ document.head.appendChild(link);
 </script>
 
 <!-- カスタマイズモーダル -->
-<div id="customizeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
-  <div style="max-width:550px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-      <h2 id="customizeTitle" style="margin:0; color:#fff; font-size:1.5rem;">🎨 Customize</h2>
+<div id="customizeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:5px; box-sizing:border-box; overflow-y:auto;">
+  <div style="max-width:700px; margin:0 auto; background:#1e293b; border-radius:12px; padding:0.8rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+      <h2 id="customizeTitle" style="margin:0; color:#fff; font-size:1.3rem;">🎨 Customize</h2>
       <button id="closeCustomize" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">✕ Close</button>
     </div>
     
-    <div style="display:flex; gap:1.5rem; align-items:flex-start;">
+    <div style="display:flex; gap:1rem; align-items:flex-start;">
       <!-- プレビュー -->
       <div style="flex-shrink:0; text-align:center;">
-        <canvas id="colorPreviewCanvas" width="100" height="100" style="width:100px; height:100px; position:static; background:#0f172a; border-radius:12px;"></canvas>
-        <div id="colorPreviewName" style="color:#fff; font-size:0.9rem; margin-top:0.5rem;">Green</div>
+        <canvas id="colorPreviewCanvas" width="80" height="80" style="width:80px; height:80px; position:static; background:#0f172a; border-radius:12px;"></canvas>
+        <div id="colorPreviewName" style="color:#fff; font-size:0.8rem; margin-top:0.3rem;">Green</div>
       </div>
       
       <!-- カラー選択 -->
       <div style="flex:1;">
-        <h3 id="customizeColorTitle" style="color:#06b6d4; font-size:1rem; margin:0 0 0.5rem 0;">🎮 Player Color</h3>
-        <p id="customizeColorDesc" style="color:#94a3b8; font-size:0.85rem; margin:0 0 1rem 0;">Unlock new colors every 5 achievements!</p>
-        <div id="colorGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;"></div>
+        <h3 id="customizeColorTitle" style="color:#06b6d4; font-size:0.9rem; margin:0 0 0.3rem 0;">🎮 Player Color</h3>
+        <p id="customizeColorDesc" style="color:#94a3b8; font-size:0.75rem; margin:0 0 0.5rem 0;">Unlock new colors every 5 achievements!</p>
+        <div id="colorGrid" style="display:grid; grid-template-columns:repeat(6,1fr); gap:6px;"></div>
       </div>
     </div>
     
-    <div id="colorProgress" style="margin-top:1rem; padding:1rem; background:#334155; border-radius:8px;">
-      <div id="colorProgressLabel" style="color:#94a3b8; font-size:0.9rem;">Next color unlock: <span id="colorProgressText">0/5</span></div>
+    <div id="colorProgress" style="margin-top:0.8rem; padding:0.6rem; background:#334155; border-radius:8px;">
+      <div id="colorProgressLabel" style="color:#94a3b8; font-size:0.8rem;">Next color unlock: <span id="colorProgressText">0/5</span></div>
+    </div>
+    
+    <!-- 広告スキンセクション -->
+    <div id="adSkinSection" style="margin-top:1rem; padding-top:1rem; border-top:2px solid #475569;">
+      <h3 id="adSkinTitle" style="color:#f59e0b; font-size:0.9rem; margin:0 0 0.5rem 0;">📺 Ad Skins</h3>
+      <p id="adSkinDesc" style="color:#94a3b8; font-size:0.75rem; margin:0 0 0.5rem 0;">Watch ads to unlock special character skins!</p>
+      <div id="adSkinGrid" style="display:grid; grid-template-columns:repeat(6,1fr); gap:6px;"></div>
     </div>
   </div>
 </div>
@@ -1748,6 +1757,14 @@ document.head.appendChild(link);
   <div id="gameover" style="display:none;">
     <h2 id="gameoverTitle">GAME OVER</h2>
     <div class="sub" id="gameoverSub">Try again!</div>
+    
+    <!-- 復活ボタン（広告機能が有効になったら復活）
+    <div id="reviveAdContainer" style="margin:0.5rem 0;">
+      <button id="reviveAdBtn" class="btn" style="background:#4b5563; opacity:0.5; cursor:not-allowed;" disabled>
+        📺 <span data-i18n="revive_btn">広告で復活（準備中）</span>
+      </button>
+    </div>
+    -->
     
     <!-- 解除された実績表示エリア -->
     <div id="gameoverAchievements" style="display:none; margin:1rem 0; padding:1rem; background:rgba(102,126,234,0.15); border-radius:8px; max-width:600px;">
@@ -1801,12 +1818,476 @@ document.head.appendChild(link);
   
   <canvas id="cv"></canvas>
   
-  <!-- 更新履歴モーダル（内容はJSで動的生成） -->
-  <div id="updateLogModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;"></div>
+  <!-- 更新履歴モーダル -->
+  <div id="updateLogModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
+    <div style="max-width:700px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <h2 style="margin:0; color:#fff; font-size:1.8rem;">📝 更新履歴</h2>
+        <button onclick="document.getElementById('updateLogModal').style.display='none'" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">閉じる</button>
+      </div>
+      
+      <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 2.3.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(245,158,11,0.15); border-left:4px solid #f59e0b; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 2.3.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#fcd34d;">📺 広告スキンシステム追加</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>広告を視聴して特別なキャラクタースキンを解放！</li>
+            <li>12種類のユニークなスキン：ネコ、ウサギ、ニワトリ、パンダ、ロボット、忍者、ドラゴン、スカル、モアイ、うんち、ブルーキャット、ブラックマウス</li>
+            <li>カスタマイズ画面から選択可能</li>
+            <li>カラーとスキンは別管理（カラーを選ぶとスキン解除）</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#fcd34d;">🎨 カスタマイズ画面改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>モーダル幅を拡大（700px）</li>
+            <li>グリッドを6列に変更</li>
+            <li>広告スキンセクションを追加</li>
+          </ul>
+        </div>
 
+        <!-- Ver 2.1.2 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 2.1.2 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">🎮 ステージ2：ロックの新演出</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ロックが壁に当たった時の衝撃エフェクト追加（岩の破片＆衝撃波リング）</li>
+            <li>壁に当たると跳ね返り→0.5秒静止→フェードアウトして消滅</li>
+            <li>衝撃波リングに攻撃判定追加（ロックの50%ダメージ＆ノックバック）</li>
+            <li>ロックが大きいほど衝撃波も大きくなる</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">📱 UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>スマホ版HUDを整理（⏸🔊ボタンをHUD内に統合）</li>
+            <li>HUD 1行目：ポーズ/サウンド/Lv/難易度/スコア</li>
+            <li>HUD 2行目：HP/XPバー</li>
+            <li>PC版でも自機の上にHP数値を表示</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">🐛 バグ修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトル画面で▶️ボタンが表示されるバグを修正</li>
+            <li>リトライ時に前回の武器エフェクトが一瞬残るバグを修正</li>
+            <li>クリア画面で自機が動かせてしまうバグを修正</li>
+            <li>英語版スタートボーナスの武器説明が日本語だったのを修正</li>
+            <li>既存のクリア/ハイスコア記録から実績を自動解放</li>
+            <li>更新履歴の年を2024→2025に修正</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 2.0.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎮 新機能：難易度モード</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li><strong>Easy（かんたん）</strong>：敵HP 60%、攻撃力 80%、敵の数 80%、中ボス・大ボスは同時に1体まで、スタートボーナス2つ選択可能</li>
+            <li><strong>Normal（通常）</strong>：従来のバランス、スタートボーナス1つ</li>
+            <li><strong>Hard（難しい）</strong>：敵HP 1.2倍、攻撃力 1.2倍、敵の数 1.2倍、スタートボーナスなし</li>
+            <li><strong>Hardcore（鬼）</strong>：敵HP 2倍、攻撃力 1.5倍、敵の数 1.5倍、スタートボーナスなし</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">⚙️ UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトル画面に4つの難易度選択ボタンを追加</li>
+            <li>プレイ中に難易度モードを表示（画面左上）</li>
+            <li>ランキングに難易度モードを表示（色分け）</li>
+            <li>SNSシェア時に難易度モードを表示</li>
+            <li>ステージ選択画面で難易度別クリア状況を表示（😊Easy/🎮Normal/💪Hard/🔥Hardcore）</li>
+            <li>クリアフラグをステージ＆難易度別に保存</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎖️ 実績の調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>実績ボタンの色をピンクに変更</li>
+            <li>難易度別クリア実績を追加（ステージ1×4難易度 + ステージ2×4難易度 = 計8種）</li>
+            <li>「ハードコアミニマリスト」実績を削除（難易度が無関係な縛り系実績と分離）</li>
+            <li>武器縛り系の実績は難易度に関係なく達成可能に</li>
+            <li>新実績追加：リロールマスター、宝箱ハンター、ボス殲滅者、生存者</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎨 新機能：カスタマイズ</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>主人公のカラーを変更可能に（タイトル画面「カスタマイズ」）</li>
+            <li>実績を5つ解除するごとに新カラーをゲット（全12色）</li>
+            <li>全実績コンプリートでレインボーカラー解放！</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">⚖️ バランス調整（ステージ2）</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ダッシャーの速度を85%に低下（640→544）</li>
+            <li>Hardcoreのスナイパー上限を緩和（5/7→4/6）</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.8 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.15); border-left:4px solid #10b981; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#34d399; font-size:1.3rem;">Ver 1.8.8 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#6ee7b7;">🔊 新機能</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトル画面に設定ボタン追加（BGM/効果音の音量調整）</li>
+            <li>一時停止メニューでも音量調整可能</li>
+            <li>音量設定はブラウザに保存</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#6ee7b7;">🐛 バグ修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトルに戻るボタンが押せなくなる問題を修正</li>
+            <li>ゲームオーバー/クリア時のランキング自動表示を削除</li>
+            <li>ゲームオーバー処理の統合（重複関数の整理）</li>
+            <li>ピラートラップのノックバック効果が消えていた問題を修正</li>
+            <li>被ダメージ時の無敵時間が付与されない箇所を修正</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#6ee7b7;">⚖️ バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>miniTriangle：HP 16→8に戻し、経験値ドロップ復活</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.7 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 1.8.7 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">⚖️ 武器バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>レーザー：基本ダメージ 36→32、Lv上昇 +30→+25</li>
+            <li>ブレード：基本ダメージ 60→52</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">🐛 バグ修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ステージ1ラスボスの突進が必中だった問題を修正</li>
+            <li>タイトルに戻った後にステージ選択できなくなる問題を修正</li>
+            <li>タイトルに戻った後にランキングが表示される問題を修正</li>
+            <li>やり直す/もう一度遊ぶボタンの状態リセット漏れを修正</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.6 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(239,68,68,0.15); border-left:4px solid #ef4444; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#f87171; font-size:1.3rem;">Ver 1.8.6 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#fca5a5;">🔥 ハードコアモード強化</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>スナイパー出現数：通常3/5体 → ハードコア5/7体</li>
+            <li>大ボス・ラスボスのHP倍率：1.3倍 → 1.5倍</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#fca5a5;">▲ ステージ2調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>大ボス反射球のスピード1.2倍（400→480）</li>
+            <li>大ボス突進をターゲット座標方式に変更</li>
+            <li>スピナー高速回転中：ブレード・ノヴァ・オービット・ポイズンも無効に</li>
+            <li>ピラートラップ：継続ダメージ → 一撃30ダメージに変更</li>
+            <li>miniTriangle：HP2倍（16）、ダメージ10、経験値ドロップなし</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.5 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.15); border-left:4px solid #3b82f6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 1.8.5 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#93c5fd;">⚔️ ブレード完全リニューアル</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>新エフェクト：主人公中心から半径が広がる斬撃</li>
+            <li>交互に逆向きの流れ＋放射線エフェクト</li>
+            <li>3セグメント描画で軽量化</li>
+            <li>連撃数変更：Lv1=2連撃 → Lv2=4連撃 → Lv3=6連撃 → 覚醒=12連撃</li>
+            <li>レベルごとに半径拡大：60px → 90px → 120px → 180px（覚醒）</li>
+            <li>CT 1.1秒固定（連撃が長くなる分、実質CTが短縮）</li>
+            <li>基礎ダメージ60（2連撃で合計120ダメージ）</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.4 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(147,51,234,0.15); border-left:4px solid #9333ea; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#a855f7; font-size:1.3rem;">Ver 1.8.4 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">👹 ステージ2 ラスボス演出強化</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ボスの色を強い紫色に変更、オーラエフェクト追加</li>
+            <li>ホーミング光球：スピード130、寿命5.5秒に調整</li>
+            <li>回転突進の演出改善：
+              <ul style="margin:0.3rem 0; padding-left:1rem;">
+                <li>点滅→高速回転しながらフェードアウト＆サイズアップで消失</li>
+                <li>突進中はボス本体とバリア三角が白く光る</li>
+                <li>バリアも高速回転して接触面積UP</li>
+                <li>突進スピード700に調整</li>
+              </ul>
+            </li>
+            <li>回転突進中は他の攻撃（光球・爆撃・柱・回転弾幕）を発動しない</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.3 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(239,68,68,0.15); border-left:4px solid #ef4444; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#f87171; font-size:1.3rem;">Ver 1.8.3 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#fecaca;">🎮 UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトルに戻った時のリセット処理を改善</li>
+            <li>一時停止ボタンはゲームプレイ中のみ表示</li>
+            <li>ランキング表示の無限ループバグを修正</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fecaca;">👹 ステージ2 大ボス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>体当たりが主人公を正確に追尾するように改善</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fecaca;">👹 ステージ2 ラスボス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ホーミング光球：オービットで消えない、スピード控えめに調整</li>
+            <li>爆撃攻撃：重ならないよう分散配置に改善</li>
+            <li>回転突進：2秒の点滅予告→画面外から突進→画面内で停止</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fecaca;">⚔️ 敵調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ピラートラップのダメージを2倍に増加（20→40/秒）</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.2 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(99,102,241,0.15); border-left:4px solid #6366f1; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#818cf8; font-size:1.3rem;">Ver 1.8.2 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#c7d2fe;">⏸ ポーズメニュー追加</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>一時停止中に所持武器・能力強化の一覧を表示</li>
+            <li>「ゲームに戻る」ボタンで再開</li>
+            <li>「リタイア」ボタンでゲーム終了（ゲームオーバー扱い）</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.1 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.15); border-left:4px solid #10b981; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#10b981; font-size:1.3rem;">Ver 1.8.1 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#a7f3d0;">🔊 音声バグ修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>起動時に常に音声ONで開始するように修正</li>
+            <li>以前のミュート設定が残ってBGMが鳴らない問題を解消</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#a7f3d0;">🎁 スタートボーナス改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>武器のみ6種類から選択する仕様に変更</li>
+            <li>選択中にゲームが動いてしまうバグを修正</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.8.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(251,191,36,0.15); border-left:4px solid #fbbf24; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 1.8.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/24</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#fef3c7;">🎁 スタートボーナス</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>通常モード開始時に6種類から能力を1つ選択可能</li>
+            <li>ハードコアモードでは無効（チャレンジ性維持）</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">🏆 ランキング改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ステージ1とステージ2のランキングを分離</li>
+            <li>タブで切り替え可能に</li>
+            <li>CLOSEボタンを上部に配置（スマホで押しやすく）</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">⚖️ 難易度調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>プレイヤー初期HP: 110→120</li>
+            <li>プレイヤー初期速度: 170→180</li>
+            <li>ブラスター初期攻撃力: 12→15</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">📡 レーザー説明文追加</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>入手時・強化時・覚醒時の説明を完備</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fef3c7;">📱 PWA対応</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>スマホブラウザで「ホーム画面に追加」バナー表示</li>
+            <li>PWAとして起動でフルスクリーンプレイ可能</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.6 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(236,72,153,0.15); border-left:4px solid #ec4899; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#f472b6; font-size:1.3rem;">Ver 1.6 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/23</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#fbcfe8;">👹 ステージ2 ラスボス大改修</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>サイズ2倍に巨大化、HP40%削減でスピード感UP</li>
+            <li>明るいマゼンタカラーで視認性向上</li>
+            <li>新攻撃「ホーミング光球」：ランダム方向に3発、ゆっくり追尾</li>
+            <li>新攻撃「回転弾幕」：高速回転しながら大量の弾をばら撒く</li>
+            <li>新攻撃「柱飛ばし」：柱が光り、矢印で方向を予告して飛んでくる</li>
+            <li>爆撃15箇所に増加、シールド回転高速化</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fbcfe8;">📡 レーザー覚醒強化</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>覚醒時：0.8秒間継続照射で敵を焼き尽くす</li>
+            <li>照射中は敵を自動追尾</li>
+            <li>基本ダメージ2倍、レベルボーナス大幅増加</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fbcfe8;">🎮 UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>レベルアップ選択肢：3択→4択に増加</li>
+            <li>宝箱選択肢：5択→6択に増加</li>
+            <li>スマホでもカードが見やすいレイアウトに最適化</li>
+            <li>タイトル画面からステージ選択への導線改善</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#fbcfe8;">⚔️ その他バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ノヴァ覚醒オーラダメージ1.5倍</li>
+            <li>スナイパーの色を薄い黄色に変更</li>
+            <li>スピナーが低頻度で弾を発射するように</li>
+            <li>ピラートラップの警告重複バグ修正</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.5.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(168,85,247,0.1); border-left:4px solid #a855f7; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#c084fc; font-size:1.3rem;">Ver 1.5.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/22</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#e9d5ff;">⚔️ 武器バランス大幅調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ホーミング：威力1.4倍、弾速1.2倍に強化</li>
+            <li>ショットガン：威力1.8倍に強化（近距離最強に）</li>
+            <li>ブレード：威力1.5倍、スタン時間1.5倍に強化</li>
+            <li>ポイズン：鈍足効果強化（45%→60%減速）</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#e9d5ff;">🛡️ 新能力追加</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>耐久力アップ（全5段階）：受けるダメージを最大30%軽減</li>
+            <li>防御特化ビルドが可能に</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#e9d5ff;">🎁 宝箱パス機能</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>宝箱でも「パス」ボタンを追加（縛りプレイ完全対応）</li>
+            <li>パスボーナス：+3,000点</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#e9d5ff;">🔥 ハードコア難易度調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>敵の攻撃力：1.3倍→1.5倍に戻す</li>
+            <li>耐久力軽減：最大40%→30%に調整</li>
+            <li>適正な難易度バランスに</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.4.1 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(14,165,233,0.1); border-left:4px solid #0ea5e9; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#38bdf8; font-size:1.3rem;">Ver 1.4.1 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/22</span></h3>
+          <h4 style="margin:0.5rem 0; color:#7dd3fc;">⚖️ ハードコア難易度調整＋BGM修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>経験値減少ペナルティを削除（0.75倍→1.0倍）</li>
+            <li>敵の攻撃力を削減（1.5倍→1.3倍）</li>
+            <li>ハードコアモードでBGMが再生されないバグ修正</li>
+            <li>より適正な難易度に調整</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.4.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(16,185,129,0.1); border-left:4px solid #10b981; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#10b981; font-size:1.3rem;">Ver 1.4.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/22</span></h3>
+          <h4 style="margin:0.5rem 0; color:#a7f3d0;">🎯 出現予告システム実装</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ボム敵・ワープ敵の出現前に予告マーカーを表示</li>
+            <li>突然出現による理不尽な死を解消</li>
+            <li>予告時間：ボム0.8秒、ワープ0.6秒</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#a7f3d0;">⚖️ 難易度バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>レーザー予告時間延長（0.6秒→1.0秒）</li>
+            <li>ハードコア敵の自動回復を削除</li>
+            <li>ハードコアボスHP倍率削減（1.5倍→1.3倍）</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#a7f3d0;">🎖️ UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>クリア・ゲームオーバー時に解除した実績を表示</li>
+            <li>実績のティアカラー表示</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.3.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(139,92,246,0.1); border-left:4px solid #8b5cf6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#a78bfa; font-size:1.3rem;">Ver 1.3.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/21</span></h3>
+          <h4 style="margin:0.5rem 0; color:#c4b5fd;">🔥 ハードコアモード強化</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>敵HP：2倍</li>
+            <li>敵の数：1.5倍</li>
+            <li>敵の攻撃力：1.5倍</li>
+            <li>敵の攻撃頻度：2倍</li>
+            <li>タイトル画面から選択可能に</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#c4b5fd;">⚔️ 武器バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ラバーショット：ダメージ減少、球数調整</li>
+            <li>ロック：ダメージ0.55倍に減少</li>
+          </ul>
+          
+          <h4 style="margin:0.8rem 0 0.3rem; color:#c4b5fd;">🎮 新機能</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>レベルアップ時に能力をとらない選択肢（縛りプレイ用）</li>
+            <li>スキップボーナス：+5,000点</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.2.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(251,191,36,0.1); border-left:4px solid #fbbf24; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 1.2.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/20</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>武器説明文を追加（全11武器）</li>
+            <li>レベルアップ時の説明を強化</li>
+            <li>覚醒時の特別効果説明</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.1.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(59,130,246,0.1); border-left:4px solid #3b82f6; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#60a5fa; font-size:1.3rem;">Ver 1.1.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/19</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>SNS共有機能実装（X/LINE/コピー）</li>
+            <li>ランキングシステム</li>
+            <li>実績システム（50種類以上）</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.0.0 -->
+        <div style="padding:1rem; background:rgba(100,116,139,0.1); border-left:4px solid #64748b; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#94a3b8; font-size:1.3rem;">Ver 1.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/18</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>初回リリース</li>
+            <li>11種類の武器システム</li>
+            <li>ボス戦システム</li>
+            <li>レベルアップシステム</li>
+          </ul>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+  
   <!-- ステージ選択モーダル -->
-  <div id="stageSelectModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:20px; box-sizing:border-box; overflow-y:auto;">
-    <div style="max-width:800px; margin:2rem auto; background:#1e293b; border-radius:16px; padding:2rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
+  <div id="stageSelectModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:5px; box-sizing:border-box; overflow-y:auto;">
+    <div style="max-width:800px; margin:0 auto; background:#1e293b; border-radius:12px; padding:0.8rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
         <h2 id="stageSelectTitle" style="margin:0; color:#fff; font-size:1.8rem;">▲ ステージ選択</h2>
         <button id="closeStageSelect" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">閉じる</button>
@@ -1825,13 +2306,18 @@ document.head.appendChild(link);
 
   
   <div class="hud">
-    <!-- 1行目：コントロールとLv/難易度/スコア -->
-    <div id="hudRow1" style="display:flex; align-items:center; gap:8px; width:100%;">
-      <button id="hudPauseBtn" class="hud-ctrl-btn">⏸</button>
-      <button id="hudSoundBtn" class="hud-ctrl-btn">🔊</button>
-      <span class="badge" style="margin-left:8px;">Lv <b id="lv">1</b></span>
-      <span id="hudDiffBadge" class="badge diff-badge" style="display:none;"></span>
-      <span class="badge" style="margin-left:auto;">SCORE: <b id="scoreVal">0</b></span>
+    <!-- 1行目：難易度/ステージ/レベル/スコア/コントロール -->
+    <div id="hudRow1" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+      <span style="display:flex; align-items:center; gap:6px;">
+        <span id="hudDiffBadge" class="badge diff-badge" style="display:none;"></span>
+        <span id="hudStageBadge" class="badge" style="background:#475569;">Stage 1</span>
+        <span class="badge">Lv <b id="lv">1</b></span>
+      </span>
+      <span class="badge">SCORE: <b id="scoreVal">0</b></span>
+      <span style="display:flex; gap:6px;">
+        <button id="hudSoundBtn" class="hud-ctrl-btn">🔊</button>
+        <button id="hudPauseBtn" class="hud-ctrl-btn">⏸</button>
+      </span>
     </div>
     <!-- 2行目：HP/XPバー -->
     <div id="hudRow2" style="display:flex; align-items:center; gap:6px; width:100%; margin-top:4px;">
@@ -3703,13 +4189,13 @@ function visibleBounds(radius = 0){
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
-    const cx = 50, cy = 50, r = 28;
+    const cx = 40, cy = 40, r = 24;
     
-    ctx.clearRect(0, 0, 100, 100);
+    ctx.clearRect(0, 0, 80, 80);
     
     // 背景
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, 100, 100);
+    ctx.fillRect(0, 0, 80, 80);
     
     const data = PLAYER_COLORS[colorKey];
     if (!data) return;
@@ -3870,6 +4356,11 @@ function visibleBounds(radius = 0){
     // プレビュー初期化
     startPreviewAnimation(selectedColor);
     
+    // 広告スキングリッドを描画
+    if (window.renderAdSkinGrid) {
+      window.renderAdSkinGrid();
+    }
+    
     modal.style.display = 'flex';
     modal.style.alignItems = 'center';
     modal.style.justifyContent = 'center';
@@ -3880,6 +4371,321 @@ function visibleBounds(radius = 0){
   window.isPlayerColorShiny = isPlayerColorShiny;
   window.getSelectedColor = getSelectedColor;
   window.showCustomizeModal = showCustomizeModal;
+
+  // === 広告スキンシステム ===
+  const AD_SKINS = {
+    cat:        { nameJa: '気まぐれ',     nameEn: 'Whimsical',    adsRequired: 3 },
+    bunny:      { nameJa: 'メルヘン',     nameEn: 'Fairytale',    adsRequired: 3 },
+    chicken:    { nameJa: '目覚まし',     nameEn: 'Alarm',        adsRequired: 3 },
+    panda:      { nameJa: '人気者',       nameEn: 'Popular',      adsRequired: 4 },
+    robot:      { nameJa: '電気好き',     nameEn: 'Electric',     adsRequired: 4 },
+    ninja:      { nameJa: 'ニンニン',     nameEn: 'Stealth',      adsRequired: 4 },
+    dragon:     { nameJa: '大トカゲ',     nameEn: 'Big Lizard',   adsRequired: 5 },
+    skull:      { nameJa: 'ダイエット',   nameEn: 'Diet',         adsRequired: 5 },
+    moai:       { nameJa: '南の島',       nameEn: 'Island',       adsRequired: 5 },
+    poop:       { nameJa: '元ご馳走',     nameEn: 'Ex-Feast',     adsRequired: 5 },
+    bluecat:    { nameJa: 'ロボねこ',     nameEn: 'Robo Cat',     adsRequired: 6 },
+    blackmouse: { nameJa: '黒ネズミ',     nameEn: 'Black Mouse',  adsRequired: 6 },
+  };
+
+  const AD_SKIN_SAVE_KEY = 'adSkinProgress';
+  const AD_SKIN_SELECTED_KEY = 'selectedAdSkin';
+
+  function loadAdSkinProgress() {
+    try {
+      const data = localStorage.getItem(AD_SKIN_SAVE_KEY);
+      return data ? JSON.parse(data) : {};
+    } catch (e) { return {}; }
+  }
+
+  function saveAdSkinProgress(progress) {
+    try {
+      localStorage.setItem(AD_SKIN_SAVE_KEY, JSON.stringify(progress));
+    } catch (e) {}
+  }
+
+  function getSelectedAdSkin() {
+    try {
+      const saved = localStorage.getItem(AD_SKIN_SELECTED_KEY);
+      if (saved && AD_SKINS[saved]) {
+        const progress = loadAdSkinProgress();
+        if ((progress[saved] || 0) >= AD_SKINS[saved].adsRequired) {
+          return saved;
+        }
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function setSelectedAdSkin(skinKey) {
+    try {
+      localStorage.setItem(AD_SKIN_SELECTED_KEY, skinKey || '');
+    } catch (e) {}
+  }
+
+  // 広告スキン描画関数
+  function drawAdSkin(context, skinId, cx, cy, r) {
+    context.save();
+    
+    switch(skinId) {
+      case 'cat':
+        context.fillStyle = '#fb923c';
+        context.beginPath();
+        context.arc(cx, cy, r, 0, Math.PI * 2);
+        context.fill();
+        context.beginPath();
+        context.moveTo(cx - r * 0.9, cy - r * 0.2);
+        context.lineTo(cx - r * 0.55, cy - r * 1.15);
+        context.lineTo(cx - r * 0.1, cy - r * 0.45);
+        context.closePath();
+        context.fill();
+        context.beginPath();
+        context.moveTo(cx + r * 0.9, cy - r * 0.2);
+        context.lineTo(cx + r * 0.55, cy - r * 1.15);
+        context.lineTo(cx + r * 0.1, cy - r * 0.45);
+        context.closePath();
+        context.fill();
+        context.fillStyle = '#000';
+        context.beginPath(); context.arc(cx - r * 0.3, cy - r * 0.1, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.3, cy - r * 0.1, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#000';
+        context.lineWidth = r * 0.05;
+        context.beginPath();
+        context.moveTo(cx - r * 0.2, cy + r * 0.2); context.lineTo(cx - r * 0.85, cy + r * 0.1);
+        context.moveTo(cx - r * 0.2, cy + r * 0.35); context.lineTo(cx - r * 0.85, cy + r * 0.4);
+        context.moveTo(cx + r * 0.2, cy + r * 0.2); context.lineTo(cx + r * 0.85, cy + r * 0.1);
+        context.moveTo(cx + r * 0.2, cy + r * 0.35); context.lineTo(cx + r * 0.85, cy + r * 0.4);
+        context.stroke();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
+        break;
+
+      case 'bunny':
+        context.fillStyle = '#f9a8d4';
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.ellipse(cx - r * 0.35, cy - r * 0.95, r * 0.18, r * 0.5, -0.1, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.ellipse(cx + r * 0.35, cy - r * 0.95, r * 0.18, r * 0.5, 0.1, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#000';
+        context.beginPath(); context.arc(cx - r * 0.3, cy - r * 0.1, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.3, cy - r * 0.1, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
+        break;
+
+      case 'chicken':
+        context.fillStyle = '#fff';
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#ef4444';
+        context.beginPath(); context.arc(cx - r * 0.15, cy - r * 0.9, r * 0.18, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.1, cy - r * 1.0, r * 0.15, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.3, cy - r * 0.85, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#000';
+        context.beginPath(); context.arc(cx - r * 0.3, cy - r * 0.1, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.3, cy - r * 0.1, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#f97316';
+        context.beginPath();
+        context.moveTo(cx - r * 0.15, cy + r * 0.2);
+        context.lineTo(cx, cy + r * 0.5);
+        context.lineTo(cx + r * 0.15, cy + r * 0.2);
+        context.closePath(); context.fill();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
+        break;
+
+      case 'panda':
+        context.fillStyle = '#fff';
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#1a1a1a';
+        context.beginPath(); context.arc(cx - r * 0.85, cy - r * 0.6, r * 0.3, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.85, cy - r * 0.6, r * 0.3, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.ellipse(cx - r * 0.32, cy, r * 0.32, r * 0.38, 0.4, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.ellipse(cx + r * 0.32, cy, r * 0.32, r * 0.38, -0.4, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#fff';
+        context.beginPath(); context.arc(cx - r * 0.3, cy - r * 0.05, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.3, cy - r * 0.05, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
+        break;
+
+      case 'robot':
+        context.fillStyle = '#9ca3af';
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#6b7280'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.moveTo(cx, cy - r); context.lineTo(cx, cy - r * 1.35); context.stroke();
+        context.fillStyle = '#ef4444';
+        context.beginPath(); context.arc(cx, cy - r * 1.4, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#22d3ee';
+        context.fillRect(cx - r * 0.5, cy - r * 0.3, r * 0.35, r * 0.35);
+        context.fillRect(cx + r * 0.15, cy - r * 0.3, r * 0.35, r * 0.35);
+        context.fillStyle = '#4b5563';
+        context.fillRect(cx - r * 0.35, cy + r * 0.25, r * 0.7, r * 0.3);
+        context.strokeStyle = '#1f2937'; context.lineWidth = 1;
+        for (let i = 0; i < 4; i++) {
+          context.beginPath();
+          context.moveTo(cx - r * 0.35 + i * r * 0.23, cy + r * 0.25);
+          context.lineTo(cx - r * 0.35 + i * r * 0.23, cy + r * 0.55);
+          context.stroke();
+        }
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
+        break;
+
+      case 'ninja':
+        context.fillStyle = '#1a1a1a';
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#fff';
+        context.beginPath(); context.arc(cx - r * 0.3, cy, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.3, cy, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#dc2626';
+        context.fillRect(cx - r * 1.1, cy - r * 0.55, r * 2.2, r * 0.22);
+        context.beginPath(); context.ellipse(cx + r * 1.15, cy - r * 0.45, r * 0.12, r * 0.25, 0.4, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.ellipse(cx + r * 1.28, cy - r * 0.32, r * 0.1, r * 0.2, 0.6, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
+        break;
+
+      case 'dragon':
+        context.fillStyle = '#22c55e';
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#fbbf24';
+        context.beginPath();
+        context.moveTo(cx - r * 0.5, cy - r * 0.7);
+        context.lineTo(cx - r * 0.35, cy - r * 1.2);
+        context.lineTo(cx - r * 0.2, cy - r * 0.7);
+        context.closePath(); context.fill();
+        context.beginPath();
+        context.moveTo(cx + r * 0.5, cy - r * 0.7);
+        context.lineTo(cx + r * 0.35, cy - r * 1.2);
+        context.lineTo(cx + r * 0.2, cy - r * 0.7);
+        context.closePath(); context.fill();
+        context.fillStyle = '#000';
+        context.beginPath(); context.arc(cx - r * 0.3, cy - r * 0.1, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.3, cy - r * 0.1, r * 0.12, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx - r * 0.15, cy + r * 0.35, r * 0.08, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.15, cy + r * 0.35, r * 0.08, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
+        break;
+
+      case 'skull':
+        const skullY = cy - r * 0.15;
+        context.fillStyle = '#f5f5f5';
+        context.beginPath(); context.arc(cx, skullY, r, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#1a1a1a';
+        context.beginPath(); context.arc(cx - r * 0.35, skullY - r * 0.05, r * 0.28, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.35, skullY - r * 0.05, r * 0.28, 0, Math.PI * 2); context.fill();
+        context.beginPath();
+        context.moveTo(cx, skullY + r * 0.3);
+        context.lineTo(cx - r * 0.12, skullY + r * 0.55);
+        context.lineTo(cx + r * 0.12, skullY + r * 0.55);
+        context.closePath(); context.fill();
+        context.fillStyle = '#f5f5f5'; context.strokeStyle = '#1a1a1a'; context.lineWidth = 2;
+        const teethY = skullY + r * 0.85, teethW = r * 0.18, teethH = r * 0.3;
+        for (let i = 0; i < 4; i++) {
+          const tx = cx - r * 0.36 + i * (teethW + r * 0.02);
+          context.fillRect(tx, teethY, teethW, teethH);
+          context.strokeRect(tx, teethY, teethW, teethH);
+        }
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, skullY, r, 0, Math.PI * 2); context.stroke();
+        break;
+
+      case 'moai':
+        context.fillStyle = '#4b5563';
+        context.beginPath();
+        context.moveTo(cx - r * 0.6, cy - r * 1.1);
+        context.lineTo(cx + r * 0.6, cy - r * 1.1);
+        context.lineTo(cx + r * 0.7, cy + r * 1.0);
+        context.lineTo(cx - r * 0.7, cy + r * 1.0);
+        context.closePath(); context.fill();
+        context.fillStyle = '#1f2937';
+        context.beginPath(); context.ellipse(cx, cy - r * 0.5, r * 0.65, r * 0.2, 0, 0, Math.PI * 2); context.fill();
+        context.beginPath();
+        context.moveTo(cx - r * 0.18, cy - r * 0.15);
+        context.lineTo(cx - r * 0.22, cy + r * 0.55);
+        context.lineTo(cx + r * 0.22, cy + r * 0.55);
+        context.lineTo(cx + r * 0.18, cy - r * 0.15);
+        context.closePath(); context.fill();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath();
+        context.moveTo(cx - r * 0.6, cy - r * 1.1);
+        context.lineTo(cx + r * 0.6, cy - r * 1.1);
+        context.lineTo(cx + r * 0.7, cy + r * 1.0);
+        context.lineTo(cx - r * 0.7, cy + r * 1.0);
+        context.closePath(); context.stroke();
+        break;
+
+      case 'poop':
+        const outR = r * 1.1;
+        context.fillStyle = '#fff';
+        context.beginPath(); context.ellipse(cx, cy + outR * 0.5, outR * 0.85, outR * 0.45, 0, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.ellipse(cx, cy, outR * 0.65, outR * 0.35, 0, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.ellipse(cx, cy - outR * 0.4, outR * 0.45, outR * 0.25, 0, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + outR * 0.15, cy - outR * 0.75, outR * 0.2, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#92400e';
+        context.beginPath(); context.ellipse(cx, cy + r * 0.5, r * 0.85, r * 0.45, 0, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.ellipse(cx, cy, r * 0.65, r * 0.35, 0, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.ellipse(cx, cy - r * 0.4, r * 0.45, r * 0.25, 0, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.15, cy - r * 0.75, r * 0.2, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#000';
+        context.beginPath(); context.arc(cx - r * 0.25, cy - r * 0.1, r * 0.1, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.25, cy - r * 0.1, r * 0.1, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#f472b6'; context.lineWidth = r * 0.06; context.lineCap = 'round';
+        context.beginPath(); context.arc(cx, cy + r * 0.2, r * 0.18, 0.2, Math.PI - 0.2); context.stroke();
+        break;
+
+      case 'bluecat':
+        context.fillStyle = '#3b82f6';
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#fff';
+        context.beginPath(); context.arc(cx, cy + r * 0.1, r * 0.7, 0, Math.PI * 2); context.fill();
+        context.fillStyle = '#000';
+        context.beginPath(); context.arc(cx - r * 0.25, cy - r * 0.1, r * 0.1, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.25, cy - r * 0.1, r * 0.1, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
+        break;
+
+      case 'blackmouse':
+        const earR = r * 0.55, faceR = r * 0.6;
+        const earX = r * 0.8, earY = r * 0.25, faceOffY = r * 0.55;  // earYを0.55→0.25、faceOffYを0.35→0.55に変更
+        context.fillStyle = '#1a1a1a';
+        context.beginPath(); context.arc(cx - earX, cy - earY, earR, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + earX, cy - earY, earR, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx, cy + faceOffY, faceR, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx - earX, cy - earY, earR, 0, Math.PI * 2); context.stroke();
+        context.beginPath(); context.arc(cx + earX, cy - earY, earR, 0, Math.PI * 2); context.stroke();
+        context.fillStyle = '#fff';
+        context.beginPath(); context.arc(cx - faceR * 0.4, cy + faceOffY, faceR * 0.2, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + faceR * 0.4, cy + faceOffY, faceR * 0.2, 0, Math.PI * 2); context.fill();
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy + faceOffY, faceR, 0, Math.PI * 2); context.stroke();
+        break;
+    }
+    context.restore();
+  }
+
+  // 広告スキングリッド生成（準備中）
+  function renderAdSkinGrid() {
+    const grid = document.getElementById('adSkinGrid');
+    if (!grid) return;
+    
+    const lang = getLang();
+    
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align:center; padding:2rem; color:#888;">
+        <div style="font-size:2rem; margin-bottom:0.5rem;">🚧</div>
+        <div style="font-size:1rem;">${lang === 'ja' ? '準備中...' : 'Coming Soon...'}</div>
+        <div style="font-size:0.8rem; margin-top:0.5rem; color:#666;">${lang === 'ja' ? '広告スキンは近日公開予定！' : 'Ad skins coming soon!'}</div>
+      </div>
+    `;
+  }
+
+  // グローバル公開
+  window.getSelectedAdSkin = getSelectedAdSkin;
+  window.drawAdSkin = drawAdSkin;
+  window.renderAdSkinGrid = renderAdSkinGrid;
 
   // === ゲームセーブデータ（ステージ進行状況） ===
   window.SAVE_DATA_KEY = '10min-survivor-save-v1';
@@ -4314,10 +5120,9 @@ function ensureTopHud(){
   host.dataset.init = '1';
   host.innerHTML = `
     <div class="tophud-compact" style="height:100%;display:flex;flex-direction:column;gap:4px;padding:0 6px;">
-      <!-- 1行目：⏸ 難易度 Lv スコア タイマー 🔊 -->
+      <!-- 1行目：⏸ Lv スコア タイマー 🔊 -->
       <div class="row row1" style="display:flex;align-items:center;gap:6px;">
         <button id="pauseTopBtn" style="background:none;border:none;color:#fff;font-size:18px;padding:2px 6px;cursor:pointer;opacity:0.9;">⏸</button>
-        <span id="diffBadgeTop" style="font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;display:none;"></span>
         <span style="font-weight:700;font-size:13px;">Lv<b id="lvTop">1</b></span>
         <span style="font-size:12px;opacity:0.85;">💎<b id="scoreTop">0</b></span>
         <span style="flex:1;"></span>
@@ -5654,6 +6459,9 @@ async function startStage(stageId, hardcore) {
     // このセッションの実績リストをリセット
     window._unlockedThisSession = [];
     
+    // 無料リロール状態もリセット
+    window._freeRerollUsed = false;
+    
     // セッショントラッキングリセット
     sessionTracking = {
       gemsCollected: 0,
@@ -6064,7 +6872,6 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   const wlTop    = document.getElementById('wlTop');
   const timeTop  = document.getElementById('timeTop');
   const scoreTop = document.getElementById('scoreTop');
-  const diffBadgeTop = document.getElementById('diffBadgeTop');
 
   // HP：幅＆色（20%以下で赤／それ以外は緑）
   if (hpTop){
@@ -6090,26 +6897,6 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
 
   // スコア
   if (scoreTop) scoreTop.textContent = (state.score || 0).toLocaleString();
-
-  // 難易度バッジ（古いhudTop用）
-  if (diffBadgeTop) {
-    const diff = state.mode?.difficulty || 'normal';
-    if (diff === 'easy') {
-      diffBadgeTop.textContent = 'EASY';
-      diffBadgeTop.style.background = '#22c55e';
-      diffBadgeTop.style.display = 'inline';
-    } else if (diff === 'hard') {
-      diffBadgeTop.textContent = 'HARD';
-      diffBadgeTop.style.background = '#f59e0b';
-      diffBadgeTop.style.display = 'inline';
-    } else if (diff === 'hardcore') {
-      diffBadgeTop.textContent = 'HC';
-      diffBadgeTop.style.background = '#8b5cf6';
-      diffBadgeTop.style.display = 'inline';
-    } else {
-      diffBadgeTop.style.display = 'none';
-    }
-  }
   
   // 新HUD難易度バッジ
   const hudDiffBadge = document.getElementById('hudDiffBadge');
@@ -6131,8 +6918,21 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
       hudDiffBadge.style.color = '#fff';
       hudDiffBadge.style.display = 'inline';
     } else {
-      hudDiffBadge.style.display = 'none';
+      // ノーマルモードも表示
+      hudDiffBadge.textContent = 'NORMAL';
+      hudDiffBadge.style.background = '#3b82f6';
+      hudDiffBadge.style.color = '#fff';
+      hudDiffBadge.style.display = 'inline';
     }
+  }
+  
+  // 新HUDステージバッジ
+  const hudStageBadge = document.getElementById('hudStageBadge');
+  if (hudStageBadge) {
+    const stageId = state.currentStage || 'stage1';
+    const stageNum = stageId === 'stage2' ? '2' : '1';
+    hudStageBadge.textContent = `Stage ${stageNum}`;
+    hudStageBadge.style.background = stageId === 'stage2' ? '#0ea5e9' : '#475569';
   }
 
   // タイマー（mm:ss）— 一度だけ計算して両方に使う
@@ -6192,6 +6992,25 @@ if (pcTimer){
 }
 
 window.addEventListener('keydown', e=>{
+// シークレットコマンド入力用バッファ
+if (!window._secretBuffer) window._secretBuffer = '';
+if (e.key.length === 1) {
+  window._secretBuffer += e.key.toLowerCase();
+  if (window._secretBuffer.length > 20) {
+    window._secretBuffer = window._secretBuffer.slice(-20);
+  }
+  // alladskinsコマンド：全広告スキン解放
+  if (window._secretBuffer.endsWith('alladskins')) {
+    const AD_SKINS_KEYS = ['cat','bunny','chicken','panda','robot','ninja','dragon','skull','moai','poop','bluecat','blackmouse'];
+    const progress = {};
+    AD_SKINS_KEYS.forEach(k => progress[k] = 99);
+    localStorage.setItem('adSkinProgress', JSON.stringify(progress));
+    alert('🎉 全広告スキン解放！');
+    window._secretBuffer = '';
+    if (window.renderAdSkinGrid) window.renderAdSkinGrid();
+  }
+}
+
 if(e.key==='p'||e.key==='P'){ 
   const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
   const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
@@ -7007,6 +7826,19 @@ if (pickCount > 1) {
     };
   }
 
+  /* ===== 広告リロール・ボタン（広告機能が有効になったら復活）
+  let chestRerollBtn = document.getElementById('chestRerollBtn');
+  if (!chestRerollBtn) {
+    chestRerollBtn = document.createElement('button');
+    chestRerollBtn.id = 'chestRerollBtn';
+    chestRerollBtn.className = 'btn';
+    chestRerollBtn.style.cssText = 'margin:12px auto 0; display:block; background:#4b5563; opacity:0.5; cursor:not-allowed;';
+    chestEl.appendChild(chestRerollBtn);
+  }
+  chestRerollBtn.disabled = true;
+  chestRerollBtn.textContent = lang === 'ja' ? '📺 広告リロール（準備中）' : '📺 Ad Reroll (Coming Soon)';
+  */
+
 }
 
 
@@ -7061,7 +7893,7 @@ function xpMulByTime(){
   return 1.0 + t * 0.8;                            // 10:00で最大1.8倍（例）
 }
 
-// ==== 修正版 showLevelUp（リロール対応＋能力をとらない選択肢） ====
+// ==== 修正版 showLevelUp（無料リロール1回＋広告リロール1回対応） ====
 function showLevelUp(choices){
   // 参照は毎回取り直し（スコープ差異・重複定義対策）
   const levelupEl = document.getElementById('levelup');
@@ -7095,11 +7927,8 @@ function showLevelUp(choices){
       state.paused = false;
       levelupEl.style.display = 'none';
       cardRow.innerHTML = '';
-      // 次のレベルアップではまた1回リロール可能に
-      window._rerollUsedThisLevel = false;
-      // リロールボタンが残っていれば念のため無効化
-      const btn = document.getElementById('rerollBtn');
-      if (btn) btn.disabled = true;
+      // 次のレベルアップではまたリロール可能に
+      window._freeRerollUsed = false;
     };
     cardRow.appendChild(c);
   }
@@ -7121,52 +7950,56 @@ function showLevelUp(choices){
     state.paused = false;
     levelupEl.style.display = 'none';
     cardRow.innerHTML = '';
-    window._rerollUsedThisLevel = false;
-    const btn = document.getElementById('rerollBtn');
-    if (btn) btn.disabled = true;
+    window._freeRerollUsed = false;
   };
   cardRow.appendChild(skipCard);
 
-  // ===== リロール・ボタン（このレベルアップ中は1回だけ） =====
-  let rr = document.getElementById('rerollBtn');
-  if (!rr){
-    rr = document.createElement('button');
-    rr.id = 'rerollBtn';
-    rr.className = 'btn';
-    rr.textContent = lang === 'ja' ? 'リロール（1回だけ）' : 'Reroll (once)';
-    // レイアウトは控えめに：カード行の下へ配置
-    rr.style.margin = '12px auto 0';
-    rr.style.display = 'block';
-    levelupEl.appendChild(rr);
+  // ===== ボタンコンテナ =====
+  let btnContainer = document.getElementById('levelupBtnContainer');
+  if (!btnContainer) {
+    btnContainer = document.createElement('div');
+    btnContainer.id = 'levelupBtnContainer';
+    btnContainer.style.cssText = 'display:flex; gap:10px; justify-content:center; margin-top:12px;';
+    levelupEl.appendChild(btnContainer);
   }
-  // 状態反映
-  rr.disabled = !!window._rerollUsedThisLevel;
-  const rerollText = window._rerollUsedThisLevel 
-    ? (lang === 'ja' ? 'リロール使用済み' : 'Reroll Used') 
-    : (lang === 'ja' ? 'リロール（1回だけ）' : 'Reroll (once)');
-  rr.textContent = rerollText;
+  btnContainer.innerHTML = '';
 
-  rr.onclick = () => {
-    if (window._rerollUsedThisLevel) return;
-    window._rerollUsedThisLevel = true;
+  // ===== 無料リロール・ボタン（1回だけ） =====
+  const freeRerollBtn = document.createElement('button');
+  freeRerollBtn.id = 'freeRerollBtn';
+  freeRerollBtn.className = 'btn';
+  freeRerollBtn.style.cssText = 'background:#3b82f6;';
+  
+  const canFreeReroll = !window._freeRerollUsed;
+  freeRerollBtn.disabled = !canFreeReroll;
+  freeRerollBtn.style.opacity = canFreeReroll ? '1' : '0.5';
+  freeRerollBtn.textContent = canFreeReroll 
+    ? (lang === 'ja' ? '🔄 リロール（1回）' : '🔄 Reroll (once)')
+    : (lang === 'ja' ? 'リロール済み' : 'Reroll Used');
+
+  freeRerollBtn.onclick = () => {
+    if (window._freeRerollUsed) return;
+    window._freeRerollUsed = true;
     
     // リロールカウント
     sessionTracking.rerollCount++;
     achievementProgress.totalRerolls++;
-    
-    // リロール実績チェック
     if (sessionTracking.rerollCount >= 20) unlockAchievement('reroll_20');
     
-    // 新しい4択を作り直して、同じUIに差し替え
-    const newChoices = pickUpgradeChoices(4); // ★3→4に変更
+    const newChoices = pickUpgradeChoices(4);
     showLevelUp(newChoices);
-    // 今回は使用済みにする
-    const btn = document.getElementById('rerollBtn');
-    if (btn){
-      btn.disabled = true;
-      btn.textContent = lang === 'ja' ? 'リロール使用済み' : 'Reroll Used';
-    }
   };
+  btnContainer.appendChild(freeRerollBtn);
+
+  /* ===== 広告リロール・ボタン（広告機能が有効になったら復活）
+  const adRerollBtn = document.createElement('button');
+  adRerollBtn.id = 'adRerollBtn';
+  adRerollBtn.className = 'btn';
+  adRerollBtn.style.cssText = 'background:#4b5563; opacity:0.5; cursor:not-allowed;';
+  adRerollBtn.disabled = true;
+  adRerollBtn.textContent = lang === 'ja' ? '📺 広告リロール（準備中）' : '📺 Ad Reroll (Coming Soon)';
+  btnContainer.appendChild(adRerollBtn);
+  */
 
   // 最初のカードにフォーカス（キーボード操作のしやすさ向上）
   const first = cardRow.querySelector('.card');
@@ -8711,13 +9544,6 @@ if (b.type === 'rock') {
   const spinRate = 1.4;     // ★ 自転速度(rad/秒)。ゆっくり=0.8〜1.6、速め=3〜6
   b.spin += spinRate * dt;
   
-  // ★ボスへのヒットクールダウンを減少
-  if (b.hitCooldowns) {
-    for (const id in b.hitCooldowns) {
-      b.hitCooldowns[id] -= dt;
-    }
-  }
-  
   // ★壁ヒット後の跳ね返り＆静止処理
   if (b.hitWall) {
     if (b.wallBounceTime > 0) {
@@ -8942,14 +9768,6 @@ for(let j=state.enemies.length-1;j>=0;j--){
     // --- ヒット ---
     let dmg = b.dmg;
     if(b.type === 'rock'){
-      // ★全敵への連続ダメージ抑制（0.1秒クールダウン）
-      if (!b.hitCooldowns) b.hitCooldowns = {};
-      const enemyId = e.id || j;
-      if (b.hitCooldowns[enemyId] && b.hitCooldowns[enemyId] > 0) {
-        continue; // クールダウン中はダメージなし
-      }
-      b.hitCooldowns[enemyId] = 0.1;
-      
       // ボス種へボーナス
       if (e.type==='mid' || e.type==='big' || e.type==='final') {
         dmg *= (b.bossMul || 1.0);
@@ -11687,49 +12505,91 @@ if (state.player.iTime > 0 && ((state.t * 20 | 0) % 2 === 0)) {
 if (state.player && state.player.visible === false) {
   // 何も描かない
 } else {
-// プレイヤーカラー取得
-const playerColorVal = window.getPlayerColorValue ? window.getPlayerColorValue() : '#4ade80';
-const isShiny = window.isPlayerColorShiny ? window.isPlayerColorShiny() : false;
-const playerColorKey = window.getSelectedColor ? window.getSelectedColor() : 'green';
-const px = state.player.x, py = state.player.y, pr = state.player.r;
+// 広告スキンチェック
+const selectedAdSkin = window.getSelectedAdSkin ? window.getSelectedAdSkin() : null;
 
-if (playerColorVal === 'rainbow') {
-  // レインボー：時間で色相変化
-  const hue = (Date.now() / 20) % 360;
-  ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
-} else if (isShiny) {
-  // 金属光沢グラデーション（中央が白く光る）
-  const grad = ctx.createLinearGradient(px - pr, py - pr, px + pr, py + pr);
-  if (playerColorKey === 'bronze') {
-    grad.addColorStop(0, '#4a3520');
-    grad.addColorStop(0.35, '#8b5a2b');
-    grad.addColorStop(0.5, '#fff8ee');
-    grad.addColorStop(0.65, '#8b5a2b');
-    grad.addColorStop(1, '#4a3520');
-  } else if (playerColorKey === 'silver') {
-    grad.addColorStop(0, '#505050');
-    grad.addColorStop(0.35, '#888888');
-    grad.addColorStop(0.5, '#ffffff');
-    grad.addColorStop(0.65, '#888888');
-    grad.addColorStop(1, '#505050');
-  } else if (playerColorKey === 'gold') {
-    grad.addColorStop(0, '#b8960a');
-    grad.addColorStop(0.35, '#e6c200');
-    grad.addColorStop(0.5, '#fffde8');
-    grad.addColorStop(0.65, '#e6c200');
-    grad.addColorStop(1, '#b8960a');
+if (selectedAdSkin && window.drawAdSkin) {
+  // 広告スキンを描画
+  const px = state.player.x;
+  let py = state.player.y;
+  const pr = state.player.r;
+  let rotation = 0;
+  
+  // レアスキン（5回以上CM）は特別アニメーション
+  const RARE_SKINS = ['dragon', 'skull', 'moai', 'poop', 'bluecat', 'blackmouse'];
+  if (RARE_SKINS.includes(selectedAdSkin)) {
+    const now = Date.now();
+    const cycle10s = (now % 10000) / 1000; // 0〜10秒
+    
+    // 10秒に1回ジャンプ（0〜0.2秒）
+    if (cycle10s < 0.2) {
+      const jumpProgress = Math.sin((cycle10s / 0.2) * Math.PI);
+      py -= jumpProgress * 6;
+    }
+    
+    // 時々くるっと回転（30秒に1回、0〜0.4秒で1回転）
+    const cycle30s = (now % 30000) / 1000; // 0〜30秒
+    if (cycle30s < 0.4) {
+      rotation = (cycle30s / 0.4) * Math.PI * 2;
+    }
   }
-  ctx.fillStyle = grad;
+  
+  // 回転がある場合はctxを回転させて描画
+  if (rotation !== 0) {
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(rotation);
+    window.drawAdSkin(ctx, selectedAdSkin, 0, 0, pr);
+    ctx.restore();
+  } else {
+    window.drawAdSkin(ctx, selectedAdSkin, px, py, pr);
+  }
 } else {
-  ctx.fillStyle = playerColorVal;
-}
-ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.fill();
+  // 通常のカラー描画
+  // プレイヤーカラー取得
+  const playerColorVal = window.getPlayerColorValue ? window.getPlayerColorValue() : '#4ade80';
+  const isShiny = window.isPlayerColorShiny ? window.isPlayerColorShiny() : false;
+  const playerColorKey = window.getSelectedColor ? window.getSelectedColor() : 'green';
+  const px = state.player.x, py = state.player.y, pr = state.player.r;
 
-ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff';
-ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.stroke();
-ctx.fillStyle = '#0b0b0b';
-ctx.beginPath(); ctx.arc(px-5, py-3, 2, 0, Math.PI*2); ctx.fill();
-ctx.beginPath(); ctx.arc(px+5, py-3, 2, 0, Math.PI*2); ctx.fill();
+  if (playerColorVal === 'rainbow') {
+    // レインボー：時間で色相変化
+    const hue = (Date.now() / 20) % 360;
+    ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+  } else if (isShiny) {
+    // 金属光沢グラデーション（中央が白く光る）
+    const grad = ctx.createLinearGradient(px - pr, py - pr, px + pr, py + pr);
+    if (playerColorKey === 'bronze') {
+      grad.addColorStop(0, '#4a3520');
+      grad.addColorStop(0.35, '#8b5a2b');
+      grad.addColorStop(0.5, '#fff8ee');
+      grad.addColorStop(0.65, '#8b5a2b');
+      grad.addColorStop(1, '#4a3520');
+    } else if (playerColorKey === 'silver') {
+      grad.addColorStop(0, '#505050');
+      grad.addColorStop(0.35, '#888888');
+      grad.addColorStop(0.5, '#ffffff');
+      grad.addColorStop(0.65, '#888888');
+      grad.addColorStop(1, '#505050');
+    } else if (playerColorKey === 'gold') {
+      grad.addColorStop(0, '#b8960a');
+      grad.addColorStop(0.35, '#e6c200');
+      grad.addColorStop(0.5, '#fffde8');
+      grad.addColorStop(0.65, '#e6c200');
+      grad.addColorStop(1, '#b8960a');
+    }
+    ctx.fillStyle = grad;
+  } else {
+    ctx.fillStyle = playerColorVal;
+  }
+  ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.fill();
+
+  ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = '#0b0b0b';
+  ctx.beginPath(); ctx.arc(px-5, py-3, 2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(px+5, py-3, 2, 0, Math.PI*2); ctx.fill();
+}
 
 ctx.globalAlpha = 1;  // ← ここまでが既存
 }
