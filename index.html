@@ -1497,7 +1497,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.3.1</span> - 
+    <span style="opacity:0.7;">Ver 2.3.2</span> - 
     <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
@@ -1839,9 +1839,9 @@ document.head.appendChild(link);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
-        <!-- Ver 2.3.1 -->
+        <!-- Ver 2.3.2 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(245,158,11,0.15); border-left:4px solid #f59e0b; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 2.3.1 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
+          <h3 style="margin:0 0 0.5rem; color:#fbbf24; font-size:1.3rem;">Ver 2.3.2 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/26</span></h3>
           
           <h4 style="margin:0.5rem 0; color:#fcd34d;">📺 広告スキンシステム追加</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
@@ -5403,10 +5403,7 @@ async function tryFullscreenAndLandscape(){
       if (el.requestFullscreen) {
         el.requestFullscreen()
           .then(() => {
-            // 画面回転ロック
-            if (screen.orientation && typeof screen.orientation.lock === 'function') {
-              screen.orientation.lock('landscape').catch(() => {});
-            }
+            // 画面回転ロックは行わない（ユーザーの設定を尊重）
           })
           .catch(() => {})
           .finally(() => resolve());
@@ -11831,6 +11828,8 @@ state.paused = false;                 // ← ポーズ中でも tick が効く�
       if(dist2(it.x,it.y,state.player.x,state.player.y) < (it.r + state.player.r)**2){
         applyItem(it); state.items.splice(i,1); spark(state.player.x,state.player.y,14);
         playItemSound(); // アイテム取得音
+        // 宝箱を拾った場合は一旦ループを抜ける（同時に2つ拾わないように）
+        if(it.kind === 'chest') break;
       }
       if(it.t>20){ state.items.splice(i,1); }
     }
@@ -12470,9 +12469,7 @@ for (const b of state.bullets){
       
       ctx.save();
       // レーザー本体（黄色い長方形）
-      ctx.fillStyle = 'rgba(241, 196, 15, 0.7)'; // 半透明黄色
-      ctx.shadowColor = '#f1c40f';
-      ctx.shadowBlur = 12;
+      ctx.fillStyle = 'rgba(241, 196, 15, 0.7)';
       const lx = b.vx > 0 ? x : x - length;
       ctx.fillRect(lx, y - thick/2, length, thick);
       
@@ -12496,7 +12493,7 @@ for (const b of state.bullets){
     ctx.fillStyle = 'rgba(0,0,0,0.65)';
     ctx.fill();
 
-    // 2) コア（白→オレンジの放射グラデ＋やわらかい発光）
+    // 2) コア（白→オレンジの放射グラデ）
     const g = ctx.createRadialGradient(x, y, 0, x, y, rVis);
     g.addColorStop(0.00, '#F47A4D');
     g.addColorStop(0.55, '#F47A4D');
@@ -12504,8 +12501,6 @@ for (const b of state.bullets){
     ctx.beginPath();
     ctx.arc(x, y, rVis, 0, Math.PI * 2);
     ctx.fillStyle = g;
-    ctx.shadowColor = 'rgba(255,255,255,0.85)';
-    ctx.shadowBlur  = 8;
     ctx.fill();
 
     // 3) リムハイライト（白い細縁）
