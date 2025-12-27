@@ -101,7 +101,7 @@ html, body {
   inset: 0;
   display: none;             /* JSで flex に切替 */
   align-items: center;
-  justify-content: flex-start;  /* 上寄せに変更 */
+  justify-content: center;   /* ★中央寄せに戻す */
   flex-direction: column;    /* ← 縦に並べる（改行と同義） */
   gap: 14px;                 /* 行間 */
   text-align: center;        /* 中央寄せ */
@@ -212,13 +212,29 @@ html, body {
   #difficultySelect .btn { padding: 0.4rem 1rem !important; font-size: 0.85rem !important; }
   #start .btn { padding: 0.4rem 0.8rem !important; font-size: 0.8rem !important; }
   
-  #gameover, #gameclear { padding: 10px 5px; gap: 8px; }
-  #gameover h2, #gameclear h2 { font-size: clamp(18px, 4vw, 28px) !important; margin: 0.2rem 0 0.3rem !important; }
-  .final-score { font-size: clamp(24px, 6vw, 40px) !important; }
-  .final-sub { font-size: clamp(10px, 2vw, 14px) !important; }
-  .share-buttons { gap: 0.4rem; margin-top: 0.5rem; }
-  .share-btn { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+  #gameover, #gameclear { 
+    padding: 10px 5px; 
+    gap: 6px;  /* ★さらに詰める */
+    justify-content: flex-start !important;  /* ★横画面では上寄せ */
+    align-items: center;
+  }
+  #gameover h2, #gameclear h2 { font-size: clamp(16px, 3.5vw, 24px) !important; margin: 0.1rem 0 0.2rem !important; }
+  .final-score { font-size: clamp(20px, 5vw, 32px) !important; }
+  .final-sub { font-size: clamp(9px, 1.8vw, 12px) !important; }
+  .share-buttons { gap: 0.3rem; margin-top: 0.3rem; }
+  .share-btn { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
   .share-btn .shareLabel { display: none; }
+  /* ★実績エリアをコンパクトに */
+  #clearAchievements, #gameoverAchievements { 
+    padding: 0.5rem !important; 
+    margin: 0.3rem 0 !important;
+    max-height: 100px;
+    overflow-y: auto;
+  }
+  #clearAchievements h3, #gameoverAchievements h3 { font-size: 0.85rem !important; margin-bottom: 0.3rem !important; }
+  #clearAchievementsList > div, #gameoverAchievementsList > div { padding: 0.3rem !important; font-size: 0.8rem !important; }
+  /* ★リトライボタンをコンパクトに */
+  #gameover .btn, #gameclear .btn { padding: 0.4rem 1rem !important; font-size: 0.85rem !important; }
   
   /* ステージ選択モーダル */
   #stageSelectModal { padding: 5px !important; align-items: flex-start !important; }
@@ -978,7 +994,7 @@ document.head.appendChild(link);
       ach_blaster_speed: '得点マスター',
       ach_blaster_speed_desc: '35万点以上でクリア',
       ach_all_weapon_master: '真の武器マスター',
-      ach_all_weapon_master_desc: '8種類以上の覚醒クリア達成',
+      ach_all_weapon_master_desc: '1試合で7種類以上覚醒してクリア',
       ach_no_upgrade: '原始人',
       ach_no_upgrade_desc: '能力強化なしでクリア（武器はOK）',
       ach_no_item: '禁欲主義者',
@@ -1337,7 +1353,7 @@ document.head.appendChild(link);
       ach_blaster_speed: 'Score Master',
       ach_blaster_speed_desc: 'Clear with 350,000+ points',
       ach_all_weapon_master: 'True Weapon Master',
-      ach_all_weapon_master_desc: 'Clear with 8+ different awakened weapons',
+      ach_all_weapon_master_desc: 'Clear with 7+ awakened weapons in one game',
       ach_no_upgrade: 'Primitive',
       ach_no_upgrade_desc: 'Clear without ability upgrades (weapons OK)',
       ach_no_item: 'Ascetic',
@@ -1497,7 +1513,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.3.9</span> - 
+    <span style="opacity:0.7;">Ver 2.3.10</span> - 
     <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
@@ -1839,9 +1855,35 @@ document.head.appendChild(link);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
-        <!-- Ver 2.3.9 -->
+        <!-- Ver 2.3.10 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.3.9 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/27</span></h3>
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.3.10 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/27</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">⚖️ バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ハードコアモードの敵HP倍率を2.0倍に戻す</li>
+            <li>ハードモードの敵HP倍率を1.2→1.5倍に増加</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎮 UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ゲームクリア/ゲームオーバー画面をPC・縦画面で中央寄せに（横画面は上寄せ維持）</li>
+            <li>実績解除通知をコンパクト＆半透明に（ゲーム画面を邪魔しない）</li>
+            <li>ポーズ画面の能力表示に取得数を追加（例: 2/5）</li>
+            <li>実績一覧に累計系実績の進捗を表示（例: 📊 23/50）</li>
+            <li>クリア時に新カラー解除を通知</li>
+            <li>レーザー覚醒時の透明度を上げて視認性向上</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🏆 実績修正</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>「真の武器マスター」を1試合で7種類以上覚醒してクリアに変更</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 2.3.9 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(100,100,100,0.15); border-left:4px solid #666; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#aaa; font-size:1.3rem;">Ver 2.3.9 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/27</span></h3>
           
           <h4 style="margin:0.5rem 0; color:#86efac;">🐛 バグ修正</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
@@ -3758,7 +3800,7 @@ function visibleBounds(radius = 0){
     survivor: { id: 'survivor', name: '生存者', desc: 'HP30%以下でクリア', icon: '💔', tier: 'gold' },
     
     blaster_speed: { id: 'blaster_speed', name: '得点マスター', desc: '35万点以上でクリア', icon: '💯', tier: 'platinum' },
-    all_weapon_master: { id: 'all_weapon_master', name: '真の武器マスター', desc: '8種類以上の覚醒クリア達成', icon: '🏆', tier: 'platinum' },
+    all_weapon_master: { id: 'all_weapon_master', name: '真の武器マスター', desc: '1試合で7種類以上覚醒してクリア', icon: '🏆', tier: 'platinum' },
 
     // 縛りプレイ
     no_upgrade: { id: 'no_upgrade', name: '原始人', desc: '能力強化なしでクリア（武器はOK）', icon: '🚫', tier: 'platinum' },
@@ -4023,13 +4065,12 @@ function visibleBounds(radius = 0){
       }
     }
     
-    // 全覚醒実績
+    // 全覚醒実績（累計）
     const awakenedCount = Object.keys(achievementProgress.awakenedWeapons).length;
     if (awakenedCount >= 11) unlockAchievement('all_awaken'); // ★10→11（laser追加）
     
-    // 全武器覚醒クリア実績
-    const allAwakenCleared = Object.keys(achievementProgress.awakenClearCount).length >= 8;
-    if (allAwakenCleared) unlockAchievement('all_weapon_master');
+    // ★真の武器マスター：1試合で7種類以上覚醒してクリア
+    if (sessionAwakenCount >= 7) unlockAchievement('all_weapon_master');
     
     // 複合実績
     if (state.score >= 350000) {
@@ -4158,6 +4199,27 @@ function visibleBounds(radius = 0){
       // 多言語対応：実績名と説明
       const achName = t('ach_' + achievement.id) || achievement.name;
       const achDesc = t('ach_' + achievement.id + '_desc') || achievement.desc;
+      
+      // ★累計系実績の進捗を表示
+      let progressText = '';
+      if (!isUnlocked) {
+        if (achievement.id === 'total_kill_5000') {
+          progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${achievementProgress.totalKills.toLocaleString()} / 5,000</div>`;
+        } else if (achievement.id === 'total_kill_10000') {
+          progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${achievementProgress.totalKills.toLocaleString()} / 10,000</div>`;
+        } else if (achievement.id === 'boss_50') {
+          progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${achievementProgress.totalBossKills} / 50</div>`;
+        } else if (achievement.id === 'chest_20') {
+          progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${achievementProgress.totalChestsOpened || 0} / 20</div>`;
+        } else if (achievement.id === 'play_10') {
+          progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${achievementProgress.totalPlays} / 10</div>`;
+        } else if (achievement.id === 'play_100') {
+          progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${achievementProgress.totalPlays} / 100</div>`;
+        } else if (achievement.id === 'all_awaken') {
+          const awakenCount = Object.keys(achievementProgress.awakenedWeapons || {}).length;
+          progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${awakenCount} / 11 ${lang === 'ja' ? '種類覚醒済' : 'awakened'}</div>`;
+        }
+      }
 
       html += `
         <div style="background:${bgColor};border:2px solid ${tierColor};border-radius:8px;padding:12px;margin-bottom:8px;opacity:${opacity};">
@@ -4166,6 +4228,7 @@ function visibleBounds(radius = 0){
             <div style="flex:1;">
               <div style="font-size:16px;font-weight:bold;color:#fff;margin-bottom:4px;">${achName}</div>
               <div style="font-size:13px;color:#aaa;">${achDesc}</div>
+              ${progressText}
             </div>
             ${isUnlocked ? '<div style="font-size:24px;">✅</div>' : '<div style="font-size:24px;opacity:0.3;">🔒</div>'}
           </div>
@@ -5087,9 +5150,9 @@ magnet:{ active:false, time:0, dur:1.0, speed:1800 },
         case 'normal':
           return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 };
         case 'hard':
-          return { hpMul: 1.2, dmgMul: 1.2, spawnMul: 1.2, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 };
+          return { hpMul: 1.5, dmgMul: 1.2, spawnMul: 1.2, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 };  // ★HP 1.2→1.5
         case 'hardcore':
-          return { hpMul: 1.8, dmgMul: 1.5, spawnMul: 1.5, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 };
+          return { hpMul: 2.0, dmgMul: 1.5, spawnMul: 1.5, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 };  // ★HP 1.8→2.0
         default:
           return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 };
       }
@@ -5849,8 +5912,39 @@ function showPauseMenu() {
   const abilitySection = document.createElement('div');
   abilitySection.style.cssText = 'margin-bottom: 20px;';
   
+  // ★能力の取得数を計算
+  const abilityLevels = {
+    hp: { current: 0, max: 5 },
+    speed: { current: 0, max: 5 },
+    damage: { current: 0, max: 5 },
+    rate: { current: 0, max: 5 },
+    size: { current: 0, max: 5 },
+    defense: { current: state.defenseLv || 0, max: 5 },
+    regen: { current: state.regenLv || 0, max: 3 },
+    pickup: { current: state.pickupLv || 0, max: 3 },
+    doubleItem: { current: state.mods.doubleItem ? 1 : 0, max: 1 }
+  };
+  
+  // CAPSからレベル逆算
+  const p = state.player;
+  const mo = state.mods;
+  if (p.maxHp > 120) abilityLevels.hp.current = Math.min(5, Math.round(Math.log(p.maxHp / 120) / Math.log(1.15)));
+  if (p.speed > 180) abilityLevels.speed.current = Math.min(5, Math.round(Math.log(p.speed / 180) / Math.log(1.15)));
+  if (mo.dmgMul > 1.0) abilityLevels.damage.current = Math.min(5, Math.round(Math.log(mo.dmgMul) / Math.log(1.08)));
+  if (mo.rateMul < 1.0) abilityLevels.rate.current = Math.min(5, Math.round(Math.log(mo.rateMul) / Math.log(0.90)));
+  if (mo.sizeMul > 1.0) abilityLevels.size.current = Math.min(5, Math.round(Math.log(mo.sizeMul) / Math.log(1.10)));
+  
+  // 総取得数を計算
+  let totalAbilities = 0;
+  let maxAbilities = 0;
+  for (const key in abilityLevels) {
+    totalAbilities += abilityLevels[key].current;
+    maxAbilities += abilityLevels[key].max;
+  }
+  
   const abilityTitle = document.createElement('h3');
-  abilityTitle.textContent = t('pause_abilities');
+  const abilityTitleText = t('pause_abilities');
+  abilityTitle.innerHTML = `${abilityTitleText} <span style="font-size:12px; opacity:0.7;">(${totalAbilities}/${maxAbilities})</span>`;
   abilityTitle.style.cssText = 'color: #10b981; margin: 0 0 8px 0; font-size: 16px;';
   abilitySection.appendChild(abilityTitle);
   
@@ -5859,18 +5953,16 @@ function showPauseMenu() {
   
   // 能力の状態を収集（多言語対応）
   const abilities = [];
-  const p = state.player;
-  const mo = state.mods;
   
-  if (p.maxHp > 120) abilities.push({ name: t('ability_hp'), value: `${Math.floor(p.maxHp)}` });
-  if (p.speed > 180) abilities.push({ name: t('ability_speed'), value: `${Math.floor(p.speed)}` });
-  if (p.regen > 0) abilities.push({ name: t('ability_regen'), value: `${p.regen.toFixed(1)}/s` });
-  if (mo.dmgMul > 1.0) abilities.push({ name: t('ability_damage'), value: `${Math.round(mo.dmgMul * 100)}%` });
-  if (mo.rateMul < 1.0) abilities.push({ name: t('ability_rate'), value: `${Math.round((1/mo.rateMul) * 100)}%` });
-  if (mo.sizeMul > 1.0) abilities.push({ name: t('ability_size'), value: `${Math.round(mo.sizeMul * 100)}%` });
-  if (mo.damageMul < 1.0) abilities.push({ name: t('ability_defense'), value: lang === 'ja' ? `-${Math.round((1 - mo.damageMul) * 100)}%被ダメ` : `-${Math.round((1 - mo.damageMul) * 100)}% DMG` });
-  if (p.pickupRange > 60) abilities.push({ name: t('ability_pickup'), value: `${Math.floor(p.pickupRange)}` });
-  if (mo.doubleItem) abilities.push({ name: t('ability_double_item'), value: t('ability_enabled') });
+  if (p.maxHp > 120) abilities.push({ name: t('ability_hp'), value: `${Math.floor(p.maxHp)}`, lv: `${abilityLevels.hp.current}/5` });
+  if (p.speed > 180) abilities.push({ name: t('ability_speed'), value: `${Math.floor(p.speed)}`, lv: `${abilityLevels.speed.current}/5` });
+  if ((state.regenLv || 0) > 0) abilities.push({ name: t('ability_regen'), value: `Lv${state.regenLv}`, lv: `${abilityLevels.regen.current}/3` });
+  if (mo.dmgMul > 1.0) abilities.push({ name: t('ability_damage'), value: `${Math.round(mo.dmgMul * 100)}%`, lv: `${abilityLevels.damage.current}/5` });
+  if (mo.rateMul < 1.0) abilities.push({ name: t('ability_rate'), value: `${Math.round((1/mo.rateMul) * 100)}%`, lv: `${abilityLevels.rate.current}/5` });
+  if (mo.sizeMul > 1.0) abilities.push({ name: t('ability_size'), value: `${Math.round(mo.sizeMul * 100)}%`, lv: `${abilityLevels.size.current}/5` });
+  if ((state.defenseLv || 0) > 0) abilities.push({ name: t('ability_defense'), value: lang === 'ja' ? `-${state.defenseLv * 6}%被ダメ` : `-${state.defenseLv * 6}% DMG`, lv: `${abilityLevels.defense.current}/5` });
+  if ((state.pickupLv || 0) > 0) abilities.push({ name: t('ability_pickup'), value: `Lv${state.pickupLv}`, lv: `${abilityLevels.pickup.current}/3` });
+  if (mo.doubleItem) abilities.push({ name: t('ability_double_item'), value: t('ability_enabled'), lv: '1/1' });
   
   if (abilities.length === 0) {
     const noAbility = document.createElement('div');
@@ -5885,7 +5977,10 @@ function showPauseMenu() {
         border-radius: 6px; padding: 8px; font-size: 13px;
       `;
       item.innerHTML = `
-        <div style="color: #fff; font-weight: bold;">${ab.name}</div>
+        <div style="color: #fff; font-weight: bold; display:flex; justify-content:space-between;">
+          <span>${ab.name}</span>
+          <span style="color:#6ee7b7; font-size:11px;">${ab.lv}</span>
+        </div>
         <div style="color: #94a3b8; font-size: 12px;">${ab.value}</div>
       `;
       abilityGrid.appendChild(item);
