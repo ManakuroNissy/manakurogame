@@ -980,7 +980,7 @@ document.head.appendChild(link);
       ach_awaken_laser: 'レーザーマスター',
       ach_awaken_laser_desc: 'Laser覚醒でクリア',
       ach_all_awaken: 'グランドマスター',
-      ach_all_awaken_desc: '累計で全11種類覚醒',
+      ach_all_awaken_desc: '累計で全12種類覚醒',
       
       // ===== 実績（その他） =====
       ach_max_hp_clear: 'タンクマスター',
@@ -1015,8 +1015,8 @@ document.head.appendChild(link);
       ach_play_100_desc: '総プレイ100回',
       ach_total_kill_10000: '殲滅者',
       ach_total_kill_10000_desc: '累計撃破10000体',
-      ach_all_complete: '完璧主義者',
-      ach_all_complete_desc: '全実績コンプリート',
+      ach_no_awaken: '最強の一般人',
+      ach_no_awaken_desc: '覚醒なしでクリア',
       
       // ===== 実績通知 =====
       ach_unlocked: '実績解除！',
@@ -1339,7 +1339,7 @@ document.head.appendChild(link);
       ach_awaken_laser: 'Laser Master',
       ach_awaken_laser_desc: 'Clear with Awakened Laser',
       ach_all_awaken: 'Grand Master',
-      ach_all_awaken_desc: 'Awaken all 11 weapons (cumulative)',
+      ach_all_awaken_desc: 'Awaken all 12 weapons (cumulative)',
       
       // ===== Achievements (Others) =====
       ach_max_hp_clear: 'Tank Master',
@@ -1374,8 +1374,8 @@ document.head.appendChild(link);
       ach_play_100_desc: '100 total plays',
       ach_total_kill_10000: 'Annihilator',
       ach_total_kill_10000_desc: '10,000 total kills',
-      ach_all_complete: 'Perfectionist',
-      ach_all_complete_desc: 'Complete all achievements',
+      ach_no_awaken: 'Strongest Civilian',
+      ach_no_awaken_desc: 'Clear without awakening',
       
       // ===== Achievement Notification =====
       ach_unlocked: 'Achievement Unlocked!',
@@ -3843,7 +3843,7 @@ function visibleBounds(radius = 0){
     awaken_orbit: { id: 'awaken_orbit', name: 'オービットマスター', desc: 'Orbit覚醒でクリア', icon: '🔄', tier: 'silver' },
     awaken_poison: { id: 'awaken_poison', name: 'ポイズンマスター', desc: 'Poison覚醒でクリア', icon: '🧪', tier: 'silver' },
     awaken_laser: { id: 'awaken_laser', name: 'レーザーマスター', desc: 'Laser覚醒でクリア', icon: '📡', tier: 'silver' },
-    all_awaken: { id: 'all_awaken', name: 'グランドマスター', desc: '累計で全11種類覚醒', icon: '🌟🌟🌟', tier: 'platinum' },
+    all_awaken: { id: 'all_awaken', name: 'グランドマスター', desc: '累計で全12種類覚醒', icon: '🌟🌟🌟', tier: 'platinum' },
     
     // ステータスMAX系
     max_hp_clear: { id: 'max_hp_clear', name: 'タンクマスター', desc: 'HP MAXでクリア', icon: '💪', tier: 'gold' },
@@ -3869,7 +3869,7 @@ function visibleBounds(radius = 0){
     speed_1030: { id: 'speed_1030', name: 'ソニック', desc: '10:30クリア', icon: '🚀', tier: 'platinum' },
     play_100: { id: 'play_100', name: '廃人', desc: '総プレイ100回', icon: '🎮🎮', tier: 'platinum' },
     total_kill_10000: { id: 'total_kill_10000', name: '殲滅者', desc: '累計撃破10000体', icon: '💀💀💀', tier: 'platinum' },
-    all_complete: { id: 'all_complete', name: '完璧主義者', desc: '全実績コンプリート', icon: '🔮', tier: 'platinum' }
+    no_awaken: { id: 'no_awaken', name: '最強の一般人', desc: '覚醒なしでクリア', icon: '🔮', tier: 'platinum' }
   };
 
   // 進捗データ（累積記録用）
@@ -3958,13 +3958,6 @@ function visibleBounds(radius = 0){
     // クリア時の実績を記録（クリア画面で表示するため）
     if (!window._unlockedThisSession) window._unlockedThisSession = [];
     window._unlockedThisSession.push(achievementId);
-
-    // 全実績コンプリートチェック
-    const totalCount = Object.keys(ACHIEVEMENTS).length - 1; // all_complete除く
-    const unlockedCount = Object.keys(achievements).length;
-    if (unlockedCount === totalCount && !achievements.all_complete) {
-      unlockAchievement('all_complete');
-    }
   }
 
   function showAchievementNotification(achievementId) {
@@ -4118,7 +4111,7 @@ function visibleBounds(radius = 0){
     }
     if (weaponCount === 2) unlockAchievement('weapon_2');
     if (weaponCount === 3) unlockAchievement('weapon_3');
-    if (weaponCount === 11) unlockAchievement('all_weapons'); // ★10→11（laser追加）
+    if (weaponCount === 12) unlockAchievement('all_weapons'); // ★11→12（全12種類）
     
     // 覚醒実績
     let sessionAwakenCount = 0;  // ★1試合の覚醒数をカウント
@@ -4137,10 +4130,13 @@ function visibleBounds(radius = 0){
     
     // 全覚醒実績（累計）
     const awakenedCount = Object.keys(achievementProgress.awakenedWeapons).length;
-    if (awakenedCount >= 11) unlockAchievement('all_awaken'); // ★10→11（laser追加）
+    if (awakenedCount >= 12) unlockAchievement('all_awaken'); // ★11→12（全12種類）
     
     // ★真の武器マスター：1試合で7種類以上覚醒してクリア
     if (sessionAwakenCount >= 7) unlockAchievement('all_weapon_master');
+    
+    // ★最強の一般人：覚醒なしでクリア
+    if (sessionAwakenCount === 0) unlockAchievement('no_awaken');
     
     // 複合実績
     if (state.score >= 350000) {
@@ -4288,7 +4284,7 @@ function visibleBounds(radius = 0){
           progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${achievementProgress.totalPlays} / 100</div>`;
         } else if (achievement.id === 'all_awaken') {
           const awakenCount = Object.keys(achievementProgress.awakenedWeapons || {}).length;
-          progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${awakenCount} / 11 ${lang === 'ja' ? '種類覚醒済' : 'awakened'}</div>`;
+          progressText = `<div style="font-size:11px;color:#f59e0b;margin-top:4px;">📊 ${awakenCount} / 12 ${lang === 'ja' ? '種類覚醒済' : 'awakened'}</div>`;
         }
       }
 
