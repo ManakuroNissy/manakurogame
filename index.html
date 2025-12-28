@@ -61,7 +61,7 @@ html, body {
   width:100%; height:100%;
   display:block;
 }
-#start { position:absolute; inset:0; display:flex; align-items:flex-start; justify-content:center; background:rgba(0,0,0,.6); z-index:50; pointer-events:auto; overflow-y:auto; padding:20px 10px; }
+#start { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:50; pointer-events:auto; overflow-y:auto; padding:20px 10px; }
 .hud {
   position:absolute; left:0; right:0; top:0;
   width:100%;
@@ -94,14 +94,20 @@ html, body {
   .bar { flex:1; height:.6rem; background:#1a1a1a; border:1px solid #333; border-radius:.4rem; overflow:hidden; }
   .bar > i { display:block; height:100%; width:0%; background:linear-gradient(90deg,#2ecc71,#27ae60); }
   .xp > i { background:linear-gradient(90deg,#3498db,#2980b9); }
-  #levelup, #chest { position:absolute; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; flex-direction:column; z-index:12;}
+  #levelup, #chest { 
+    position:absolute; inset:0; background:rgba(0,0,0,.6); display:none; 
+    align-items:center; justify-content:center; flex-direction:column; z-index:12;
+    /* ノッチ対応 */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
 /* === Game Over / Clear overlay (centered & stacked) === */
 #gameover, #gameclear{
   position: fixed;
   inset: 0;
   display: none;             /* JSで flex に切替 */
   align-items: center;
-  justify-content: center;   /* ★中央寄せに戻す */
+  justify-content: flex-start; /* ★上寄せでスクロール対応 */
   flex-direction: column;    /* ← 縦に並べる（改行と同義） */
   gap: 14px;                 /* 行間 */
   text-align: center;        /* 中央寄せ */
@@ -109,6 +115,7 @@ html, body {
   background: rgba(0,0,0,.65);
   pointer-events: auto;
   overflow-y: auto;          /* スクロール可能 */
+  -webkit-overflow-scrolling: touch; /* iOS用スムーズスクロール */
   padding: 20px 10px;        /* 上下に余白 */
 }
 #gameover > *, #gameclear > *{
@@ -116,7 +123,7 @@ html, body {
   flex-shrink: 0;            /* 縮まないように */
 }
 
-  #cardRow, #chestRow { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; width:min(900px,96vw); }
+  #cardRow, #chestRow { display:grid; grid-template-columns:1fr 1fr; gap:0.6rem; width:min(900px,92vw); }
   @media (min-width:600px){ #cardRow{ grid-template-columns:repeat(4,1fr);} }
   @media (min-width:600px){ #chestRow{ grid-template-columns:repeat(3,1fr);} }
   @media (min-width:900px){ #chestRow{ grid-template-columns:repeat(6,1fr);} }
@@ -224,11 +231,11 @@ html, body {
   .share-buttons { gap: 0.3rem; margin-top: 0.3rem; }
   .share-btn { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
   .share-btn .shareLabel { display: none; }
-  /* ★実績エリアをコンパクトに */
+  /* ★実績エリアをコンパクトに（でもスクロール可能に） */
   #clearAchievements, #gameoverAchievements { 
     padding: 0.5rem !important; 
     margin: 0.3rem 0 !important;
-    max-height: 100px;
+    max-height: 40vh;  /* ★画面の40%まで */
     overflow-y: auto;
   }
   #clearAchievements h3, #gameoverAchievements h3 { font-size: 0.85rem !important; margin-bottom: 0.3rem !important; }
@@ -237,7 +244,7 @@ html, body {
   #gameover .btn, #gameclear .btn { padding: 0.4rem 1rem !important; font-size: 0.85rem !important; }
   
   /* ステージ選択モーダル */
-  #stageSelectModal { padding: 5px !important; align-items: flex-start !important; }
+  #stageSelectModal { padding: 5px !important; }
   #stageSelectModal > div { margin: 0 auto !important; padding: 0.6rem !important; }
   #stageSelectModal h2 { font-size: 1rem !important; margin-bottom: 0.3rem !important; }
   #stageSelectModal #stageCards { gap: 0.4rem !important; }
@@ -250,9 +257,106 @@ html, body {
     display: grid !important; 
     grid-template-columns: repeat(2, 1fr) !important; 
   }
-  
+}
+
+/* ステージ選択モーダルのスケーリング */
+#stageSelectModal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#stageSelectModal > div {
+  transform-origin: center center;
+}
+@media (max-height: 400px) {
+  #stageSelectModal > div {
+    transform: scale(0.7);
+  }
+}
+@media (max-height: 500px) and (min-height: 401px) {
+  #stageSelectModal > div {
+    transform: scale(0.8);
+  }
+}
+@media (max-height: 600px) and (min-height: 501px) {
+  #stageSelectModal > div {
+    transform: scale(0.9);
+  }
+}
+
+/* カスタマイズモーダルのスケーリング */
+#customizeModal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#customizeModal > div {
+  transform-origin: center center;
+}
+@media (max-height: 400px) {
+  #customizeModal > div {
+    transform: scale(0.65);
+  }
+}
+@media (max-height: 500px) and (min-height: 401px) {
+  #customizeModal > div {
+    transform: scale(0.75);
+  }
+}
+@media (max-height: 600px) and (min-height: 501px) {
+  #customizeModal > div {
+    transform: scale(0.85);
+  }
+}
+
+/* 設定モーダルのスケーリング */
+#settingsModal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#settingsModal > div {
+  transform-origin: center center;
+}
+@media (max-height: 400px) {
+  #settingsModal > div {
+    transform: scale(0.65);
+  }
+}
+@media (max-height: 500px) and (min-height: 401px) {
+  #settingsModal > div {
+    transform: scale(0.75);
+  }
+}
+@media (max-height: 600px) and (min-height: 501px) {
+  #settingsModal > div {
+    transform: scale(0.85);
+  }
+}
+
+/* スタートボーナスモーダルのスケーリング */
+#startBonusModal > div {
+  transform-origin: center center;
+}
+@media (max-height: 400px) {
+  #startBonusModal > div {
+    transform: scale(0.7);
+  }
+}
+@media (max-height: 500px) and (min-height: 401px) {
+  #startBonusModal > div {
+    transform: scale(0.8);
+  }
+}
+@media (max-height: 600px) and (min-height: 501px) {
+  #startBonusModal > div {
+    transform: scale(0.9);
+  }
+}
+
+@media (max-height:700px){
   /* カスタマイズモーダル */
-  #customizeModal { padding: 5px !important; align-items: flex-start !important; }
+  #customizeModal { padding: 5px !important; }
   #customizeModal > div { margin: 0 auto !important; padding: 0.5rem !important; }
   #customizeModal h2 { font-size: 1rem !important; margin-bottom: 0.3rem !important; }
   #customizeModal h3 { font-size: 0.8rem !important; margin: 0 0 0.2rem 0 !important; }
@@ -271,6 +375,16 @@ html, body {
   /* 縦持ちのときはHUDを少し縮小 */
 @media (orientation:portrait){
   .hud { transform: scale(.9); transform-origin: top center; opacity:.9; }
+  
+  /* ★縦画面でのクリア/ゲームオーバー画面をスクロール対応 */
+  #gameover, #gameclear {
+    justify-content: flex-start !important;
+    padding-top: 10px !important;
+    padding-bottom: 80px !important; /* ★下に余白を追加してボタンが見えるように */
+  }
+  #clearAchievements, #gameoverAchievements {
+    max-height: 35vh !important;  /* ★画面の35%まで */
+  }
 }
 
 /* かなり狭い端末ではHUDを縮小表示（非表示にしない） */
@@ -433,10 +547,15 @@ body[data-hc] .hc-badges{ display: flex; }
 #levelup{
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:8px; padding:10px;
+  /* ノッチ対応：左右にセーフエリア分の余白 */
+  padding-left: calc(10px + env(safe-area-inset-left));
+  padding-right: calc(10px + env(safe-area-inset-right));
 }
 #cardRow{
   display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;
-  max-width:min(96vw, 800px); margin:0 auto;
+  max-width:min(92vw, 800px); margin:0 auto;
+  /* 追加の余白確保 */
+  padding: 0 4px;
 }
 @media (min-width:600px){ #cardRow{ grid-template-columns:repeat(4, 1fr); gap:10px; } }
 #rerollBtn{
@@ -634,6 +753,217 @@ body[data-hc] .hc-badges{ display: flex; }
 }
 }
 
+/* ===== チュートリアル ===== */
+#tutorialOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 15000;
+}
+
+.tutorial-container {
+  background: linear-gradient(135deg, #2a2a4a 0%, #1a1a2e 100%);
+  border: 2px solid #4a4a6a;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* 小さい画面でスケーリング */
+@media (max-height: 400px) {
+  .tutorial-container {
+    transform: scale(0.75);
+    transform-origin: center center;
+  }
+}
+@media (max-height: 500px) and (min-height: 401px) {
+  .tutorial-container {
+    transform: scale(0.85);
+    transform-origin: center center;
+  }
+}
+
+.tutorial-title {
+  text-align: center;
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 16px;
+  letter-spacing: 2px;
+}
+
+.tutorial-slide {
+  display: none;
+  animation: tutorialFadeIn 0.3s ease;
+}
+
+.tutorial-slide.active {
+  display: block;
+}
+
+@keyframes tutorialFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tutorial-slide-icon {
+  text-align: center;
+  font-size: 56px;
+  margin-bottom: 12px;
+}
+
+.tutorial-slide-heading {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 14px;
+  background: linear-gradient(90deg, #4ade80, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.tutorial-slide-text {
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+.tutorial-slide-text strong { color: #fff; }
+.tutorial-slide-text .hl { color: #fbbf24; font-weight: bold; }
+.tutorial-slide-text .green { color: #4ade80; }
+.tutorial-slide-text .purple { color: #a78bfa; }
+
+.tutorial-visual {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.tutorial-level-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tutorial-level-badge {
+  background: #333;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.tutorial-level-badge.awaken {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #000;
+}
+
+.tutorial-arrow {
+  color: #666;
+  font-size: 16px;
+}
+
+.tutorial-awaken-stars {
+  text-align: center;
+  color: #fbbf24;
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+.tutorial-awaken-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.tutorial-awaken-example {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: #ccc;
+}
+
+.tutorial-awaken-example .effect {
+  color: #4ade80;
+  font-weight: bold;
+}
+
+.tutorial-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.tutorial-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.tutorial-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tutorial-btn.primary {
+  background: linear-gradient(135deg, #4ade80, #22c55e);
+  border: none;
+  color: #000;
+  font-weight: bold;
+}
+
+.tutorial-btn.primary:hover {
+  transform: scale(1.05);
+}
+
+.tutorial-btn.skip {
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 12px;
+}
+
+.tutorial-btn.skip:hover {
+  color: #999;
+}
+
+.tutorial-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.tutorial-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #444;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.tutorial-dot.active {
+  background: #4ade80;
+  width: 20px;
+  border-radius: 4px;
+}
+
 </style>
 
 <!-- PWA manifest（外部ファイルがなくてもインラインで定義） -->
@@ -644,8 +974,8 @@ const manifestData = {
   short_name: "10min's",
   description: "10分間生き延びろ！サバイバーライクゲーム",
   start_url: "./",
-  display: "minimal-ui",  // ★standalone→minimal-ui（Android Chrome PWAで縦横両対応しやすくなる）
-  orientation: "any",  // 縦横両対応
+  display: "fullscreen",  // ★fullscreenで回転対応を試みる
+  orientation: "natural",  // ★デバイスの自然な向きに従う
   background_color: "#0f172a",
   theme_color: "#3b82f6",
   icons: [{
@@ -660,6 +990,15 @@ const link = document.createElement('link');
 link.rel = 'manifest';
 link.href = manifestURL;
 document.head.appendChild(link);
+
+// ★Screen Orientation API: 画面ロックを解除
+try {
+  if (screen.orientation && screen.orientation.unlock) {
+    screen.orientation.unlock();
+  }
+} catch(e) {
+  // 対応していないブラウザでは無視
+}
 </script>
 
 <!-- 多言語システム -->
@@ -698,7 +1037,7 @@ document.head.appendChild(link);
       btn_retry: 'リトライ',
       btn_continue: '続ける',
       btn_pass: '⏭ パス',
-      btn_reroll: '🔄 リロール',
+      btn_reroll: '🔄 引き直す',
       
       // ===== ステージ選択 =====
       stage_select_title: 'ステージ選択',
@@ -731,7 +1070,7 @@ document.head.appendChild(link);
       
       // ===== 広告機能（準備中） =====
       revive_btn: '広告で復活（準備中）',
-      ad_reroll_btn: '広告リロール（準備中）',
+      ad_reroll_btn: '広告で引き直し（準備中）',
       
       // ===== ゲームオーバー =====
       gameover_title: 'GAME OVER',
@@ -871,18 +1210,18 @@ document.head.appendChild(link);
       weapon_up_laser: '弾数+1, 持続UP',
       
       // ===== 武器覚醒時 =====
-      weapon_awaken_blaster: '3方向同時発射',
-      weapon_awaken_shotgun: '爆発する炸裂弾',
-      weapon_awaken_orbit: '高速回転＆残像',
-      weapon_awaken_lightning: '範囲雷撃',
+      weapon_awaken_blaster: '超連射＆高威力',
+      weapon_awaken_shotgun: '全方位攻撃',
+      weapon_awaken_orbit: '高速回転＆弾幕防御',
+      weapon_awaken_lightning: '連続雷撃＆広範囲連鎖',
       weapon_awaken_nova: '常時ダメージオーラ',
-      weapon_awaken_rock: '分裂岩',
-      weapon_awaken_homing: '爆発ミサイル',
-      weapon_awaken_ghost: '巨大化＆減速効果',
-      weapon_awaken_poison: '敵を引き寄せる',
-      weapon_awaken_blade: '回転斬撃',
-      weapon_awaken_rubber: '分裂弾',
-      weapon_awaken_laser: '持続照射',
+      weapon_awaken_rock: '巨大化＆3方向発射',
+      weapon_awaken_homing: '超広範囲爆発',
+      weapon_awaken_ghost: '6体のゴースト弾幕',
+      weapon_awaken_poison: '広範囲毒エリア展開',
+      weapon_awaken_blade: '広範囲連続斬撃',
+      weapon_awaken_rubber: '大量反射弾で画面制圧',
+      weapon_awaken_laser: '極太持続レーザー',
       
       // ===== 能力アップグレード =====
       upgrade_speed: '移動速度アップ',
@@ -992,9 +1331,9 @@ document.head.appendChild(link);
       ach_max_speed_clear: 'スピードデーモン',
       ach_max_speed_clear_desc: '移動速度MAXでクリア',
       ach_max_all_clear: '究極戦士',
-      ach_max_all_clear_desc: '全7能力MAXでクリア',
-      ach_reroll_20: 'リロールマスター',
-      ach_reroll_20_desc: '1プレイでリロール20回',
+      ach_max_all_clear_desc: '5能力MAXでクリア',
+      ach_reroll_20: '引き直しマスター',
+      ach_reroll_20_desc: '1プレイで引き直し15回',
       ach_chest_20: '宝箱ハンター',
       ach_chest_20_desc: '累計宝箱20個開ける',
       ach_boss_50: 'ボス殲滅者',
@@ -1230,18 +1569,18 @@ document.head.appendChild(link);
       weapon_up_laser: 'Bullets +1, Duration UP',
       
       // ===== Weapon Awaken =====
-      weapon_awaken_blaster: '3-way shot',
-      weapon_awaken_shotgun: 'Explosive shells',
-      weapon_awaken_orbit: 'High-speed spin + afterimage',
-      weapon_awaken_lightning: 'Area lightning',
+      weapon_awaken_blaster: 'Rapid fire & high power',
+      weapon_awaken_shotgun: '360° attack',
+      weapon_awaken_orbit: 'High-speed spin & bullet shield',
+      weapon_awaken_lightning: 'Chain lightning barrage',
       weapon_awaken_nova: 'Constant damage aura',
-      weapon_awaken_rock: 'Splitting rocks',
-      weapon_awaken_homing: 'Explosive missiles',
-      weapon_awaken_ghost: 'Giant + slow effect',
-      weapon_awaken_poison: 'Pulls enemies',
-      weapon_awaken_blade: 'Spinning slash',
-      weapon_awaken_rubber: 'Splitting bullets',
-      weapon_awaken_laser: 'Continuous beam',
+      weapon_awaken_rock: 'Giant rocks & 3-way shot',
+      weapon_awaken_homing: 'Massive explosion',
+      weapon_awaken_ghost: '6 ghost barrage',
+      weapon_awaken_poison: 'Wide poison field',
+      weapon_awaken_blade: 'Wide continuous slash',
+      weapon_awaken_rubber: 'Screen-filling bouncing bullets',
+      weapon_awaken_laser: 'Massive continuous beam',
       
       // ===== Ability Upgrades =====
       upgrade_speed: 'Speed Up',
@@ -1351,9 +1690,9 @@ document.head.appendChild(link);
       ach_max_speed_clear: 'Speed Demon',
       ach_max_speed_clear_desc: 'Clear with MAX Move Speed',
       ach_max_all_clear: 'Ultimate Warrior',
-      ach_max_all_clear_desc: 'Clear with all 7 stats maxed',
+      ach_max_all_clear_desc: 'Clear with 5 stats maxed',
       ach_reroll_20: 'Reroll Master',
-      ach_reroll_20_desc: '20 rerolls in one play',
+      ach_reroll_20_desc: '15 rerolls in one play',
       ach_chest_20: 'Chest Hunter',
       ach_chest_20_desc: 'Open 20 chests (cumulative)',
       ach_boss_50: 'Boss Slayer',
@@ -1517,24 +1856,30 @@ document.head.appendChild(link);
     <button id="langEnBtn" class="langBtn" style="padding:6px 12px; border-radius:6px; border:2px solid #475569; background:#1e293b; color:#fff; font-size:12px; font-weight:bold; cursor:pointer;">English</button>
   </div>
   
-  <h1>10min's Survivor</h1>
-  <h2 id="titleSubtitle">10分間生き延びろ！</h2>
-  <p id="titleDesc">レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
-  
-  <!-- バージョン情報 -->
-  <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.3.12</span> - 
-    <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
-  </div>
-  
-  <!-- 難易度選択ボタン -->
-  <div id="difficultySelect" style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
-    <button id="startEasyBtn" class="btn" style="background:#22c55e;">😊 Easy（かんたん）</button>
-    <button id="startBtn" class="btn">🎮 Normal（通常）</button>
-    <button id="startHardBtn" class="btn" style="background:#f59e0b;">💪 Hard（難しい）</button>
-    <button id="startHardcoreBtn" class="btn" style="background:#8b5cf6;">🔥 Hardcore（鬼）</button>
-  </div>
-  <div style="display:flex;gap:8px;margin-top:8px;">
+  <!-- スケーリング用コンテナ -->
+  <div id="startContent">
+    <h1>10min's Survivor</h1>
+    <h2 id="titleSubtitle">10分間生き延びろ！</h2>
+    <p id="titleDesc">レベルアップで能力を選び、ボスを倒して生存を目指せ。</p>
+    
+    <!-- バージョン情報 -->
+    <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
+      <span style="opacity:0.7;">Ver 2.4</span> - 
+      <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
+    </div>
+    
+    <!-- 難易度選択ボタン（2×2グリッド） -->
+    <div id="difficultySelect" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; width:100%; max-width:360px;">
+      <button id="startEasyBtn" class="btn" style="background:#22c55e; white-space:nowrap;">😊 Easy（かんたん）</button>
+      <button id="startBtn" class="btn" style="white-space:nowrap;">🎮 Normal（通常）</button>
+      <button id="startHardBtn" class="btn" style="background:#f59e0b; white-space:nowrap;">💪 Hard（難しい）</button>
+      <button id="startHardcoreBtn" class="btn" style="background:#8b5cf6; white-space:nowrap;">🔥 Hardcore（鬼）</button>
+    </div>
+    
+    <!-- 区切り線 -->
+    <div style="width:80%; height:1px; background:linear-gradient(90deg, transparent, #444, transparent); margin:12px auto;"></div>
+    
+    <div style="display:flex;gap:8px;margin-top:4px;">
     <button id="rankingBtn" class="btn" style="background:#fbbf24;">🏆 RANKING</button>
     <button id="achievementsBtn" class="btn" style="background:#ec4899;">🎖️ 実績</button>
     <button id="customizeBtn" class="btn" style="background:#06b6d4;">🎨 スキン変更</button>
@@ -1543,6 +1888,7 @@ document.head.appendChild(link);
     <button id="updateLogBtn" class="btn" style="background:#4b5563;">📝 更新履歴</button>
     <button id="settingsBtn" class="btn" style="background:#64748b;">⚙️ 設定</button>
   </div>
+  </div><!-- /#startContent -->
 </div>
 </div>
 
@@ -1551,6 +1897,33 @@ document.head.appendChild(link);
 .langBtn { transition: all 0.2s; }
 .langBtn:hover { background: #334155 !important; }
 .langBtn.active { background: #3b82f6 !important; border-color: #60a5fa !important; }
+
+/* タイトル画面のスケーリング */
+#startContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.3rem;
+  transform-origin: center center;
+}
+
+/* 小さい画面でスケーリング */
+@media (max-height: 450px) {
+  #startContent {
+    transform: scale(0.7);
+  }
+}
+@media (max-height: 550px) and (min-height: 451px) {
+  #startContent {
+    transform: scale(0.8);
+  }
+}
+@media (max-height: 650px) and (min-height: 551px) {
+  #startContent {
+    transform: scale(0.9);
+  }
+}
 </style>
 
 <!-- 言語切替スクリプト -->
@@ -1864,9 +2237,40 @@ document.head.appendChild(link);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
-        <!-- Ver 2.3.12 -->
+        <!-- Ver 2.4 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.3.12 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/28</span></h3>
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.4 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/29</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">📖 初心者向けチュートリアル</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>初回プレイ時にチュートリアルを表示（武器の強化・覚醒システムを解説）</li>
+            <li>「リロール」→「引き直す」に変更（わかりやすく）</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">📱 小画面対応</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>タイトル画面：難易度ボタンを2×2グリッド化、画面サイズに応じて自動縮小</li>
+            <li>各種モーダル（ステージ選択・スキン変更・設定・チュートリアル等）を小画面でも表示できるようスケーリング対応</li>
+            <li>レベルアップ画面にiPhoneノッチ対応の余白を追加</li>
+            <li>スマートフォン横画面用のコンパクトHUD追加</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">⚔️ 武器バランス調整</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ホーミング強化：弾速UP(250)、レベル成長で威力+10、爆風ダメージ100%、覚醒時8発</li>
+            <li>ポイズン強化：レベル成長でDPS+10</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎮 その他</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>実績「引き直しマスター」の条件を20回→15回に緩和</li>
+            <li>武器覚醒の説明文を実際の効果に合わせて修正</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 2.3.12 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(100,100,100,0.15); border-left:4px solid #666; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#aaa; font-size:1.3rem;">Ver 2.3.12 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/28</span></h3>
           
           <h4 style="margin:0.5rem 0; color:#86efac;">🎮 能力アップシステム改善</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
@@ -2055,7 +2459,7 @@ document.head.appendChild(link);
             <li>難易度別クリア実績を追加（ステージ1×4難易度 + ステージ2×4難易度 = 計8種）</li>
             <li>「ハードコアミニマリスト」実績を削除（難易度が無関係な縛り系実績と分離）</li>
             <li>武器縛り系の実績は難易度に関係なく達成可能に</li>
-            <li>新実績追加：リロールマスター、宝箱ハンター、ボス殲滅者、生存者</li>
+            <li>新実績追加：引き直しマスター、宝箱ハンター、ボス殲滅者、生存者</li>
           </ul>
           
           <h4 style="margin:0.5rem 0; color:#86efac;">🎨 新機能：カスタマイズ</h4>
@@ -2454,25 +2858,42 @@ document.head.appendChild(link);
 
   
   <div class="hud">
-    <!-- 1行目：難易度/ステージ/レベル/スコア/コントロール -->
-    <div id="hudRow1" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-      <span style="display:flex; align-items:center; gap:6px;">
-        <span id="hudDiffBadge" class="badge diff-badge" style="display:none;"></span>
-        <span id="hudStageBadge" class="badge" style="background:#475569;">Stage 1</span>
-        <span class="badge">Lv <b id="lv">1</b></span>
-      </span>
-      <span class="badge">SCORE: <b id="scoreVal">0</b></span>
-      <span style="display:flex; gap:6px;">
-        <button id="hudSoundBtn" class="hud-ctrl-btn">🔊</button>
-        <button id="hudPauseBtn" class="hud-ctrl-btn">⏸</button>
-      </span>
+    <!-- 通常HUD（PC/縦画面用）：2行 -->
+    <div id="hudNormal">
+      <!-- 1行目：難易度/ステージ/レベル/スコア/コントロール -->
+      <div id="hudRow1" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+        <span style="display:flex; align-items:center; gap:6px;">
+          <span id="hudDiffBadge" class="badge diff-badge" style="display:none;"></span>
+          <span id="hudStageBadge" class="badge" style="background:#475569;">Stage 1</span>
+          <span class="badge">Lv <b id="lv">1</b></span>
+        </span>
+        <span class="badge">SCORE: <b id="scoreVal">0</b></span>
+        <span style="display:flex; gap:6px;">
+          <button id="hudSoundBtn" class="hud-ctrl-btn">🔊</button>
+          <button id="hudPauseBtn" class="hud-ctrl-btn">⏸</button>
+        </span>
+      </div>
+      <!-- 2行目：HP/XPバー -->
+      <div id="hudRow2" style="display:flex; align-items:center; gap:6px; width:100%; margin-top:4px;">
+        <span style="font-size:10px; color:#2ecc71;">HP</span>
+        <div class="bar hp" style="flex:1;"><i id="hpw"></i></div>
+        <span style="font-size:10px; color:#3498db;">XP</span>
+        <div class="bar xp" style="flex:1;"><i id="xpw"></i></div>
+      </div>
     </div>
-    <!-- 2行目：HP/XPバー -->
-    <div id="hudRow2" style="display:flex; align-items:center; gap:6px; width:100%; margin-top:4px;">
-      <span style="font-size:10px; color:#2ecc71;">HP</span>
-      <div class="bar hp" style="flex:1;"><i id="hpw"></i></div>
-      <span style="font-size:10px; color:#3498db;">XP</span>
-      <div class="bar xp" style="flex:1;"><i id="xpw"></i></div>
+    <!-- スマホ横画面用HUD：1行コンパクト -->
+    <div id="hudCompact" style="display:none; align-items:center; gap:8px; width:100%;">
+      <span id="hudDiffBadge2" class="badge diff-badge" style="display:none; padding:2px 6px; font-size:10px;"></span>
+      <span id="hudStageBadge2" class="badge" style="background:#475569; padding:2px 6px; font-size:10px;">S1</span>
+      <span class="badge" style="padding:2px 6px; font-size:10px;">Lv<b id="lv2">1</b></span>
+      <span style="color:#2ecc71; font-size:9px;">HP</span>
+      <div class="bar hp" style="width:120px; height:8px;"><i id="hpw2"></i></div>
+      <span style="color:#3498db; font-size:9px;">XP</span>
+      <div class="bar xp" style="width:100px; height:8px;"><i id="xpw2"></i></div>
+      <span class="badge" style="padding:2px 6px; font-size:10px;">SCORE: <b id="scoreVal2">0</b></span>
+      <span style="flex:1;"></span>
+      <button id="hudSoundBtn2" class="hud-ctrl-btn" style="padding:3px 8px; font-size:14px;">🔊</button>
+      <button id="hudPauseBtn2" class="hud-ctrl-btn" style="padding:3px 8px; font-size:14px;">⏸</button>
     </div>
   </div>
   <!-- 非表示の要素（互換性のため残す） -->
@@ -3333,7 +3754,8 @@ warnBoss(){
 // === 固定アスペクトのプレイ領域（4:3 / 3:4） ===
 const ASPECT_L = 4/3;
 const ASPECT_P = 3/4;
-const UI_TOP_BAR_CSS = 52; // 上帯の実寸(px) - コンパクトHUD用
+const UI_TOP_BAR_CSS = 70; // 通常HUD高さ(px) - 2行分 + padding
+const UI_TOP_BAR_COMPACT = 26; // ★コンパクトHUD高さ(px)
 
 // HUDをノッチから少し下げる（px）
 const HUD_TOP_OFFSET_CSS = 10;
@@ -3345,12 +3767,24 @@ const WORLD   = { w: WORLD_L.w, h: WORLD_L.h };
 
 const PLAY = { x:0, y:0, w:0, h:0, aspect:ASPECT_L, isPortrait:false };
 
+// ★画面サイズに応じたスポーン係数（PC横画面を基準=1.0）
+function getScreenSpawnFactor() {
+  const baseArea = WORLD_L.w * WORLD_L.h; // PC横画面の面積 = 1,080,000
+  const currentArea = WORLD.w * WORLD.h;
+  // 面積比の平方根（密度を一定に保つ）
+  // 最小0.5、最大1.0に制限
+  return Math.max(0.5, Math.min(1.0, Math.sqrt(currentArea / baseArea)));
+}
+
 function computePlayRect(){
   const vw = W / DPR, vh = H / DPR;
 
   // 向きとアスペクト
   const isPortrait = vw <= vh;
   const target = isPortrait ? ASPECT_P : ASPECT_L;
+  
+  // ★スマホ横画面判定
+  const isSmallLandscape = !isPortrait && (vh <= 500 || vw <= 950);
 
   // CSSの --safe-top を取得
   const safeTopPx = parseFloat(
@@ -3358,9 +3792,15 @@ function computePlayRect(){
   ) || 0;
 
   // HUD高を確保（縦はノッチ＋オフセット＋HUD高、横はHUD高のみ）
-  const topBar = isPortrait 
-    ? (safeTopPx + HUD_TOP_OFFSET_CSS + UI_TOP_BAR_CSS) 
-    : UI_TOP_BAR_CSS;  // ★横画面でもHUD分のオフセット
+  // ★スマホ横画面はコンパクトHUD
+  let topBar;
+  if (isPortrait) {
+    topBar = safeTopPx + HUD_TOP_OFFSET_CSS + UI_TOP_BAR_CSS;
+  } else if (isSmallLandscape) {
+    topBar = UI_TOP_BAR_COMPACT;  // ★コンパクトHUD
+  } else {
+    topBar = UI_TOP_BAR_CSS;
+  }
   const availH = Math.max(0, vh - topBar);
 
   // 3:4 / 4:3 を残り領域にフィット
@@ -3369,8 +3809,13 @@ function computePlayRect(){
   else { w = vw; h = w / target; if (h > availH){ h = availH; w = h * target; } }
 
   const x = Math.floor((vw - w)/2);
-  // ★縦は“HUDの直下にぴったり”配置／横は中央寄せ
-  const y = isPortrait ? Math.floor(topBar) : Math.floor(topBar + (availH - h) / 2);
+  // ★縦・スマホ横は"HUDの直下にぴったり"配置／PC横は中央寄せ
+  let y;
+  if (isPortrait || isSmallLandscape) {
+    y = Math.floor(topBar);  // HUD直下
+  } else {
+    y = Math.floor(topBar + (availH - h) / 2);  // 中央寄せ
+  }
 
   PLAY.x = x; PLAY.y = y; PLAY.w = w; PLAY.h = h;
   PLAY.aspect = target; PLAY.isPortrait = isPortrait;
@@ -3511,11 +3956,33 @@ function updateMainHud(){
     return;
   }
   
-  // 縦横どちらもプレイ領域の幅に合わせて表示
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const isSmallLandscape = !PLAY.isPortrait && (vh <= 500 || vw <= 950);
+  
   hud.style.display = 'flex';
-  hud.style.width = PLAY.w + 'px';
-  hud.style.left = PLAY.x + 'px';
-  hud.style.right = 'auto';
+  
+  // スマホ横画面用1行HUDと通常HUDの切り替え
+  const hudNormal = document.getElementById('hudNormal');
+  const hudCompact = document.getElementById('hudCompact');
+  
+  if (isSmallLandscape) {
+    // スマホ横画面：HUDを画面幅いっぱいに + 1行コンパクトHUD
+    hud.style.width = '100%';
+    hud.style.left = '0';
+    hud.style.right = '0';
+    hud.style.padding = '3px 10px';
+    if (hudNormal) hudNormal.style.display = 'none';
+    if (hudCompact) hudCompact.style.display = 'flex';
+  } else {
+    // PC横画面・縦画面：プレイ領域の幅に合わせる + 通常HUD
+    hud.style.width = PLAY.w + 'px';
+    hud.style.left = PLAY.x + 'px';
+    hud.style.right = 'auto';
+    hud.style.padding = '';
+    if (hudNormal) hudNormal.style.display = 'block';
+    if (hudCompact) hudCompact.style.display = 'none';
+  }
   
   // 縦画面の場合、上部の位置を調整
   if (PLAY.isPortrait) {
@@ -3850,10 +4317,10 @@ function visibleBounds(radius = 0){
     max_damage_clear: { id: 'max_damage_clear', name: 'パワーハウス', desc: '球のダメージMAXでクリア', icon: '💥', tier: 'gold' },
     max_rate_clear: { id: 'max_rate_clear', name: 'マシンガンナー', desc: '攻撃速度MAXでクリア', icon: '⚡', tier: 'gold' },
     max_speed_clear: { id: 'max_speed_clear', name: 'スピードデーモン', desc: '移動速度MAXでクリア', icon: '🏃', tier: 'gold' },
-    max_all_clear: { id: 'max_all_clear', name: '究極戦士', desc: '全7能力MAXでクリア', icon: '👑', tier: 'platinum' },
+    max_all_clear: { id: 'max_all_clear', name: '究極戦士', desc: '5能力MAXでクリア', icon: '👑', tier: 'platinum' },
     
     // 累計・セッション系
-    reroll_20: { id: 'reroll_20', name: 'リロールマスター', desc: '1プレイでリロール20回', icon: '🔄', tier: 'silver' },
+    reroll_20: { id: 'reroll_20', name: '引き直しマスター', desc: '1プレイで引き直し15回', icon: '🔄', tier: 'silver' },
     chest_20: { id: 'chest_20', name: '宝箱ハンター', desc: '累計宝箱20個開ける', icon: '📦📦', tier: 'silver' },
     boss_50: { id: 'boss_50', name: 'ボス殲滅者', desc: '累計ボス50体撃破', icon: '🏰🏰', tier: 'gold' },
     survivor: { id: 'survivor', name: '生存者', desc: 'HP30%以下でクリア', icon: '💔', tier: 'gold' },
@@ -4164,16 +4631,14 @@ function visibleBounds(radius = 0){
     if ((state.speedLv || 0) >= 5) {
       unlockAchievement('max_speed_clear');
     }
-    // 全能力MAX（レベル制で統一）
-    const allMax = 
+    // 5能力MAX（レベル制で統一）
+    const fiveMax = 
       (state.hpLv || 0) >= 5 &&          // HP MAX
       (state.speedLv || 0) >= 5 &&       // 移動速度 MAX
       (state.dmgLv || 0) >= 5 &&         // 攻撃ダメージ MAX
       (state.rateLv || 0) >= 5 &&        // 攻撃速度 MAX
-      (state.sizeLv || 0) >= 5 &&        // 弾サイズ MAX
-      (state.defenseLv || 0) >= 5 &&     // 耐久力 MAX
-      (state.regenLv || 0) >= 3;         // HP自動回復 MAX
-    if (allMax) {
+      (state.defenseLv || 0) >= 5;       // 耐久力 MAX
+    if (fiveMax) {
       unlockAchievement('max_all_clear');
     }
     
@@ -6317,6 +6782,24 @@ if (hudPauseBtn) {
   };
 }
 
+// ★コンパクトHUD用ポーズボタン
+const hudPauseBtn2 = document.getElementById('hudPauseBtn2');
+if (hudPauseBtn2) {
+  hudPauseBtn2.onclick = () => {
+    const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
+    const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
+    if (lvlOpen || chestOpen) return;
+    if (!state.started || state.gameover) return;
+    
+    const existingMenu = document.getElementById('pauseMenuModal');
+    if (existingMenu) {
+      closePauseMenu();
+    } else {
+      showPauseMenu();
+    }
+  };
+}
+
 // HUD内サウンドボタン（スマホ用）
 const hudSoundBtn = document.getElementById('hudSoundBtn');
 if (hudSoundBtn) {
@@ -6336,6 +6819,33 @@ if (hudSoundBtn) {
     if (typeof saveMute === 'function') saveMute(next);
     // アイコン更新
     hudSoundBtn.textContent = next ? '🔇' : '🔊';
+    const hudSoundBtn2 = document.getElementById('hudSoundBtn2');
+    if (hudSoundBtn2) hudSoundBtn2.textContent = next ? '🔇' : '🔊';
+    if (typeof refreshSoundIcon === 'function') refreshSoundIcon();
+  };
+}
+
+// ★コンパクトHUD用サウンドボタン
+const hudSoundBtn2 = document.getElementById('hudSoundBtn2');
+if (hudSoundBtn2) {
+  hudSoundBtn2.onclick = () => {
+    if (typeof initAudioOnce === 'function') initAudioOnce();
+    const next = !window.AUDIO_MUTED;
+    if (typeof window.setAudioMuted === 'function') setAudioMuted(next);
+    else {
+      window.AUDIO_MUTED = next;
+      const AC = window.AC;
+      if (window.bus && bus.master && AC){
+        const t = AC.currentTime;
+        bus.master.gain.setTargetAtTime(next ? 0.0001 : 1.0, t, 0.03);
+      }
+    }
+    soundEnabled = !next;
+    if (typeof saveMute === 'function') saveMute(next);
+    // アイコン更新
+    hudSoundBtn2.textContent = next ? '🔇' : '🔊';
+    const hudSoundBtn = document.getElementById('hudSoundBtn');
+    if (hudSoundBtn) hudSoundBtn.textContent = next ? '🔇' : '🔊';
     if (typeof refreshSoundIcon === 'function') refreshSoundIcon();
   };
 }
@@ -6820,13 +7330,168 @@ state.records = JSON.parse(localStorage.getItem('vs_records') || '[]'); // [{sco
     // ★デバッグ：フルパワーモード適用
     if (typeof applyDebugFullPower === 'function') applyDebugFullPower();
 
-    // ★スタートボーナス（難易度に応じてボーナス数が変わる）
+    // ★初回プレイ時のみチュートリアルを表示
     const diffMods = state.mode.getDifficultyMods();
-    if (diffMods.startBonusCount > 0) {
-      showStartBonus(diffMods.startBonusCount);
+    if (!localStorage.getItem('vs_tutorial_done')) {
+      showTutorial(() => {
+        // チュートリアル終了後、スタートボーナスへ
+        if (diffMods.startBonusCount > 0) {
+          showStartBonus(diffMods.startBonusCount);
+        }
+      });
+    } else {
+      // チュートリアル済みならスタートボーナスへ直行
+      if (diffMods.startBonusCount > 0) {
+        showStartBonus(diffMods.startBonusCount);
+      }
     }
 
   }
+
+// ★初回チュートリアル表示
+function showTutorial(onComplete) {
+  state.paused = true;
+  const lang = getLang();
+  let currentSlide = 1;
+  const totalSlides = 2;
+  
+  const overlay = document.createElement('div');
+  overlay.id = 'tutorialOverlay';
+  
+  const container = document.createElement('div');
+  container.className = 'tutorial-container';
+  
+  // タイトル
+  const title = document.createElement('div');
+  title.className = 'tutorial-title';
+  title.textContent = lang === 'ja' ? '📖 はじめての方へ' : '📖 Tutorial';
+  container.appendChild(title);
+  
+  // スライド1: 強化システム
+  const slide1 = document.createElement('div');
+  slide1.className = 'tutorial-slide active';
+  slide1.dataset.slide = '1';
+  slide1.innerHTML = `
+    <div class="tutorial-slide-icon">⬆️</div>
+    <div class="tutorial-slide-heading">${lang === 'ja' ? '同じ武器で強化！' : 'Power Up Weapons!'}</div>
+    <div class="tutorial-slide-text">
+      ${lang === 'ja' 
+        ? `最初は<span class="hl">ブラスター</span>を装備しています。<br>レベルアップで武器を<strong>追加装備</strong>できます。<br>同じ武器を取ると<span class="green">どんどん強化</span>！`
+        : `You start with <span class="hl">Blaster</span>.<br>Level up to <strong>add weapons</strong>.<br>Same weapon = <span class="green">power up</span>!`
+      }
+    </div>
+    <div class="tutorial-visual">
+      <div class="tutorial-level-flow">
+        <span class="tutorial-level-badge">Lv1</span>
+        <span class="tutorial-arrow">→</span>
+        <span class="tutorial-level-badge">Lv2</span>
+        <span class="tutorial-arrow">→</span>
+        <span class="tutorial-level-badge">Lv3</span>
+        <span class="tutorial-arrow">→</span>
+        <span class="tutorial-level-badge awaken">Lv4 ⭐</span>
+      </div>
+      <div style="text-align:center; margin-top:10px; font-size:12px; color:#888;">
+        ${lang === 'ja' ? '武器は全12種類！' : '12 weapons total!'}
+      </div>
+    </div>
+  `;
+  container.appendChild(slide1);
+  
+  // スライド2: 覚醒
+  const slide2 = document.createElement('div');
+  slide2.className = 'tutorial-slide';
+  slide2.dataset.slide = '2';
+  slide2.innerHTML = `
+    <div class="tutorial-slide-icon">⭐</div>
+    <div class="tutorial-slide-heading">${lang === 'ja' ? 'Lv4で覚醒！' : 'Awaken at Lv4!'}</div>
+    <div class="tutorial-slide-text">
+      ${lang === 'ja'
+        ? `武器が<span class="hl">Lv4</span>になると<span class="purple">覚醒</span>！<br><strong>特殊能力</strong>が追加されます！`
+        : `At <span class="hl">Lv4</span>, weapons <span class="purple">awaken</span>!<br>Gain <strong>special abilities</strong>!`
+      }
+    </div>
+    <div class="tutorial-visual">
+      <div class="tutorial-awaken-stars">✨ ${lang === 'ja' ? '覚醒！' : 'Awaken!'} ✨</div>
+      <div class="tutorial-awaken-examples">
+        <div class="tutorial-awaken-example">
+          <span>${lang === 'ja' ? 'ブラスター' : 'Blaster'}</span>
+          <span class="effect">→ ${lang === 'ja' ? '超連射' : 'Rapid Fire'}</span>
+        </div>
+        <div class="tutorial-awaken-example">
+          <span>${lang === 'ja' ? 'ライトニング' : 'Lightning'}</span>
+          <span class="effect">→ ${lang === 'ja' ? '広範囲連鎖' : 'Chain Attack'}</span>
+        </div>
+        <div class="tutorial-awaken-example">
+          <span>${lang === 'ja' ? 'ホーミング' : 'Homing'}</span>
+          <span class="effect">→ ${lang === 'ja' ? '大爆発' : 'Big Explosion'}</span>
+        </div>
+      </div>
+    </div>
+  `;
+  container.appendChild(slide2);
+  
+  // ナビゲーション
+  const nav = document.createElement('div');
+  nav.className = 'tutorial-nav';
+  
+  const skipBtn = document.createElement('button');
+  skipBtn.className = 'tutorial-btn skip';
+  skipBtn.textContent = lang === 'ja' ? 'スキップ' : 'Skip';
+  skipBtn.onclick = closeTutorial;
+  
+  const dots = document.createElement('div');
+  dots.className = 'tutorial-dots';
+  for (let i = 1; i <= totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'tutorial-dot' + (i === 1 ? ' active' : '');
+    dot.dataset.dot = i;
+    dot.onclick = () => showSlide(i);
+    dots.appendChild(dot);
+  }
+  
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'tutorial-btn primary';
+  nextBtn.textContent = lang === 'ja' ? '次へ →' : 'Next →';
+  nextBtn.onclick = nextSlide;
+  
+  nav.appendChild(skipBtn);
+  nav.appendChild(dots);
+  nav.appendChild(nextBtn);
+  container.appendChild(nav);
+  
+  overlay.appendChild(container);
+  document.body.appendChild(overlay);
+  
+  function showSlide(n) {
+    currentSlide = n;
+    container.querySelectorAll('.tutorial-slide').forEach(s => s.classList.remove('active'));
+    container.querySelectorAll('.tutorial-dot').forEach(d => d.classList.remove('active'));
+    
+    container.querySelector(`[data-slide="${n}"]`).classList.add('active');
+    container.querySelector(`[data-dot="${n}"]`).classList.add('active');
+    
+    if (n === totalSlides) {
+      nextBtn.textContent = lang === 'ja' ? 'ゲーム開始！' : 'Start Game!';
+    } else {
+      nextBtn.textContent = lang === 'ja' ? '次へ →' : 'Next →';
+    }
+  }
+  
+  function nextSlide() {
+    if (currentSlide < totalSlides) {
+      showSlide(currentSlide + 1);
+    } else {
+      closeTutorial();
+    }
+  }
+  
+  function closeTutorial() {
+    localStorage.setItem('vs_tutorial_done', '1');
+    overlay.remove();
+    state.paused = false;
+    if (onComplete) onComplete();
+  }
+}
 
 // ★スタートボーナス選択（武器6種類から選択、bonusCountで何個選べるか）
 function showStartBonus(bonusCount = 1) {
@@ -7149,6 +7814,45 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
     const stageNum = stageId === 'stage2' ? '2' : '1';
     hudStageBadge.textContent = `Stage ${stageNum}`;
     hudStageBadge.style.background = stageId === 'stage2' ? '#0ea5e9' : '#475569';
+  }
+  
+  // ★コンパクトHUD（スマホ横画面用）の同期
+  const hpw2 = document.getElementById('hpw2');
+  const xpw2 = document.getElementById('xpw2');
+  const lv2 = document.getElementById('lv2');
+  const scoreVal2 = document.getElementById('scoreVal2');
+  const hudDiffBadge2 = document.getElementById('hudDiffBadge2');
+  const hudStageBadge2 = document.getElementById('hudStageBadge2');
+  
+  if (hpw2) {
+    hpw2.style.width = hpWidth;
+    hpw2.style.background = hpBg;
+  }
+  if (xpw2) xpw2.style.width = xpWidth;
+  if (lv2) lv2.textContent = levelVal;
+  if (scoreVal2) scoreVal2.textContent = (state.score || 0).toLocaleString();
+  
+  // コンパクトHUD難易度バッジ
+  if (hudDiffBadge2) {
+    const diff = state.mode?.difficulty || 'normal';
+    const diffConfig = {
+      easy: { text: 'EASY', bg: '#22c55e' },
+      hard: { text: 'HARD', bg: '#f59e0b' },
+      hardcore: { text: 'HARDCORE', bg: '#8b5cf6' },
+      normal: { text: 'NORMAL', bg: '#3b82f6' }
+    };
+    const cfg = diffConfig[diff] || diffConfig.normal;
+    hudDiffBadge2.textContent = cfg.text;
+    hudDiffBadge2.style.background = cfg.bg;
+    hudDiffBadge2.style.color = '#fff';
+    hudDiffBadge2.style.display = 'inline';
+  }
+  
+  // コンパクトHUDステージバッジ
+  if (hudStageBadge2) {
+    const stageId = state.currentStage || 'stage1';
+    hudStageBadge2.textContent = stageId === 'stage2' ? 'Stage 2' : 'Stage 1';
+    hudStageBadge2.style.background = stageId === 'stage2' ? '#0ea5e9' : '#475569';
   }
 
   // タイマー（mm:ss）— 一度だけ計算して両方に使う
@@ -8213,7 +8917,7 @@ function showLevelUp(choices){
     // リロールカウント
     sessionTracking.rerollCount++;
     achievementProgress.totalRerolls++;
-    if (sessionTracking.rerollCount >= 20) unlockAchievement('reroll_20');
+    if (sessionTracking.rerollCount >= 15) unlockAchievement('reroll_20');
     
     const newChoices = pickUpgradeChoices(4);
     showLevelUp(newChoices);
@@ -8368,17 +9072,17 @@ homing:{
     if(this.lv<=0) return;
     this.cd -= dt; if(this.cd>0) return;
 
-    const count = (2 + (this.lv-1)) * (this.awaken? 1.5:1);
+    const count = this.awaken ? 8 : (2 + (this.lv-1)); // 覚醒時は固定8発
     for(let i=0;i<Math.ceil(count);i++){
       const ang = Math.random()*Math.PI*2;
-      const power = this.baseDmg * (this.awaken? 1.4:1) * 1.12; // 0.80 → 1.12（1.4倍強化）
+      const power = (this.baseDmg + (this.lv-1)*10) * (this.awaken? 1.4:1); // Lvごとに+10威力
       const life = this.awaken ? 4.0 : 5.0;
 
       state.bullets.push({
         type:'homing',
         x: state.player.x, y: state.player.y,
-        vx: Math.cos(ang)*204, // 170 → 204（1.2倍）
-        vy: Math.sin(ang)*204, // 170 → 204（1.2倍）
+        vx: Math.cos(ang)*250, // 204 → 250
+        vy: Math.sin(ang)*250, // 204 → 250
         r: 6*state.mods.sizeMul,
         dmg: power * state.mods.dmgMul,
         life: life,
@@ -8386,11 +9090,11 @@ homing:{
         turn: 7.2,
         bigBoom: this.awaken,
         boomR: this.awaken ? 240 : 60, // 覚醒時を2倍に（120→240）
-        boomMul: this.awaken ? 1.0 : 0.7
+        boomMul: 1.0 // 0.7 → 1.0（爆風も同じダメージ）
       });
     }
 
-    this.cd = Math.max(1.2, this.baseRate * (1 - 0.2*(this.lv-1)))
+    this.cd = Math.max(1.2, this.baseRate * (1 - 0.25*(this.lv-1))) // 発射間隔短縮も0.2→0.25に
               * (this.awaken? 0.85:1)
               * state.mods.rateMul;
   }
@@ -8611,18 +9315,19 @@ ghost:{
 poison:{
   short:'毒', name:'ポイズンフィールド',
   lv:0, awaken:false, cd:0,
-  baseCd:2.0, baseR:80, dps:14, lifeSec:5,
+  baseCd:2.0, baseR:80, baseDps:14, lifeSec:5,
   update(dt){
     if(this.lv<=0) return;
 
     this.cd -= dt;
     if(this.cd<=0){
+      const dps = this.baseDps + (this.lv-1)*10; // Lvごとに+10 DPS
       // 通常：足元に1枚、5秒維持
       state.effects.push({
         type:'poisonField',
         x: state.player.x, y: state.player.y,
         r: (this.baseR + (this.lv-1)*24) * state.mods.sizeMul,
-        dps: this.dps * state.mods.dmgMul,
+        dps: dps * state.mods.dmgMul,
         life: this.lifeSec, life0: this.lifeSec
       });
 
@@ -8637,7 +9342,7 @@ poison:{
             x: state.player.x + Math.cos(a)*orbit,
             y: state.player.y + Math.sin(a)*orbit,
             r: baseR,
-            dps: this.dps * 0.9 * state.mods.dmgMul,
+            dps: dps * 0.9 * state.mods.dmgMul,
             life: this.lifeSec, life0: this.lifeSec
           });
         }
@@ -9723,6 +10428,11 @@ if (state.spawnTimer <= 0) {
   // いまの雑魚数と上限
   let cap = currentTrashCap(state.timeSec);
   cap = Math.floor(cap * diffMods.spawnMul);  // 難易度による上限調整
+  
+  // ★画面サイズによる上限調整（スマホは敵が少なめ）
+  const screenFactor = getScreenSpawnFactor();
+  cap = Math.floor(cap * screenFactor);
+  
   const alive = countTrash();
   const room  = Math.max(0, cap - alive);
 
