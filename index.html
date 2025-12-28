@@ -634,7 +634,7 @@ const manifestData = {
   short_name: "10min's",
   description: "10分間生き延びろ！サバイバーライクゲーム",
   start_url: "./",
-  display: "standalone",  // fullscreen → standalone に変更（回転対応）
+  display: "minimal-ui",  // ★standalone→minimal-ui（Android Chrome PWAで縦横両対応しやすくなる）
   orientation: "any",  // 縦横両対応
   background_color: "#0f172a",
   theme_color: "#3b82f6",
@@ -10045,39 +10045,13 @@ for(let j=state.enemies.length-1;j>=0;j--){
     e.hp -= dmg;
     e.hitFlash = Math.max(e.hitFlash, 0.12);
     
-// ★ 即死チェック：ヒット直後に確定ドロップ（finalは既存ルートに任せる）
-if (e.hp <= 0) {
-  if (e.type === 'final') {
-    // ラスボスは従来の処理に任せる（演出や遷移があるため）
-  } else if (e.type === 'mid' || e.type === 'big') {
-    // 中/大型ボスは宝箱ドロップ
-    if (e.type === 'big') {
-      // big（大型ボス）
-      const pos = adjustDropPosition(e.x, e.y, 16);
-      state.items.push({ kind:'chest', x: pos.x, y: pos.y, r: 16, t: 0, picks: 2 });
-    } else {
-      // mid（中ボス）
-      const pos = adjustDropPosition(e.x, e.y, 14);
-      state.items.push({ kind:'chest', x: pos.x, y: pos.y, r: 14, t: 0, picks: 1 });
-    }
-    if (typeof addEffect === 'function') addEffect('pop', {x:e.x, y:e.y});
-    state.killScore = (state.killScore||0) + 1;
-    state.enemies.splice(j, 1);
-    if (b.type !== 'rock') break; // ★ロックは貫通するのでbreakしない
-  } else {
-    // 通常ザコは安全即死関数に寄せる（XPドロップ保証）
-    if (typeof safeKillEnemy === 'function') {
-      safeKillEnemy(j);
-    } else if (typeof dropGem === 'function') {
-      dropGem(e.x, e.y, 1);
-      state.enemies.splice(j, 1);
-    } else {
-      (state.gems||(state.gems=[])).push({x:e.x, y:e.y, r:6, val:1});
-      state.enemies.splice(j, 1);
-    }
-    state.killScore = (state.killScore||0) + 1;
-    if (b.type !== 'rock') break; // ★ロックは貫通するのでbreakしない
+// ★ 即死チェック：全ての敵タイプでsafeKillEnemyを使用（重複処理防止）
+if (e.hp <= 0 && !e.dead) {
+  // safeKillEnemyが全ての処理を行う（スコア、ドロップ、削除、実績）
+  if (typeof safeKillEnemy === 'function') {
+    safeKillEnemy(e);
   }
+  if (b.type !== 'rock') break; // ★ロックは貫通するのでbreakしない
 }
 
     
@@ -11936,6 +11910,13 @@ let touchDmg =
           // ★miniTriangle敵は接触で消滅
           if(e.type === 'miniTriangle'){
             state.enemies.splice(i, 1);
+            // ★修正: spliceした後はこの敵の処理を終了
+            if (state.player.hp <= 0) {
+              gameOver();
+              requestAnimationFrame(loop);
+              return;
+            }
+            continue;  // ★追加: 削除後はループを続ける
           }
           
           if (state.player.hp <= 0) {
@@ -11965,66 +11946,14 @@ if(!(e.type === 'spinner' && e.spinPhase === 'highspin')){
   }
 }
       // 敵死亡処理
-      if(e.hp <= 0) {
-          
-          // ★キルカウント（実績用）を先に処理
+      // ★修正: safeKillEnemyが全ての削除・ドロップ処理を行うため、ここでは呼ぶだけでcontinue
+      if(e.hp <= 0 && !e.dead) {
+          // safeKillEnemyが全てを処理（削除、ドロップ、スコア、実績）
           if (typeof safeKillEnemy === 'function') {
             safeKillEnemy(e);
           }
-          
-          // ▼ キルスコア（敵種別で配点）
-{
-  let add = 0;
-  if (e.type === 'final') add = 50000; // 5000 → 50000
-  else if (e.type === 'big') add = 1500; // 150 → 1500
-  else if (e.type === 'mid') add = 600; // 60 → 600
-  else if (e.type === 'bom') add = 500; // 50 → 500（BOM高得点）
-  else if (e.type === 'warper') add = 350; // 35 → 350
-  else if (e.type === 'laser') add = 320; // 32 → 320
-  else if (e.type === 'shooter') add = 300; // 30 → 300
-  else if (e.type === 'miniTriangle') add = 20; // ★miniTriangleは低スコア
-  else add = 200; // minion 等（20 → 200）
-
-  state.score += add;
-  state.killScore = (state.killScore || 0) + add;
-  if (scoreVal) scoreVal.textContent = Math.floor(state.score);
-}
-
-          
-if (e.type === 'final') {
-  // 見た目：強い発光＋爆発
-  addEffect('bossExplode', { x: e.x, y: e.y, R: 420, life: 0.9, life0: 0.9 });
-  addEffect('flash', { life: 0.08 });
-
-
-  // 後始末：敵・敵弾・アイテムをクリア＆スポーン停止
-  state.enemies.length = 0;
-  state.enemyBullets.length = 0;
-  state.items.length = 0;
-  state.spawnTimer = 9999;
-
-
-
-  // クリア遷移（少し見せてから）
-state.winCountdown = 1.2;
-state._winLast = performance.now();   // ← カウントの基準時刻を初期化
-state.paused = false;                 // ← ポーズ中でも tick が効くが、ここで一旦解除しておくと確実
-} else if (e.type === 'mid' || e.type === 'big') {
-          const picks = (e.type === 'big') ? 2 : 1;
-          const pos = adjustDropPosition(e.x, e.y, 14);
-          state.items.push({ kind: 'chest', x: pos.x, y: pos.y, r: 14, t: 0, picks });
-          const chestText = picks === 2 
-            ? (getLang() === 'ja' ? '宝箱×2！' : 'Chest ×2!')
-            : (getLang() === 'ja' ? '宝箱！' : 'Chest!');
-          addEffect('text', { x: e.x, y: e.y, life: 1.2, text: chestText });
-          spark(e.x, e.y, e.type === 'mid' ? 22 : 34);
-        } else {
-          // 通常の経験値ドロップ（miniTriangle含む）
-          const val = 1 + (Math.random() < 0.2 ? 1 : 0);
-          dropGem(e.x, e.y, val);
-          spark(e.x, e.y, e.type === 'miniTriangle' ? 5 : 10);
-        }
-        state.enemies.splice(i, 1);
+          // ★重要: safeKillEnemy内でspliceされるのでここでは何もしない
+          continue;
       }
       // ====== 追記ここまで ======
 
@@ -14651,6 +14580,22 @@ if (!e._counted) {
   }
   e._counted = true; // 弾・即死・多経路でも二重加算を防ぐ
   
+  // ★スコア加算（敵種別で配点）
+  let add = 0;
+  if (e.type === 'final') add = 50000;
+  else if (e.type === 'big') add = 1500;
+  else if (e.type === 'mid') add = 600;
+  else if (e.type === 'bom') add = 500;
+  else if (e.type === 'warper') add = 350;
+  else if (e.type === 'laser') add = 320;
+  else if (e.type === 'shooter') add = 300;
+  else if (e.type === 'miniTriangle') add = 20;
+  else add = 200;
+  
+  state.score = (state.score || 0) + add;
+  state.killScore = (state.killScore || 0) + add;
+  try { if (scoreVal) scoreVal.textContent = Math.floor(state.score); } catch(_){}
+  
   // 実績チェック
   checkKillAchievements(e);
 }
@@ -14675,18 +14620,23 @@ if (!e._counted) {
     state.items.push({ kind:'chest', x:pos.x, y:pos.y, r:16, t:0, picks:2 });
     const chestText = getLang() === 'ja' ? '宝箱×2！' : 'Chest ×2!';
     try { addEffect('text', { x:e.x, y:e.y, life:1.2, text:chestText }); } catch(_){}
+    try { spark(e.x, e.y, 34); } catch(_){}  // ★スパーク追加
   } else if (e.type === 'mid') {
     playKillSound('mid'); // 中ボス効果音
     state.paused = true; // 画面を一時停止
     setTimeout(() => { state.paused = false; }, 500); // 0.5秒後に再開
     const pos = adjustDropPosition(e.x, e.y, 14);
     state.items.push({ kind:'chest', x:pos.x, y:pos.y, r:14, t:0, picks:1 });
+    const chestText = getLang() === 'ja' ? '宝箱！' : 'Chest!';
+    try { addEffect('text', { x:e.x, y:e.y, life:1.2, text:chestText }); } catch(_){}  // ★テキスト追加
+    try { spark(e.x, e.y, 22); } catch(_){}  // ★スパーク追加
   } else {
     playKillSound('normal'); // 通常敵効果音
     // ★noXpDropフラグがある場合は経験値をドロップしない
     if (!e.noXpDrop) {
       try { dropGem(e.x, e.y, 1); } catch(_){}
     }
+    try { spark(e.x, e.y, e.type === 'miniTriangle' ? 5 : 10); } catch(_){}  // ★スパーク追加
   }
 
   e.dead = true; e.hp = 0;
