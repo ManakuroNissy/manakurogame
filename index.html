@@ -688,7 +688,7 @@ document.head.appendChild(link);
       btn_hardcore: '🔥 Hardcore（鬼）',
       btn_ranking: '🏆 RANKING',
       btn_achievements: '🎖️ 実績',
-      btn_customize: '🎨 カスタマイズ',
+      btn_customize: '🎨 スキン変更',
       btn_update_log: '📝 更新履歴',
       btn_settings: '⚙️ 設定',
       
@@ -760,8 +760,8 @@ document.head.appendChild(link);
       achievements_title: '🎖️ 実績',
       achievements_unlocked: '解除',
       
-      // ===== カスタマイズ =====
-      customize_title: '🎨 カスタマイズ',
+      // ===== スキン変更 =====
+      customize_title: '🎨 スキン変更',
       customize_color: '🎮 主人公カラー',
       customize_color_desc: '実績を5つ解除するごとに新しいカラーをゲット！',
       customize_next: '次のカラー解放まで',
@@ -1047,7 +1047,7 @@ document.head.appendChild(link);
       btn_hardcore: '🔥 Hardcore',
       btn_ranking: '🏆 RANKING',
       btn_achievements: '🎖️ Achievements',
-      btn_customize: '🎨 Customize',
+      btn_customize: '🎨 Skin Change',
       btn_update_log: '📝 Update Log',
       btn_settings: '⚙️ Settings',
       
@@ -1119,8 +1119,8 @@ document.head.appendChild(link);
       achievements_title: '🎖️ Achievements',
       achievements_unlocked: 'Unlocked',
       
-      // ===== Customize =====
-      customize_title: '🎨 Customize',
+      // ===== Skin Change =====
+      customize_title: '🎨 Skin Change',
       customize_color: '🎮 Player Color',
       customize_color_desc: 'Unlock new colors every 5 achievements!',
       customize_next: 'Next unlock at',
@@ -1537,7 +1537,7 @@ document.head.appendChild(link);
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button id="rankingBtn" class="btn" style="background:#fbbf24;">🏆 RANKING</button>
     <button id="achievementsBtn" class="btn" style="background:#ec4899;">🎖️ 実績</button>
-    <button id="customizeBtn" class="btn" style="background:#06b6d4;">🎨 カスタマイズ</button>
+    <button id="customizeBtn" class="btn" style="background:#06b6d4;">🎨 スキン変更</button>
   </div>
   <div style="display:flex;gap:8px;margin-top:8px;">
     <button id="updateLogBtn" class="btn" style="background:#4b5563;">📝 更新履歴</button>
@@ -1715,7 +1715,7 @@ document.head.appendChild(link);
 <div id="customizeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:5px; box-sizing:border-box; overflow-y:auto;">
   <div style="max-width:700px; margin:0 auto; background:#1e293b; border-radius:12px; padding:0.8rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-      <h2 id="customizeTitle" style="margin:0; color:#fff; font-size:1.3rem;">🎨 Customize</h2>
+      <h2 id="customizeTitle" style="margin:0; color:#fff; font-size:1.3rem;">🎨 Skin Change</h2>
       <button id="closeCustomize" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">✕ Close</button>
     </div>
     
@@ -1873,7 +1873,7 @@ document.head.appendChild(link);
             <li>全能力アップをレベル制に統一（分かりやすく！）</li>
             <li>HP・移動速度・攻撃速度・与ダメージ・弾サイズ・耐久力：Lv5でMAX</li>
             <li>吸収範囲・自然回復：Lv3でMAX</li>
-            <li>MAXに達した能力は選択肢に出なくなるバグ修正</li>
+            <li>MAXの能力が選択肢に出てしまうバグを修正</li>
           </ul>
           
           <h4 style="margin:0.5rem 0; color:#86efac;">📱 UI改善</h4>
@@ -3900,7 +3900,16 @@ function visibleBounds(radius = 0){
   function loadAchievements() {
     try {
       const data = localStorage.getItem(ACHIEVEMENTS_KEY);
-      return data ? JSON.parse(data) : {};
+      if (!data) return {};
+      const loaded = JSON.parse(data);
+      // ACHIEVEMENTSに存在するIDのみ残す（古いIDを除去）
+      const filtered = {};
+      for (const key of Object.keys(loaded)) {
+        if (ACHIEVEMENTS[key]) {
+          filtered[key] = loaded[key];
+        }
+      }
+      return filtered;
     } catch (e) {
       return {};
     }
@@ -4567,6 +4576,8 @@ function visibleBounds(radius = 0){
   window.isPlayerColorShiny = isPlayerColorShiny;
   window.getSelectedColor = getSelectedColor;
   window.showCustomizeModal = showCustomizeModal;
+  window.getUnlockedColors = getUnlockedColors;
+  window.PLAYER_COLORS = PLAYER_COLORS;
 
   // === 広告スキンシステム ===
   const AD_SKINS = {
