@@ -86,9 +86,15 @@ html, body {
   font-size:16px; 
   cursor:pointer; 
   pointer-events:auto;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .hud-ctrl-btn:active {
   background:rgba(255,255,255,0.3);
+}
+/* HUD内のボタン親要素もクリック可能に */
+#hudNormal, #hudCompact, #hudRow1 {
+  pointer-events: auto;
 }
   .badge { background:#1a1a1a; border:1px solid #333; border-radius:.5rem; padding:.2rem .5rem; font-weight:600; }
   .bar { flex:1; height:.6rem; background:#1a1a1a; border:1px solid #333; border-radius:.4rem; overflow:hidden; }
