@@ -350,13 +350,12 @@ body[data-hard]::after{
 }
 
 /* スマホ縦持ち/横持ち時は通常の難易度バッジを非表示（HUD内に統合表示） */
-@media (max-width: 950px) {
-  body[data-hc]::after,
-  body[data-easy]::after,
-  body[data-hard]::after,
-  body[data-hardcore]::after {
-    display: none !important;
-  }
+/* ★PC版でもHUD内に統合表示するため非表示 */
+body[data-hc]::after,
+body[data-easy]::after,
+body[data-hard]::after,
+body[data-hardcore]::after {
+  display: none !important;
 }
 
 /* 追加の条件バッジを出す場合は、その「さらに下」に固定 */
@@ -399,9 +398,19 @@ body[data-hc] .hc-badges{ display: flex; }
   box-shadow:0 6px 18px rgba(99,102,241,.25);
 }
 
-/* === Dock area / hudTop - 非表示（.hudに統合） ====================== */
-#dock, #hudTop {
-  display:none !important;
+/* === Dock area / hudTop ====================== */
+#dock {
+  display: none;  /* デフォルト非表示、JSで制御 */
+}
+#hudTop {
+  display: none;  /* デフォルト非表示、JSで制御（!importantは使わない） */
+  position: absolute;
+  background: rgba(0,0,0,0.7);
+  z-index: 100;
+  pointer-events: none;  /* 全体は透過 */
+}
+#hudTop button {
+  pointer-events: auto !important;  /* ボタンだけクリック可能 */
 }
 
 :root{
@@ -571,9 +580,10 @@ body[data-hc] .hc-badges{ display: flex; }
   .hud-ctrl-btn {
     display: none !important;
   }
-  /* PC用：HUDの左パディングを広げてPauseボタンを避ける */
+  /* ★PC用：HUDはゲーム領域に合わせるためパディングは均一に */
   .hud {
-    padding-left: calc(50px + env(safe-area-inset-left)) !important;
+    padding-left: .75rem !important;
+    padding-right: .75rem !important;
   }
 }
 
@@ -1513,7 +1523,7 @@ document.head.appendChild(link);
   
   <!-- バージョン情報 -->
   <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-    <span style="opacity:0.7;">Ver 2.3.11</span> - 
+    <span style="opacity:0.7;">Ver 2.3.12</span> - 
     <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
   </div>
   
@@ -1637,13 +1647,12 @@ document.head.appendChild(link);
     const replayBtn = document.getElementById('replayBtn');
     const titleBtnGameover = document.getElementById('titleBtnGameover');
     const titleBtn = document.getElementById('titleBtn');
-    const clearHardcoreBtn = document.getElementById('hardcoreBtn');
+    // clearHardcoreBtnのテキストはgameClear()内で動的に設定
     
     if (retryBtn) retryBtn.textContent = t('btn_retry');
     if (replayBtn) replayBtn.textContent = lang === 'ja' ? 'もう一度遊ぶ' : 'Play Again';
     if (titleBtnGameover) titleBtnGameover.textContent = t('btn_back_title');
     if (titleBtn) titleBtn.textContent = t('btn_back_title');
-    if (clearHardcoreBtn) clearHardcoreBtn.textContent = lang === 'ja' ? 'Hardcoreで再挑戦' : 'Hardcore Challenge';
     
     // シェアボタン
     const shareXLabel1 = document.getElementById('shareXLabel1');
@@ -1839,7 +1848,7 @@ document.head.appendChild(link);
   <div style="display:flex; gap:.6rem; flex-wrap:wrap; justify-content:center; margin-top:1rem;">
     <button id="replayBtn" class="btn">Play Again</button>
     <button id="titleBtn" class="btn" style="background:#64748b;" onclick="goToTitle()">Title</button>
-    <button id="hardcoreBtn" class="btn" style="display:none;background:#8b5cf6;">Hardcore Challenge</button>
+    <button id="hardcoreBtn" class="btn" style="display:none;background:#8b5cf6;">次の難易度で再挑戦</button>
   </div>
 </div>
   
@@ -1855,9 +1864,28 @@ document.head.appendChild(link);
       
       <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
-        <!-- Ver 2.3.11 -->
+        <!-- Ver 2.3.12 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
-          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.3.11 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/28</span></h3>
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.3.12 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/28</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎮 能力アップシステム改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>全能力アップをレベル制に統一（分かりやすく！）</li>
+            <li>HP・移動速度・攻撃速度・与ダメージ・弾サイズ・耐久力：Lv5でMAX</li>
+            <li>吸収範囲・自然回復：Lv3でMAX</li>
+            <li>MAXに達した能力は選択肢に出なくなるバグ修正</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">📱 UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>縦画面・横画面でHUDを統一（.hudのみ使用）</li>
+            <li>ゲーム開始直後からHUDがプレイ領域幅に収まるよう修正</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 2.3.11 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(100,100,100,0.15); border-left:4px solid #666; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#aaa; font-size:1.3rem;">Ver 2.3.11 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/28</span></h3>
           
           <h4 style="margin:0.5rem 0; color:#86efac;">🐛 致命的バグ修正</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
@@ -1868,6 +1896,14 @@ document.head.appendChild(link);
           <h4 style="margin:0.5rem 0; color:#86efac;">📱 PWA改善</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
             <li>AndroidスマートフォンのPWAで縦向きにできない問題の改善を試みる</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎮 UI改善</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>クリア時のボタンをステージ進行優先に変更</li>
+            <li>S1クリア → 同難易度でS2へ / S2クリア → 次の難易度でS1へ</li>
+            <li>Hardcoreで両ステージクリアしたらボタン非表示</li>
+            <li>PC横画面でHUDの幅をゲームプレイ領域に合わせて視認性向上</li>
           </ul>
         </div>
         
@@ -3383,27 +3419,9 @@ function updateDock(){
 }
 
 function updateHudTop(){
+  // 廃止：.hudで縦横統一したため不要
   const el = document.getElementById('hudTop');
-  if (!el) return;
-
-  // ゲーム開始前は非表示
-  if (!window.state || !state.started) {
-    el.style.display = 'none';
-    return;
-  }
-
-  // 縦向きだけ表示（横では隠す）
-  if (!PLAY.isPortrait){
-    el.style.display = 'none';
-    return;
-  }
-
-  // 幅はプレイ面に合わせ、上端は「ノッチ分＋オフセット」だけ下げる
-  el.style.left   = PLAY.x + 'px';
-  el.style.top    = `calc(var(--safe-top) + ${HUD_TOP_OFFSET_CSS}px)`;
-  el.style.width  = PLAY.w + 'px';
-  el.style.height = UI_TOP_BAR_CSS + 'px';
-  el.style.display = 'block';
+  if (el) el.style.display = 'none';
 }
 
 function ensurePcTimer(){
@@ -3479,7 +3497,32 @@ ensureSoundButton();
 layoutTopRightUI(); 
 positionPcTimer();
 updateHudTop();
+updateMainHud();  // ★追加：PC横画面用HUD幅調整
 
+}
+
+// ★HUDの表示・配置（縦横統一）
+function updateMainHud(){
+  const hud = document.querySelector('.hud');
+  if (!hud) return;
+  
+  // ゲーム開始前は何もしない
+  if (!window.state || !state.started) {
+    return;
+  }
+  
+  // 縦横どちらもプレイ領域の幅に合わせて表示
+  hud.style.display = 'flex';
+  hud.style.width = PLAY.w + 'px';
+  hud.style.left = PLAY.x + 'px';
+  hud.style.right = 'auto';
+  
+  // 縦画面の場合、上部の位置を調整
+  if (PLAY.isPortrait) {
+    hud.style.top = `calc(var(--safe-top) + ${HUD_TOP_OFFSET_CSS}px)`;
+  } else {
+    hud.style.top = '';  // CSSのデフォルトに戻す
+  }
 }
 
 // 画面にサウンドボタンを必ず作る（縦=HUD内 / 横=ドック右寄せ）
@@ -4103,28 +4146,28 @@ function visibleBounds(radius = 0){
       unlockAchievement('no_item');
     }
     
-    // ステータスMAX実績
-    if (state.player.maxHp >= 220) { // CAPS.hpMax
+    // ステータスMAX実績（レベル5で達成）
+    if ((state.hpLv || 0) >= 5) {
       unlockAchievement('max_hp_clear');
     }
-    if (state.mods.dmgMul >= 1.47) { // CAPS.dmgMulMax
+    if ((state.dmgLv || 0) >= 5) {
       unlockAchievement('max_damage_clear');
     }
-    if (state.mods.rateMul <= 0.59) { // CAPS.rateMulMin（小さいほど速い）
+    if ((state.rateLv || 0) >= 5) {
       unlockAchievement('max_rate_clear');
     }
-    if (state.player.speed >= 340) { // CAPS.speedMax
+    if ((state.speedLv || 0) >= 5) {
       unlockAchievement('max_speed_clear');
     }
-    // 全能力MAX（HP, 移動速度, 攻撃ダメージ, 攻撃速度, 弾サイズ, 耐久力, HP自動回復）
+    // 全能力MAX（レベル制で統一）
     const allMax = 
-      state.player.maxHp >= 220 &&       // HP MAX
-      state.player.speed >= 340 &&        // 移動速度 MAX
-      state.mods.dmgMul >= 1.47 &&        // 攻撃ダメージ MAX
-      state.mods.rateMul <= 0.59 &&       // 攻撃速度 MAX
-      state.mods.sizeMul >= 1.61 &&       // 弾サイズ MAX
-      (state.defenseLv || 0) >= 5 &&      // 耐久力 MAX
-      (state.regenLv || 0) >= 3;          // HP自動回復 MAX
+      (state.hpLv || 0) >= 5 &&          // HP MAX
+      (state.speedLv || 0) >= 5 &&       // 移動速度 MAX
+      (state.dmgLv || 0) >= 5 &&         // 攻撃ダメージ MAX
+      (state.rateLv || 0) >= 5 &&        // 攻撃速度 MAX
+      (state.sizeLv || 0) >= 5 &&        // 弾サイズ MAX
+      (state.defenseLv || 0) >= 5 &&     // 耐久力 MAX
+      (state.regenLv || 0) >= 3;         // HP自動回復 MAX
     if (allMax) {
       unlockAchievement('max_all_clear');
     }
@@ -5267,55 +5310,7 @@ function computeCameraZoom(){
 }
 
 function ensureTopHud(){
-  const host = document.getElementById('hudTop');
-  if (!host || host.dataset.init) return;
-
-  host.dataset.init = '1';
-  host.innerHTML = `
-    <div class="tophud-compact" style="height:100%;display:flex;flex-direction:column;gap:4px;padding:0 6px;">
-      <!-- 1行目：⏸ Lv スコア タイマー 🔊 -->
-      <div class="row row1" style="display:flex;align-items:center;gap:6px;">
-        <button id="pauseTopBtn" style="background:none;border:none;color:#fff;font-size:18px;padding:2px 6px;cursor:pointer;opacity:0.9;">⏸</button>
-        <span style="font-weight:700;font-size:13px;">Lv<b id="lvTop">1</b></span>
-        <span style="font-size:12px;opacity:0.85;">💎<b id="scoreTop">0</b></span>
-        <span style="flex:1;"></span>
-        <span id="timeTop" style="font-weight:800;font-size:14px;letter-spacing:.02em;">0:00</span>
-        <button id="soundTopBtn" style="background:none;border:none;color:#fff;font-size:16px;padding:2px 6px;cursor:pointer;opacity:0.9;">🔊</button>
-      </div>
-
-      <!-- 2行目：HPバー EXバー -->
-      <div class="row row2" style="display:flex;align-items:center;gap:6px;">
-        <div class="bar hp" style="position:relative;flex:1;height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden">
-          <i id="hpTop" style="position:absolute;left:0;top:0;bottom:0;width:100%;background:linear-gradient(90deg,#27e38a,#12c574);transition:width 0.2s;"></i>
-        </div>
-        <div class="bar xp" style="position:relative;flex:1;height:10px;background:rgba(255,255,255,.1);border-radius:5px;overflow:hidden">
-          <i id="xpTop" style="position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,#6ae3ff,#4da6ff);transition:width 0.2s;"></i>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  // ⏸ボタンのイベント
-  const pauseTopBtn = document.getElementById('pauseTopBtn');
-  if (pauseTopBtn) {
-    pauseTopBtn.style.pointerEvents = 'auto';
-    pauseTopBtn.onclick = () => {
-      if (typeof togglePause === 'function') togglePause();
-    };
-  }
-  
-  // 🔊ボタンのイベント
-  const soundTopBtn = document.getElementById('soundTopBtn');
-  if (soundTopBtn) {
-    soundTopBtn.style.pointerEvents = 'auto';
-    soundTopBtn.onclick = () => {
-      const next = !window.AUDIO_MUTED;
-      if (typeof setAudioMuted === 'function') setAudioMuted(next);
-      soundTopBtn.textContent = next ? '🔇' : '🔊';
-    };
-    // 初期状態を反映
-    soundTopBtn.textContent = window.AUDIO_MUTED ? '🔇' : '🔊';
-  }
+  // 廃止：.hudで縦横統一したため不要
 }
 
 
@@ -5931,27 +5926,18 @@ function showPauseMenu() {
   const abilitySection = document.createElement('div');
   abilitySection.style.cssText = 'margin-bottom: 20px;';
   
-  // ★能力の取得数を計算
+  // ★能力の取得数を計算（レベル変数から直接参照）
   const abilityLevels = {
-    hp: { current: 0, max: 5 },
-    speed: { current: 0, max: 5 },
-    damage: { current: 0, max: 5 },
-    rate: { current: 0, max: 5 },
-    size: { current: 0, max: 5 },
+    hp: { current: state.hpLv || 0, max: 5 },
+    speed: { current: state.speedLv || 0, max: 5 },
+    damage: { current: state.dmgLv || 0, max: 5 },
+    rate: { current: state.rateLv || 0, max: 5 },
+    size: { current: state.sizeLv || 0, max: 5 },
     defense: { current: state.defenseLv || 0, max: 5 },
     regen: { current: state.regenLv || 0, max: 3 },
     pickup: { current: state.pickupLv || 0, max: 3 },
     doubleItem: { current: state.mods.doubleItem ? 1 : 0, max: 1 }
   };
-  
-  // CAPSからレベル逆算
-  const p = state.player;
-  const mo = state.mods;
-  if (p.maxHp > 120) abilityLevels.hp.current = Math.min(5, Math.round(Math.log(p.maxHp / 120) / Math.log(1.15)));
-  if (p.speed > 180) abilityLevels.speed.current = Math.min(5, Math.round(Math.log(p.speed / 180) / Math.log(1.15)));
-  if (mo.dmgMul > 1.0) abilityLevels.damage.current = Math.min(5, Math.round(Math.log(mo.dmgMul) / Math.log(1.08)));
-  if (mo.rateMul < 1.0) abilityLevels.rate.current = Math.min(5, Math.round(Math.log(mo.rateMul) / Math.log(0.90)));
-  if (mo.sizeMul > 1.0) abilityLevels.size.current = Math.min(5, Math.round(Math.log(mo.sizeMul) / Math.log(1.10)));
   
   // 総取得数を計算
   let totalAbilities = 0;
@@ -5972,13 +5958,15 @@ function showPauseMenu() {
   
   // 能力の状態を収集（多言語対応）
   const abilities = [];
+  const p = state.player;
+  const mo = state.mods;
   
-  if (p.maxHp > 120) abilities.push({ name: t('ability_hp'), value: `${Math.floor(p.maxHp)}`, lv: `${abilityLevels.hp.current}/5` });
-  if (p.speed > 180) abilities.push({ name: t('ability_speed'), value: `${Math.floor(p.speed)}`, lv: `${abilityLevels.speed.current}/5` });
+  if ((state.hpLv || 0) > 0) abilities.push({ name: t('ability_hp'), value: `${Math.floor(p.maxHp)}`, lv: `${abilityLevels.hp.current}/5` });
+  if ((state.speedLv || 0) > 0) abilities.push({ name: t('ability_speed'), value: `${Math.floor(p.speed)}`, lv: `${abilityLevels.speed.current}/5` });
   if ((state.regenLv || 0) > 0) abilities.push({ name: t('ability_regen'), value: `Lv${state.regenLv}`, lv: `${abilityLevels.regen.current}/3` });
-  if (mo.dmgMul > 1.0) abilities.push({ name: t('ability_damage'), value: `${Math.round(mo.dmgMul * 100)}%`, lv: `${abilityLevels.damage.current}/5` });
-  if (mo.rateMul < 1.0) abilities.push({ name: t('ability_rate'), value: `${Math.round((1/mo.rateMul) * 100)}%`, lv: `${abilityLevels.rate.current}/5` });
-  if (mo.sizeMul > 1.0) abilities.push({ name: t('ability_size'), value: `${Math.round(mo.sizeMul * 100)}%`, lv: `${abilityLevels.size.current}/5` });
+  if ((state.dmgLv || 0) > 0) abilities.push({ name: t('ability_damage'), value: `${Math.round(mo.dmgMul * 100)}%`, lv: `${abilityLevels.damage.current}/5` });
+  if ((state.rateLv || 0) > 0) abilities.push({ name: t('ability_rate'), value: `${Math.round((1/mo.rateMul) * 100)}%`, lv: `${abilityLevels.rate.current}/5` });
+  if ((state.sizeLv || 0) > 0) abilities.push({ name: t('ability_size'), value: `${Math.round(mo.sizeMul * 100)}%`, lv: `${abilityLevels.size.current}/5` });
   if ((state.defenseLv || 0) > 0) abilities.push({ name: t('ability_defense'), value: lang === 'ja' ? `-${state.defenseLv * 6}%被ダメ` : `-${state.defenseLv * 6}% DMG`, lv: `${abilityLevels.defense.current}/5` });
   if ((state.pickupLv || 0) > 0) abilities.push({ name: t('ability_pickup'), value: `Lv${state.pickupLv}`, lv: `${abilityLevels.pickup.current}/3` });
   if (mo.doubleItem) abilities.push({ name: t('ability_double_item'), value: t('ability_enabled'), lv: '1/1' });
@@ -6631,7 +6619,10 @@ async function startStage(stageId, hardcore) {
     const hud = document.querySelector('.hud');
     if (hud) hud.style.display = 'flex';
     const hudTop = document.getElementById('hudTop');
-    if (hudTop) hudTop.style.display = '';
+    if (hudTop) hudTop.style.display = 'none';  // hudTopは使わない
+    
+    // HUDの幅をプレイ領域に合わせる
+    if (typeof updateMainHud === 'function') updateMainHud();
     
     state.last = performance.now();
     syncPauseButton();
@@ -6712,6 +6703,11 @@ state.player.kby = 0;
 state.pickupLv = 0;
 state.defenseLv = 0; // 耐久力レベルリセット
 state.regenLv = 0; // 自然回復レベルリセット
+state.speedLv = 0; // 移動速度レベルリセット
+state.hpLv = 0; // 最大HPレベルリセット
+state.rateLv = 0; // 攻撃速度レベルリセット
+state.dmgLv = 0; // 与ダメージレベルリセット
+state.sizeLv = 0; // 弾サイズレベルリセット
     // Reset meta
     state.manualPaused = false;
     state.mods.sizeMul = 1.0;
@@ -6799,6 +6795,9 @@ if (gatherEl) gatherEl.style.display = 'none';
     state.paused = false;
     state.last = performance.now();
     clearEl.style.display='none';
+    
+    // HUDの幅をプレイ領域に合わせる
+    if (typeof updateMainHud === 'function') updateMainHud();
     
     // === score & records ===
 state.score = 0;                 // 現在スコア
@@ -7054,7 +7053,7 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   else if (typeof state?.xpToNext === 'function') needXP = state.xpToNext(p.level);
   const xpPct = needXP > 0 ? Math.min(100, (xp / needXP) * 100) : 0;
 
-  // 参照要素
+  // 参照要素（hudTop用とhud用の両方）
   const hpTop    = document.getElementById('hpTop');
   const hpTopVal = document.getElementById('hpTopVal');
   const xpTop    = document.getElementById('xpTop');
@@ -7063,23 +7062,40 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   const wlTop    = document.getElementById('wlTop');
   const timeTop  = document.getElementById('timeTop');
   const scoreTop = document.getElementById('scoreTop');
+  
+  // .hud用のID（統一化のため追加）
+  const hpwEl = document.getElementById('hpw');
+  const xpwEl = document.getElementById('xpw');
+  const lvEl = document.getElementById('lv');
+  const scoreValEl = document.getElementById('scoreVal');
 
   // HP：幅＆色（20%以下で赤／それ以外は緑）
+  const hpWidth = hpPct.toFixed(1) + '%';
+  const low = hpPct <= 20;
+  const hpBg = low
+    ? 'linear-gradient(90deg,#ff6464,#ff3a3a)'
+    : 'linear-gradient(90deg,#27e38a,#12c574)';
+  
   if (hpTop){
-    hpTop.style.width = hpPct.toFixed(1) + '%';
-    const low = hpPct <= 20;
-    hpTop.style.background = low
-      ? 'linear-gradient(90deg,#ff6464,#ff3a3a)'
-      : 'linear-gradient(90deg,#27e38a,#12c574)';
+    hpTop.style.width = hpWidth;
+    hpTop.style.background = hpBg;
+  }
+  if (hpwEl){
+    hpwEl.style.width = hpWidth;
+    hpwEl.style.background = hpBg;
   }
   if (hpTopVal) hpTopVal.textContent = `${Math.floor(hpNow)} / ${p.maxHp || 0}`;
 
   // EX：幅＆数値
-  if (xpTop)    xpTop.style.width = xpPct.toFixed(1) + '%';
+  const xpWidth = xpPct.toFixed(1) + '%';
+  if (xpTop) xpTop.style.width = xpWidth;
+  if (xpwEl) xpwEl.style.width = xpWidth;
   if (xpTopVal) xpTopVal.textContent = needXP > 0 ? `${Math.floor(xp)} / ${needXP}` : `${Math.floor(xp)}`;
 
   // Lv / 武器Lv
-  if (lvTop) lvTop.textContent = p.level || 1;
+  const levelVal = p.level || 1;
+  if (lvTop) lvTop.textContent = levelVal;
+  if (lvEl) lvEl.textContent = levelVal;
   const wl =
     (state?.weapons?.main?.level) ??
     (state?.weaponLevel) ??
@@ -7087,7 +7103,9 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   if (wlTop) wlTop.textContent = wl;
 
   // スコア
-  if (scoreTop) scoreTop.textContent = (state.score || 0).toLocaleString();
+  const scoreStr = (state.score || 0).toLocaleString();
+  if (scoreTop) scoreTop.textContent = scoreStr;
+  if (scoreValEl) scoreValEl.textContent = scoreStr;
   
   // 新HUD難易度バッジ
   const hudDiffBadge = document.getElementById('hudDiffBadge');
@@ -9147,7 +9165,7 @@ const U = {
     };
   },
 
-  // ---- ステータス系（上限付き） ----
+  // ---- ステータス系（レベル制・MAX5） ----
   speed: {
     id: 'speed+',
     get name() {
@@ -9155,19 +9173,25 @@ const U = {
     },
     get desc() {
       const lang = getLang();
-      const current = state.player.speed;
-      const max = CAPS.speedMax;
-      const pct = Math.floor((current / max) * 100);
-      return lang === 'ja' 
-        ? `+15%移動速度 [${Math.floor(current)}/${max}] (${pct}%)`
-        : `+15% Speed [${Math.floor(current)}/${max}] (${pct}%)`;
+      const lv = state.speedLv || 0;
+      const nextLv = lv + 1;
+      if (lang === 'ja') {
+        return `Lv${nextLv}: 移動速度 +15%（現在Lv${lv}/5）`;
+      } else {
+        return `Lv${nextLv}: Speed +15% (now Lv${lv}/5)`;
+      }
     },
-    can: () => state.player.speed < CAPS.speedMax - 1,
+    can: () => (state.speedLv || 0) < 5,
     apply: () => {
-      state.player.speed = Math.min(CAPS.speedMax, state.player.speed * 1.15);
-      if (state.player.speed >= CAPS.speedMax) {
+      state.speedLv = (state.speedLv || 0) + 1;
+      state.player.speed = state.player.speed * 1.15;
+      const lv = state.speedLv;
+      if (lv >= 5) {
         const maxText = getLang() === 'ja' ? '💨 移動速度MAX!' : '💨 Speed MAX!';
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
+      } else {
+        const lvText = getLang() === 'ja' ? `移動速度 Lv${lv}` : `Speed Lv${lv}`;
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: lvText });
       }
     }
   },
@@ -9179,20 +9203,28 @@ const U = {
     },
     get desc() {
       const lang = getLang();
-      const current = state.player.maxHp;
-      const max = CAPS.hpMax;
-      const pct = Math.floor((current / max) * 100);
-      return lang === 'ja'
-        ? `+15%最大HP [${Math.floor(current)}/${max}] (${pct}%)`
-        : `+15% Max HP [${Math.floor(current)}/${max}] (${pct}%)`;
+      const lv = state.hpLv || 0;
+      const nextLv = lv + 1;
+      if (lang === 'ja') {
+        return `Lv${nextLv}: 最大HP +15%（現在Lv${lv}/5）`;
+      } else {
+        return `Lv${nextLv}: Max HP +15% (now Lv${lv}/5)`;
+      }
     },
-    can: () => state.player.maxHp < CAPS.hpMax - 1,
+    can: () => (state.hpLv || 0) < 5,
     apply: () => {
-      state.player.maxHp = Math.min(CAPS.hpMax, Math.round(state.player.maxHp * 1.15));
-      state.player.hp = Math.min(state.player.maxHp, state.player.hp + Math.round(state.player.maxHp * 0.15));
-      if (state.player.maxHp >= CAPS.hpMax) {
+      state.hpLv = (state.hpLv || 0) + 1;
+      const oldMax = state.player.maxHp;
+      state.player.maxHp = Math.round(state.player.maxHp * 1.15);
+      // HP も同じ割合で増加
+      state.player.hp = Math.min(state.player.maxHp, state.player.hp + Math.round(oldMax * 0.15));
+      const lv = state.hpLv;
+      if (lv >= 5) {
         const maxText = getLang() === 'ja' ? '❤️ HP MAX!' : '❤️ HP MAX!';
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
+      } else {
+        const lvText = getLang() === 'ja' ? `最大HP Lv${lv}` : `Max HP Lv${lv}`;
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: lvText });
       }
     }
   },
@@ -9205,15 +9237,16 @@ const U = {
     desc: () => {
       const lang = getLang();
       const lv = state.regenLv || 0;
+      const nextLv = lv + 1;
       if (lang === 'ja') {
         if (lv === 0) return 'Lv1: 毎秒 最大HPの0.4% 回復';
-        if (lv === 1) return 'Lv2: 毎秒 最大HPの0.8% 回復';
-        if (lv === 2) return 'Lv3: 毎秒 最大HPの1.2% 回復';
+        if (lv === 1) return 'Lv2: 毎秒 最大HPの0.8% 回復（現在Lv1/3）';
+        if (lv === 2) return 'Lv3: 毎秒 最大HPの1.2% 回復（現在Lv2/3）';
         return '最大レベル';
       } else {
         if (lv === 0) return 'Lv1: Recover 0.4% HP/sec';
-        if (lv === 1) return 'Lv2: Recover 0.8% HP/sec';
-        if (lv === 2) return 'Lv3: Recover 1.2% HP/sec';
+        if (lv === 1) return 'Lv2: Recover 0.8% HP/sec (now Lv1/3)';
+        if (lv === 2) return 'Lv3: Recover 1.2% HP/sec (now Lv2/3)';
         return 'Max Level';
       }
     },
@@ -9239,19 +9272,16 @@ const U = {
     desc: () => {
       const lang = getLang();
       const lv = state.defenseLv || 0;
+      const nextLv = lv + 1;
+      const nextReduction = nextLv * 6;
+      const currentReduction = lv * 6;
       if (lang === 'ja') {
-        if (lv === 0) return 'Lv1: 受けるダメージを6%軽減';
-        if (lv === 1) return 'Lv2: 受けるダメージを12%軽減（現在6%）';
-        if (lv === 2) return 'Lv3: 受けるダメージを18%軽減（現在12%）';
-        if (lv === 3) return 'Lv4: 受けるダメージを24%軽減（現在18%）';
-        if (lv === 4) return 'Lv5: 受けるダメージを30%軽減（現在24%）';
+        if (lv === 0) return `Lv1: 受けるダメージを6%軽減`;
+        if (lv < 5) return `Lv${nextLv}: ダメージ${nextReduction}%軽減（現在Lv${lv}/5 ${currentReduction}%軽減）`;
         return '最大レベル（30%軽減）';
       } else {
-        if (lv === 0) return 'Lv1: -6% damage taken';
-        if (lv === 1) return 'Lv2: -12% damage (now -6%)';
-        if (lv === 2) return 'Lv3: -18% damage (now -12%)';
-        if (lv === 3) return 'Lv4: -24% damage (now -18%)';
-        if (lv === 4) return 'Lv5: -30% damage (now -24%)';
+        if (lv === 0) return `Lv1: -6% damage taken`;
+        if (lv < 5) return `Lv${nextLv}: -${nextReduction}% damage (now Lv${lv}/5 -${currentReduction}%)`;
         return 'Max Level (-30%)';
       }
     },
@@ -9276,12 +9306,33 @@ const U = {
       return getLang() === 'ja' ? '吸引範囲アップ' : 'Pickup Range Up';
     },
     get desc() {
-      return getLang() === 'ja' 
-        ? '経験値吸引範囲アップ（Lv3で全域）'
-        : 'XP pickup range up (Lv3: full screen)';
+      const lang = getLang();
+      const lv = state.pickupLv || 0;
+      const nextLv = lv + 1;
+      if (lang === 'ja') {
+        if (lv === 0) return 'Lv1: 吸引範囲アップ';
+        if (lv === 1) return 'Lv2: 吸引範囲アップ（現在Lv1/3）';
+        if (lv === 2) return 'Lv3: 全域吸引（現在Lv2/3）';
+        return '最大レベル';
+      } else {
+        if (lv === 0) return 'Lv1: Pickup range up';
+        if (lv === 1) return 'Lv2: Pickup range up (now Lv1/3)';
+        if (lv === 2) return 'Lv3: Full screen pickup (now Lv2/3)';
+        return 'Max Level';
+      }
     },
-    can: () => state.pickupLv < 3,
-    apply: () => { state.pickupLv++; }
+    can: () => (state.pickupLv || 0) < 3,
+    apply: () => {
+      state.pickupLv = (state.pickupLv || 0) + 1;
+      const lv = state.pickupLv;
+      if (lv >= 3) {
+        const maxText = getLang() === 'ja' ? '🧲 吸引範囲MAX!' : '🧲 Pickup MAX!';
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
+      } else {
+        const lvText = getLang() === 'ja' ? `吸引範囲 Lv${lv}` : `Pickup Lv${lv}`;
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: lvText });
+      }
+    }
   },
 
   atkRate: {
@@ -9291,19 +9342,25 @@ const U = {
     },
     get desc() {
       const lang = getLang();
-      const current = state.mods.rateMul;
-      const max = CAPS.rateMulMin;
-      const pct = Math.floor((1 - current) / (1 - max) * 100);
-      return lang === 'ja'
-        ? `クールダウン -10% [${current.toFixed(2)}→${max}] (${pct}%)`
-        : `Cooldown -10% [${current.toFixed(2)}→${max}] (${pct}%)`;
+      const lv = state.rateLv || 0;
+      const nextLv = lv + 1;
+      if (lang === 'ja') {
+        return `Lv${nextLv}: クールダウン -10%（現在Lv${lv}/5）`;
+      } else {
+        return `Lv${nextLv}: Cooldown -10% (now Lv${lv}/5)`;
+      }
     },
-    can: () => state.mods.rateMul > CAPS.rateMulMin + 1e-6,
+    can: () => (state.rateLv || 0) < 5,
     apply: () => {
-      state.mods.rateMul = Math.max(CAPS.rateMulMin, state.mods.rateMul * 0.90);
-      if (state.mods.rateMul <= CAPS.rateMulMin) {
+      state.rateLv = (state.rateLv || 0) + 1;
+      state.mods.rateMul = state.mods.rateMul * 0.90;
+      const lv = state.rateLv;
+      if (lv >= 5) {
         const maxText = getLang() === 'ja' ? '⚡ 攻撃速度MAX!' : '⚡ Attack Speed MAX!';
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
+      } else {
+        const lvText = getLang() === 'ja' ? `攻撃速度 Lv${lv}` : `Atk Speed Lv${lv}`;
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: lvText });
       }
     }
   },
@@ -9315,19 +9372,25 @@ const U = {
     },
     get desc() {
       const lang = getLang();
-      const current = state.mods.dmgMul;
-      const max = CAPS.dmgMulMax;
-      const pct = Math.floor((current / max) * 100);
-      return lang === 'ja'
-        ? `ダメージ +8% [×${current.toFixed(2)}/${max}] (${pct}%)`
-        : `Damage +8% [×${current.toFixed(2)}/${max}] (${pct}%)`;
+      const lv = state.dmgLv || 0;
+      const nextLv = lv + 1;
+      if (lang === 'ja') {
+        return `Lv${nextLv}: ダメージ +8%（現在Lv${lv}/5）`;
+      } else {
+        return `Lv${nextLv}: Damage +8% (now Lv${lv}/5)`;
+      }
     },
-    can: () => state.mods.dmgMul < CAPS.dmgMulMax - 1e-6,
+    can: () => (state.dmgLv || 0) < 5,
     apply: () => {
-      state.mods.dmgMul = Math.min(CAPS.dmgMulMax, state.mods.dmgMul * 1.08);
-      if (state.mods.dmgMul >= CAPS.dmgMulMax) {
+      state.dmgLv = (state.dmgLv || 0) + 1;
+      state.mods.dmgMul = state.mods.dmgMul * 1.08;
+      const lv = state.dmgLv;
+      if (lv >= 5) {
         const maxText = getLang() === 'ja' ? '💥 攻撃力MAX!' : '💥 Damage MAX!';
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
+      } else {
+        const lvText = getLang() === 'ja' ? `攻撃力 Lv${lv}` : `Damage Lv${lv}`;
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: lvText });
       }
     }
   },
@@ -9338,16 +9401,26 @@ const U = {
       return getLang() === 'ja' ? '弾サイズアップ' : 'Bullet Size Up';
     },
     get desc() {
-      return getLang() === 'ja'
-        ? '弾・範囲 +10%（上限あり）'
-        : 'Bullet/Range +10% (capped)';
+      const lang = getLang();
+      const lv = state.sizeLv || 0;
+      const nextLv = lv + 1;
+      if (lang === 'ja') {
+        return `Lv${nextLv}: 弾・範囲 +10%（現在Lv${lv}/5）`;
+      } else {
+        return `Lv${nextLv}: Bullet/Range +10% (now Lv${lv}/5)`;
+      }
     },
-    can: () => state.mods.sizeMul < CAPS.sizeMulMax - 1e-6,
+    can: () => (state.sizeLv || 0) < 5,
     apply: () => {
-      state.mods.sizeMul = Math.min(CAPS.sizeMulMax, state.mods.sizeMul * 1.10);
-      if (state.mods.sizeMul >= CAPS.sizeMulMax) {
+      state.sizeLv = (state.sizeLv || 0) + 1;
+      state.mods.sizeMul = state.mods.sizeMul * 1.10;
+      const lv = state.sizeLv;
+      if (lv >= 5) {
         const maxText = getLang() === 'ja' ? '🔵 弾サイズMAX!' : '🔵 Size MAX!';
         addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: maxText });
+      } else {
+        const lvText = getLang() === 'ja' ? `弾サイズ Lv${lv}` : `Size Lv${lv}`;
+        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.1, text: lvText });
       }
     }
   },
@@ -14448,24 +14521,78 @@ function showGameClear(){
     const scoreData = createScoreData('clear');
     saveScore(scoreData);
 
-    // ハードコアボタンを表示
+    // 次のチャレンジボタン（ステージ進行優先）
+    // S1クリア → 同難易度でS2へ
+    // S2クリア → 次の難易度でS1へ（Hardcoreクリアなら非表示）
     if (hardcoreBtn){
-      hardcoreBtn.style.display = 'inline-block';
-      hardcoreBtn.onclick = () => {
-        // ランキング消去
-        const rankingModal = document.getElementById('rankingModal');
-        if (rankingModal) rankingModal.remove();
-        
-        // 状態をリセット
-        state.gameover = false;
-        
-        state.mode.hardcore = true;  // 次の周回をハードコアに
-        el.style.display = 'none';
-        resetGame();
-        syncPauseButton();
-        const startText = getLang() === 'ja' ? 'ハードコア開始!' : 'HARDCORE START';
-        addEffect('text', { x: state.player.x, y: state.player.y, life: 1.4, text: startText });
+      const currentDiff = state.mode.difficulty || 'normal';
+      const currentStage = state.currentStage || 'stage1';
+      const lang = getLang();
+      
+      const diffOrder = ['easy', 'normal', 'hard', 'hardcore'];
+      const diffNames = { easy: 'Easy', normal: 'Normal', hard: 'Hard', hardcore: 'Hardcore' };
+      const diffColors = {
+        easy: '#22c55e',    // 緑
+        normal: '#3b82f6',  // 青
+        hard: '#f97316',    // オレンジ
+        hardcore: '#8b5cf6' // 紫
       };
+      
+      let nextStage, nextDiff, btnText, btnColor;
+      
+      if (currentStage === 'stage1') {
+        // S1クリア → 同じ難易度でS2へ
+        nextStage = 'stage2';
+        nextDiff = currentDiff;
+        btnText = lang === 'ja' ? `Stage 2 (${diffNames[nextDiff]}) へ！` : `Go to Stage 2 (${diffNames[nextDiff]})!`;
+        btnColor = diffColors[nextDiff];
+      } else {
+        // S2クリア → 次の難易度でS1へ
+        const currentIdx = diffOrder.indexOf(currentDiff);
+        const nextIdx = currentIdx + 1;
+        
+        if (nextIdx >= diffOrder.length) {
+          // Hardcoreクリア → ボタン非表示
+          hardcoreBtn.style.display = 'none';
+          nextStage = null;
+        } else {
+          nextStage = 'stage1';
+          nextDiff = diffOrder[nextIdx];
+          btnText = lang === 'ja' ? `${diffNames[nextDiff]}で Stage 1 へ！` : `Try Stage 1 on ${diffNames[nextDiff]}!`;
+          btnColor = diffColors[nextDiff];
+        }
+      }
+      
+      if (nextStage) {
+        hardcoreBtn.textContent = btnText;
+        hardcoreBtn.style.background = btnColor;
+        hardcoreBtn.style.display = 'inline-block';
+        hardcoreBtn.onclick = () => {
+          // ランキング消去
+          const rankingModal = document.getElementById('rankingModal');
+          if (rankingModal) rankingModal.remove();
+          
+          // 状態をリセット
+          state.gameover = false;
+          
+          // 次のステージ・難易度を設定
+          state.currentStage = nextStage;
+          window._pendingStage = nextStage;
+          state.mode.difficulty = nextDiff;
+          state.mode.hardcore = (nextDiff === 'hardcore');
+          window._pendingDifficulty = nextDiff;
+          
+          el.style.display = 'none';
+          resetGame();
+          syncPauseButton();
+          
+          const stageNum = nextStage === 'stage1' ? '1' : '2';
+          const startText = lang === 'ja' 
+            ? `Stage ${stageNum} (${diffNames[nextDiff]}) 開始!` 
+            : `Stage ${stageNum} (${diffNames[nextDiff]}) Start!`;
+          addEffect('text', { x: state.player.x, y: state.player.y, life: 1.4, text: startText });
+        };
+      }
     }
   }else{
     state.paused = true;
