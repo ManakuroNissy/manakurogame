@@ -4028,13 +4028,14 @@ function computePlayRect(){
   PLAY.aspect = target; PLAY.isPortrait = isPortrait;
 
   // WORLD 切替（スマホ横・縦・PC横の3パターン）
-  const isSmallScreen = Math.max(vw, vh) < 768;
+  // ★スマホ横画面: 短い方(vh)が500以下、または画面幅950以下
+  const isSmallScreen = !isPortrait && (vh <= 500 || vw <= 950);
   
   if (isPortrait) {
     WORLD.w = WORLD_P.w; 
     WORLD.h = WORLD_P.h;
   } else if (isSmallScreen) {
-    // スマホ横: 960x720
+    // スマホ横: 縦画面と同じ縮小率になるよう調整
     WORLD.w = 960; 
     WORLD.h = 720;
   } else {
