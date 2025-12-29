@@ -61,7 +61,7 @@ html, body {
   width:100%; height:100%;
   display:block;
 }
-#start { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.6); z-index:50; pointer-events:auto; overflow-y:auto; padding:20px 10px; }
+#start { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:transparent; z-index:50; pointer-events:auto; overflow-y:auto; padding:20px 10px; }
 .hud {
   position:absolute; left:0; right:0; top:0;
   width:100%;
@@ -1035,6 +1035,9 @@ try {
       btn_achievements: '🎖️ 実績',
       btn_customize: '🎨 スキン変更',
       btn_update_log: '📝 更新履歴',
+      version_note: '多言語対応',
+      update_log_title: '📝 更新履歴',
+      update_log_close: '閉じる',
       btn_settings: '⚙️ 設定',
       
       // ===== 共通UI =====
@@ -1394,6 +1397,9 @@ try {
       btn_achievements: '🎖️ Achievements',
       btn_customize: '🎨 Skin Change',
       btn_update_log: '📝 Update Log',
+      version_note: 'Multi-language Support',
+      update_log_title: '📝 Update Log',
+      update_log_close: 'Close',
       btn_settings: '⚙️ Settings',
       
       // ===== Common UI =====
@@ -1856,6 +1862,9 @@ try {
 
 <div id="wrap">
 <div id="start" style="display:flex; flex-direction:column; align-items:center; text-align:center; gap:.5rem;">
+  <!-- パーティクル背景 -->
+  <canvas id="titleBgCanvas" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:-1;"></canvas>
+  
   <!-- 言語切替ボタン（右上） -->
   <div id="langSwitcher" style="position:absolute; top:10px; right:10px; display:flex; gap:4px; z-index:100;">
     <button id="langJaBtn" class="langBtn" style="padding:6px 12px; border-radius:6px; border:2px solid #475569; background:#1e293b; color:#fff; font-size:12px; font-weight:bold; cursor:pointer;">日本語</button>
@@ -1995,6 +2004,22 @@ try {
     if (updateLogBtn) updateLogBtn.textContent = t('btn_update_log');
     if (settingsBtn) settingsBtn.textContent = t('btn_settings');
     
+    // バージョンノート
+    const versionNote = document.getElementById('versionNote');
+    if (versionNote) versionNote.textContent = t('version_note');
+    
+    // 更新履歴モーダル
+    const updateLogTitle = document.getElementById('updateLogTitle');
+    const updateLogCloseBtn = document.getElementById('updateLogCloseBtn');
+    if (updateLogTitle) updateLogTitle.textContent = t('update_log_title');
+    if (updateLogCloseBtn) updateLogCloseBtn.textContent = t('update_log_close');
+    
+    // 更新履歴コンテンツの切り替え
+    const updateLogJa = document.getElementById('updateLogContentJa');
+    const updateLogEn = document.getElementById('updateLogContentEn');
+    if (updateLogJa) updateLogJa.style.display = lang === 'ja' ? 'block' : 'none';
+    if (updateLogEn) updateLogEn.style.display = lang === 'en' ? 'block' : 'none';
+    
     // 言語ボタンの状態を更新
     const jaBtn = document.getElementById('langJaBtn');
     const enBtn = document.getElementById('langEnBtn');
@@ -2090,7 +2115,116 @@ try {
 })();
 </script>
 
-<!-- カスタマイズモーダル -->
+<!-- タイトル背景パーティクル -->
+<script>
+(function() {
+  const canvas = document.getElementById('titleBgCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  
+  let particles = [];
+  let animationId = null;
+  let isRunning = false;
+  
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  
+  function initParticles() {
+    particles = [];
+    const count = Math.min(60, Math.floor((canvas.width * canvas.height) / 15000));
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 3 + 1,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: -Math.random() * 0.5 - 0.2,
+        color: ['#4ade80', '#22d3ee', '#a78bfa', '#fbbf24'][Math.floor(Math.random() * 4)],
+        alpha: Math.random() * 0.5 + 0.3
+      });
+    }
+  }
+  
+  function draw() {
+    if (!isRunning) return;
+    
+    // グラデーション背景
+    const grad = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, 0,
+      canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.7
+    );
+    grad.addColorStop(0, '#1a1a3e');
+    grad.addColorStop(0.5, '#0f0f2a');
+    grad.addColorStop(1, '#050510');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // パーティクル描画
+    for (const p of particles) {
+      p.x += p.vx;
+      p.y += p.vy;
+      
+      // 画面外に出たら反対側から
+      if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+      if (p.x < -10) p.x = canvas.width + 10;
+      if (p.x > canvas.width + 10) p.x = -10;
+      
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.alpha;
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    
+    animationId = requestAnimationFrame(draw);
+  }
+  
+  function start() {
+    if (isRunning) return;
+    isRunning = true;
+    resize();
+    initParticles();
+    draw();
+  }
+  
+  function stop() {
+    isRunning = false;
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+  }
+  
+  // タイトル画面の表示/非表示を監視
+  const startScreen = document.getElementById('start');
+  if (startScreen) {
+    const observer = new MutationObserver(() => {
+      const isVisible = startScreen.style.display !== 'none' && startScreen.offsetParent !== null;
+      if (isVisible && !isRunning) {
+        start();
+      } else if (!isVisible && isRunning) {
+        stop();
+      }
+    });
+    observer.observe(startScreen, { attributes: true, attributeFilter: ['style'] });
+    
+    // 初期表示時
+    if (startScreen.style.display !== 'none') {
+      start();
+    }
+  }
+  
+  window.addEventListener('resize', () => {
+    if (isRunning) {
+      resize();
+      initParticles();
+    }
+  });
+})();
+</script>
 <div id="customizeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; padding:5px; box-sizing:border-box; overflow-y:auto;">
   <div style="max-width:700px; margin:0 auto; background:#1e293b; border-radius:12px; padding:0.8rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
@@ -2237,11 +2371,11 @@ try {
   <div id="updateLogModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; padding:10px; box-sizing:border-box; overflow-y:auto;">
     <div style="max-width:700px; margin:0 auto; background:#1e293b; border-radius:16px; padding:1.5rem; box-shadow:0 8px 32px rgba(0,0,0,0.5);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-        <h2 style="margin:0; color:#fff; font-size:1.8rem;">📝 更新履歴</h2>
-        <button onclick="document.getElementById('updateLogModal').style.display='none'" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">閉じる</button>
+        <h2 id="updateLogTitle" style="margin:0; color:#fff; font-size:1.8rem;">📝 更新履歴</h2>
+        <button id="updateLogCloseBtn" onclick="document.getElementById('updateLogModal').style.display='none'" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:700;">閉じる</button>
       </div>
       
-      <div style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+      <div id="updateLogContentJa" style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
         
         <!-- Ver 2.4 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
@@ -2836,6 +2970,73 @@ try {
             <li>11種類の武器システム</li>
             <li>ボス戦システム</li>
             <li>レベルアップシステム</li>
+          </ul>
+        </div>
+        
+      </div>
+      
+      <!-- English Version -->
+      <div id="updateLogContentEn" style="display:none; color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+        
+        <!-- Ver 2.4 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.4 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/29</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">📖 Tutorial for Beginners</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>Tutorial shown on first play (weapon upgrade & awakening system)</li>
+            <li>"Reroll" button text clarified</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">📱 Small Screen Support</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>Title screen: 2×2 grid for difficulty buttons, auto-scaling</li>
+            <li>All modals scale to fit small screens</li>
+            <li>iPhone notch safe area support</li>
+            <li>Compact HUD for landscape mobile</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">⚔️ Weapon Balance</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>Homing buffed: Speed 250, +10 damage per level, 100% explosion damage, 8 missiles when awakened</li>
+            <li>Poison buffed: +10 DPS per level</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎮 Other</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>"Reroll Master" achievement: 20→15 rerolls</li>
+            <li>Fixed weapon awakening descriptions</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 2.0.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/25</span></h3>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎮 Difficulty Modes</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li><strong>Easy</strong>: Enemy HP 60%, Attack 80%, Count 80%, 2 start bonuses</li>
+            <li><strong>Normal</strong>: Standard balance, 1 start bonus</li>
+            <li><strong>Hard</strong>: Enemy HP 1.2x, Attack 1.2x, Count 1.2x, no start bonus</li>
+            <li><strong>Hardcore</strong>: Enemy HP 2x, Attack 1.5x, Count 1.5x, no start bonus</li>
+          </ul>
+          
+          <h4 style="margin:0.5rem 0; color:#86efac;">🎨 Customization</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>Change player color (12 colors)</li>
+            <li>Unlock new colors by earning achievements</li>
+            <li>Rainbow color for completing all achievements!</li>
+          </ul>
+        </div>
+        
+        <!-- Ver 1.0.0 -->
+        <div style="padding:1rem; background:rgba(100,116,139,0.1); border-left:4px solid #64748b; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#94a3b8; font-size:1.3rem;">Ver 1.0.0 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/18</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>Initial release</li>
+            <li>11 weapon types</li>
+            <li>Boss battle system</li>
+            <li>Level-up system</li>
           </ul>
         </div>
         
