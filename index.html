@@ -9743,7 +9743,6 @@ const CAPS = {
 // ===== U（上限付きアップグレード定義）=====
 const U = {
   weaponAdd: (key) => {
-    const lang = getLang();
     // 武器ごとの説明文（日本語）
     const weaponDescsJa = {
       blaster: '基本武器。強化で弾数アップ。',
@@ -9775,14 +9774,20 @@ const U = {
       laser: 'Piercing laser beam. More power at higher levels.'
     };
     
-    const weaponDescs = lang === 'ja' ? weaponDescsJa : weaponDescsEn;
-    const weaponName = t('weapon_' + key) || weapons[key].name;
-    const newWeaponText = lang === 'ja' ? '新武器: ' : 'New: ';
-    
     return {
       id: `add:${key}`,
-      name: `${newWeaponText}${weaponName}`,
-      desc: weaponDescs[key] || (lang === 'ja' ? '入手（最大Lv3まで強化可能）' : 'Obtain (upgradeable to Lv3)'),
+      // name/descを関数にして呼び出し時に言語取得
+      get name() {
+        const lang = getLang();
+        const weaponName = t('weapon_' + key) || weapons[key].name;
+        const newWeaponText = lang === 'ja' ? '新武器: ' : 'New: ';
+        return `${newWeaponText}${weaponName}`;
+      },
+      get desc() {
+        const lang = getLang();
+        const weaponDescs = lang === 'ja' ? weaponDescsJa : weaponDescsEn;
+        return weaponDescs[key] || (lang === 'ja' ? '入手（最大Lv3まで強化可能）' : 'Obtain (upgradeable to Lv3)');
+      },
       isWeapon: true,  // ★武器フラグ
       can: () => weapons[key].lv === 0,
       apply: () => { weapons[key].lv = 1; state.owned.add(key); }
@@ -9790,7 +9795,6 @@ const U = {
   },
 
   weaponUp: (key) => {
-    const lang = getLang();
     // 武器強化時の詳細説明（日本語）
     const weaponUpDescsJa = {
       blaster: 'Lv2で2連射、Lv3で3連射に強化。',
@@ -9822,14 +9826,19 @@ const U = {
       laser: 'More damage, thicker beam.'
     };
     
-    const weaponUpDescs = lang === 'ja' ? weaponUpDescsJa : weaponUpDescsEn;
-    const weaponName = t('weapon_' + key) || weapons[key].name;
-    const upgradeText = lang === 'ja' ? '強化' : ' Upgrade';
-    
     return {
       id: `up:${key}`,
-      name: `${weaponName}${upgradeText}`,
-      desc: weaponUpDescs[key] || (lang === 'ja' ? '武器レベル+1（最大Lv3）' : 'Weapon +1 level (max Lv3)'),
+      get name() {
+        const lang = getLang();
+        const weaponName = t('weapon_' + key) || weapons[key].name;
+        const upgradeText = lang === 'ja' ? '強化' : ' Upgrade';
+        return `${weaponName}${upgradeText}`;
+      },
+      get desc() {
+        const lang = getLang();
+        const weaponUpDescs = lang === 'ja' ? weaponUpDescsJa : weaponUpDescsEn;
+        return weaponUpDescs[key] || (lang === 'ja' ? '武器レベル+1（最大Lv3）' : 'Weapon +1 level (max Lv3)');
+      },
       isWeapon: true,  // ★武器フラグ
       can: () => weapons[key].lv > 0 && weapons[key].lv < 3,
       apply: () => { weapons[key].lv++; }
@@ -9837,7 +9846,6 @@ const U = {
   },
 
   weaponAwaken: (key) => {
-    const lang = getLang();
     // 覚醒時の特別効果説明（日本語）
     const awakenDescsJa = {
       blaster: '超高速連射＋射程延長！',
@@ -9869,14 +9877,19 @@ const U = {
       laser: 'Massive high-power beam!'
     };
     
-    const awakenDescs = lang === 'ja' ? awakenDescsJa : awakenDescsEn;
-    const weaponName = t('weapon_' + key) || weapons[key].name;
-    const awakenText = lang === 'ja' ? ' 覚醒' : ' Awaken';
-    
     return {
       id: `aw:${key}`,
-      name: `${weaponName}${awakenText}`,
-      desc: awakenDescs[key] || (lang === 'ja' ? '特別な性能を解放！' : 'Unlock special abilities!'),
+      get name() {
+        const lang = getLang();
+        const weaponName = t('weapon_' + key) || weapons[key].name;
+        const awakenText = lang === 'ja' ? ' 覚醒' : ' Awaken';
+        return `${weaponName}${awakenText}`;
+      },
+      get desc() {
+        const lang = getLang();
+        const awakenDescs = lang === 'ja' ? awakenDescsJa : awakenDescsEn;
+        return awakenDescs[key] || (lang === 'ja' ? '特別な性能を解放！' : 'Unlock special abilities!');
+      },
       isWeapon: true,  // ★武器フラグ
       can: () => weapons[key].lv === 3 && !weapons[key].awaken,
       apply: () => { weapons[key].awaken = true; }
