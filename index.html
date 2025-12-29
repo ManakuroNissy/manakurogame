@@ -8895,6 +8895,22 @@ function openChest(pickCount = 2) {
   for (const u of choices) {
     const c = document.createElement('button');
     c.className = 'card';
+    
+    // 種類別の枠線色
+    if (u.isWeapon) {
+      // 武器: オレンジ系
+      c.style.borderColor = '#f59e0b';
+      c.style.boxShadow = '0 0 8px rgba(245, 158, 11, 0.3)';
+    } else if (u.id && (u.id.includes('+') || ['speed+', 'maxhp+', 'regen', 'defense', 'pickup', 'atkRate', 'atkDmg', 'sizeUp'].some(s => u.id.includes(s)))) {
+      // 能力アップ: 緑系
+      c.style.borderColor = '#4ade80';
+      c.style.boxShadow = '0 0 8px rgba(74, 222, 128, 0.3)';
+    } else {
+      // その他: 紫系
+      c.style.borderColor = '#a78bfa';
+      c.style.boxShadow = '0 0 8px rgba(167, 139, 250, 0.3)';
+    }
+    
     // descが関数の場合は実行、そうでなければそのまま使用
     const descText = typeof u.desc === 'function' ? u.desc() : (u.desc || '');
     // 多言語対応：u.nameKey があれば翻訳、なければそのまま
@@ -9050,6 +9066,22 @@ function showLevelUp(choices){
   for (const u of choices) {
     const c = document.createElement('button');
     c.className = 'card';
+    
+    // 種類別の枠線色
+    if (u.isWeapon) {
+      // 武器: オレンジ系
+      c.style.borderColor = '#f59e0b';
+      c.style.boxShadow = '0 0 8px rgba(245, 158, 11, 0.3)';
+    } else if (u.id && (u.id.includes('+') || ['speed+', 'maxhp+', 'regen', 'defense', 'pickup', 'atkRate', 'atkDmg', 'sizeUp'].some(s => u.id.includes(s)))) {
+      // 能力アップ: 緑系
+      c.style.borderColor = '#4ade80';
+      c.style.boxShadow = '0 0 8px rgba(74, 222, 128, 0.3)';
+    } else {
+      // その他: 紫系
+      c.style.borderColor = '#a78bfa';
+      c.style.boxShadow = '0 0 8px rgba(167, 139, 250, 0.3)';
+    }
+    
     // descが関数の場合は実行、そうでなければそのまま使用
     const descText = typeof u.desc === 'function' ? u.desc() : (u.desc || '');
     // 多言語対応：u.nameKey があれば翻訳、なければそのまま
@@ -9114,8 +9146,8 @@ function showLevelUp(choices){
   freeRerollBtn.disabled = !canFreeReroll;
   freeRerollBtn.style.opacity = canFreeReroll ? '1' : '0.5';
   freeRerollBtn.textContent = canFreeReroll 
-    ? (lang === 'ja' ? '🔄 リロール（1回）' : '🔄 Reroll (once)')
-    : (lang === 'ja' ? 'リロール済み' : 'Reroll Used');
+    ? (lang === 'ja' ? '🔄 引き直す（1回）' : '🔄 Reroll (once)')
+    : (lang === 'ja' ? '引き直し済み' : 'Reroll Used');
 
   freeRerollBtn.onclick = () => {
     if (window._freeRerollUsed) return;
@@ -11077,7 +11109,8 @@ if (e.hp <= 0 && !e.dead) {
   if (typeof safeKillEnemy === 'function') {
     safeKillEnemy(e);
   }
-  if (b.type !== 'rock') break; // ★ロックは貫通するのでbreakしない
+  // ★ロックは貫通、ホーミングは爆発処理があるのでbreakしない
+  if (b.type !== 'rock' && b.type !== 'homing') break;
 }
 
     
@@ -11326,8 +11359,8 @@ for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
       const e=state.enemies[i];
       e.hitFlash = Math.max(0, e.hitFlash - dt*2.5);
       
-      // 敵ノックバック速度の適用（減衰つき）
-if (e.kbx || e.kby){
+      // 敵ノックバック速度の適用（減衰つき）- ピラートラップは固定
+if ((e.kbx || e.kby) && e.type !== 'pillarTrap'){
   e.x += e.kbx * dt;
   e.y += e.kby * dt;
   const drag = 6.0;
@@ -11357,17 +11390,19 @@ for(const ef of state.effects){
 const stunMul = (e.stun > 0) ? 0.18 : 1.0;  // スタン中は18%の速度だけ動ける＝実質ほぼ停止
 const moveMul = slowMul * stunMul;
 
-// --- ノックバック（kbx/kby）を位置に反映＆減衰 ---
-e.kbx = e.kbx || 0;
-e.kby = e.kby || 0;
-if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
-  e.x += e.kbx * dt;
-  e.y += e.kby * dt;
-  const drag = 7.5;              // ノックバックの減衰
-  e.kbx += -e.kbx * drag * dt;
-  e.kby += -e.kby * drag * dt;
-} else {
-  e.kbx = e.kby = 0;
+// --- ノックバック（kbx/kby）を位置に反映＆減衰 --- ピラートラップは固定
+if (e.type !== 'pillarTrap') {
+  e.kbx = e.kbx || 0;
+  e.kby = e.kby || 0;
+  if (Math.abs(e.kbx) + Math.abs(e.kby) > 0.1){
+    e.x += e.kbx * dt;
+    e.y += e.kby * dt;
+    const drag = 7.5;              // ノックバックの減衰
+    e.kbx += -e.kbx * drag * dt;
+    e.kby += -e.kby * drag * dt;
+  } else {
+    e.kbx = e.kby = 0;
+  }
 }
 
       
@@ -13072,8 +13107,8 @@ if (e.vy) e.y += e.vy * dt;
             const finalDmg = e.dmg * (enemy.type === 'mid' || enemy.type === 'big' || enemy.type === 'final' ? 1.1 : 1.0);
             enemy.hp -= finalDmg;
             
-            // ノックバック（中心から外側へ）
-            if (dist > 0) {
+            // ノックバック（中心から外側へ）- ピラートラップは固定なので除外
+            if (dist > 0 && enemy.type !== 'pillarTrap') {
               const kb = 150;
               enemy.kbx = (enemy.kbx || 0) + (dx / dist) * kb;
               enemy.kby = (enemy.kby || 0) + (dy / dist) * kb;
