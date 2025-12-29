@@ -3999,12 +3999,12 @@ function computePlayRect(){
   ) || 0;
 
   // HUD高を確保（縦はノッチ＋オフセット＋HUD高、横はHUD高のみ）
-  // ★スマホ横画面はコンパクトHUD
+  // ★スマホ横画面はHUDを重ねる（topBar=0）
   let topBar;
   if (isPortrait) {
     topBar = safeTopPx + HUD_TOP_OFFSET_CSS + UI_TOP_BAR_CSS;
   } else if (isSmallLandscape) {
-    topBar = UI_TOP_BAR_COMPACT;  // ★コンパクトHUD
+    topBar = 0;  // ★HUDを重ねるので0
   } else {
     topBar = UI_TOP_BAR_CSS;
   }
@@ -4016,12 +4016,12 @@ function computePlayRect(){
   else { w = vw; h = w / target; if (h > availH){ h = availH; w = h * target; } }
 
   const x = Math.floor((vw - w)/2);
-  // ★縦・スマホ横は"HUDの直下にぴったり"配置／PC横は中央寄せ
+  // ★縦は"HUDの直下にぴったり"配置／スマホ横・PC横は中央寄せ
   let y;
-  if (isPortrait || isSmallLandscape) {
+  if (isPortrait) {
     y = Math.floor(topBar);  // HUD直下
   } else {
-    y = Math.floor(topBar + (availH - h) / 2);  // 中央寄せ
+    y = Math.floor((vh - h) / 2);  // 中央寄せ（スマホ横もPC横も）
   }
 
   PLAY.x = x; PLAY.y = y; PLAY.w = w; PLAY.h = h;
@@ -4174,11 +4174,14 @@ function updateMainHud(){
   const hudCompact = document.getElementById('hudCompact');
   
   if (isSmallLandscape) {
-    // スマホ横画面：HUDを画面幅いっぱいに + 1行コンパクトHUD
+    // スマホ横画面：HUDを画面幅いっぱいに + 1行コンパクトHUD + 半透明
     hud.style.width = '100%';
     hud.style.left = '0';
     hud.style.right = '0';
     hud.style.padding = '3px 10px';
+    hud.style.background = 'rgba(0, 0, 0, 0.4)';  // ★半透明
+    hud.style.zIndex = '100';  // ★ゲーム画面の上に重ねる
+    hud.style.opacity = '0.6';  // ★HUD全体を半透明に
     if (hudNormal) hudNormal.style.display = 'none';
     if (hudCompact) hudCompact.style.display = 'flex';
   } else {
@@ -4187,6 +4190,9 @@ function updateMainHud(){
     hud.style.left = PLAY.x + 'px';
     hud.style.right = 'auto';
     hud.style.padding = '';
+    hud.style.background = '';  // ★CSSのデフォルトに戻す
+    hud.style.zIndex = '';
+    hud.style.opacity = '1';  // ★不透明に戻す
     if (hudNormal) hudNormal.style.display = 'block';
     if (hudCompact) hudCompact.style.display = 'none';
   }
