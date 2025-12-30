@@ -2398,7 +2398,7 @@ try {
           
           <h4 style="margin:0.5rem 0; color:#86efac;">⚔️ 武器バランス調整</h4>
           <ul style="margin:0.5rem 0; padding-left:1.5rem;">
-            <li>ホーミング強化：弾速UP(250)、レベル成長で威力+10、爆風ダメージ100%、覚醒時8発</li>
+            <li>ホーミング強化：弾速UP(250)、レベル成長で威力+10、爆風ダメージ80%、覚醒時7発</li>
             <li>ポイズン強化：レベル成長でDPS+10</li>
           </ul>
           
@@ -3980,8 +3980,10 @@ function getScreenSpawnFactor() {
   const baseArea = WORLD_L.w * WORLD_L.h; // PC横画面の面積 = 1,080,000
   const currentArea = WORLD.w * WORLD.h;
   // 面積比の平方根（密度を一定に保つ）
-  // 最小0.5、最大1.0に制限
-  return Math.max(0.5, Math.min(1.0, Math.sqrt(currentArea / baseArea)));
+  const rawFactor = Math.sqrt(currentArea / baseArea);
+  // スマホ版（面積比1.0未満）は90%まで、PC版は100%
+  // 最小0.6、最大1.0に制限
+  return Math.max(0.6, Math.min(1.0, rawFactor * 1.125)); // 0.8 * 1.125 = 0.9
 }
 
 function computePlayRect(){
@@ -9340,7 +9342,7 @@ homing:{
     if(this.lv<=0) return;
     this.cd -= dt; if(this.cd>0) return;
 
-    const count = this.awaken ? 8 : (2 + (this.lv-1)); // 覚醒時は固定8発
+    const count = this.awaken ? 7 : (2 + (this.lv-1)); // 覚醒時は固定7発
     for(let i=0;i<Math.ceil(count);i++){
       const ang = Math.random()*Math.PI*2;
       const power = (this.baseDmg + (this.lv-1)*10) * (this.awaken? 1.4:1); // Lvごとに+10威力
@@ -9358,7 +9360,7 @@ homing:{
         turn: 7.2,
         bigBoom: this.awaken,
         boomR: this.awaken ? 240 : 60, // 覚醒時を2倍に（120→240）
-        boomMul: 1.0 // 0.7 → 1.0（爆風も同じダメージ）
+        boomMul: 0.8 // 爆風ダメージ80%
       });
     }
 
