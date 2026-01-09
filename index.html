@@ -1016,7 +1016,7 @@ try {
 (function(){
   // 言語設定をlocalStorageから読み込み（デフォルト: 日本語）
   const LANG_KEY = 'gameLanguage';
-  let currentLang = 'ja';
+  let currentLang = 'en';
   try {
     const saved = localStorage.getItem(LANG_KEY);
     if (saved && (saved === 'ja' || saved === 'en')) currentLang = saved;
@@ -1880,7 +1880,7 @@ try {
     
     <!-- バージョン情報 -->
     <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-      <span style="opacity:0.7;">Ver 2.4</span> - 
+      <span style="opacity:0.7;">Ver 2.4.1</span> - 
       <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
     </div>
     
@@ -7467,6 +7467,9 @@ state.sizeLv = 0; // 弾サイズレベルリセット
     state.manualPaused = false;
     state.mods.sizeMul = 1.0;
     state.mods.damageMul = 1.0; // 被ダメージ倍率リセット
+    state.mods.rateMul = 1.0;   // 攻撃速度倍率リセット
+    state.mods.dmgMul = 1.0;    // 与ダメージ倍率リセット
+    state.mods.doubleItem = false; // アイテム出現2倍リセット
     state.spawnTimer = 0;
     state.difficulty = 1;
     state.timeSec = 0;
@@ -8910,6 +8913,14 @@ function openChest(pickCount = 2) {
 
   // カード行の初期化
   chestRow.innerHTML = '';
+  
+  // ホバー状態リセット：一瞬だけpointer-eventsを無効化
+  chestRow.style.pointerEvents = 'none';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      chestRow.style.pointerEvents = '';
+    });
+  });
 
   // 候補を抽選（can() を満たすものから最大6つ）★5→6に変更
   const pool = ALL_UPGRADES.filter(u => u.can());
@@ -9092,6 +9103,14 @@ function showLevelUp(choices){
   state.paused = true;
   levelupEl.style.display = 'flex';
   cardRow.innerHTML = '';
+  
+  // ホバー状態リセット：一瞬だけpointer-eventsを無効化
+  cardRow.style.pointerEvents = 'none';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      cardRow.style.pointerEvents = '';
+    });
+  });
 
   // 選択カードを並べる（従来と同じ）
   for (const u of choices) {
