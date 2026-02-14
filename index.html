@@ -1036,7 +1036,7 @@ try {
       btn_achievements: '🎖️ 実績',
       btn_customize: '🎨 スキン変更',
       btn_update_log: '📝 更新履歴',
-      version_note: '多言語対応',
+      version_note: 'エンドレスモード追加',
       update_log_title: '📝 更新履歴',
       update_log_close: '閉じる',
       btn_settings: '⚙️ 設定',
@@ -1398,7 +1398,7 @@ try {
       btn_achievements: '🎖️ Achievements',
       btn_customize: '🎨 Skin Change',
       btn_update_log: '📝 Update Log',
-      version_note: 'Multi-language Support',
+      version_note: 'Endless Mode Added',
       update_log_title: '📝 Update Log',
       update_log_close: 'Close',
       btn_settings: '⚙️ Settings',
@@ -1880,8 +1880,8 @@ try {
     
     <!-- バージョン情報 -->
     <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-      <span style="opacity:0.7;">Ver 2.4.1</span> - 
-      <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">多言語対応</span>
+      <span style="opacity:0.7;">Ver 3.0</span> -
+      <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">エンドレスモード追加</span>
     </div>
     
     <!-- 難易度選択ボタン（2×2グリッド） -->
@@ -2377,7 +2377,41 @@ try {
       </div>
       
       <div id="updateLogContentJa" style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
-        
+
+        <!-- Ver 3.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(168,85,247,0.15); border-left:4px solid #a855f7; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#c084fc; font-size:1.3rem;">Ver 3.0 <span style="font-size:0.8rem; opacity:0.7;">- 2026/02/15</span></h3>
+
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">♾️ エンドレスモード</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ステージ1とステージ2を交互に繰り返す無限モードを追加</li>
+            <li>ラウンドごとに敵HP+25%、敵攻撃力+15%の難易度上昇</li>
+            <li>初回ボスはHP50%で出現（2回目以降は通常）</li>
+            <li>1ステージ4分制（ボス撃破で即次ステージへ）</li>
+          </ul>
+
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">🎲 モディファイア（縛り）システム</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>2ステージごとにランダムな縛りが追加される（全18種）</li>
+            <li>ステータス系: 被ダメ増加、移動速度低下、最大HP減少、攻撃速度低下、攻撃力低下</li>
+            <li>制約系: 回復量半減、アイテム出現減少、選択肢減少、ボム禁止、ランダム取得</li>
+            <li>敵強化系: 敵高速化、敵大量出現、敵巨大化、ボスHP増加</li>
+            <li>特殊系: 自機巨大化、視界縮小、ノックバック無効、停止ダメージ</li>
+          </ul>
+
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">⚡ カンスト後レベルアップ</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>全能力MAX後も6種の特殊選択肢が出現</li>
+            <li>バーサーク、オーバードライブ、シールド、ヘイスト、全回復、スコアボーナス</li>
+          </ul>
+
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">🏆 エンドレス報酬スキン</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>ステージクリアごとに限定スキンが1つ解放（全12種）</li>
+            <li>スキンセクションを「エンドレス報酬」に変更</li>
+          </ul>
+        </div>
+
         <!-- Ver 2.4 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
           <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.4 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/29</span></h3>
@@ -2978,7 +3012,41 @@ try {
       
       <!-- English Version -->
       <div id="updateLogContentEn" style="display:none; color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
-        
+
+        <!-- Ver 3.0 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(168,85,247,0.15); border-left:4px solid #a855f7; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#c084fc; font-size:1.3rem;">Ver 3.0 <span style="font-size:0.8rem; opacity:0.7;">- 2026/02/15</span></h3>
+
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">♾️ Endless Mode</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>New infinite mode alternating between Stage 1 and Stage 2</li>
+            <li>Difficulty scales each round: Enemy HP +25%, Enemy DMG +15%</li>
+            <li>First boss spawns at 50% HP (normal from round 2 onward)</li>
+            <li>4-minute stages (next stage starts immediately after boss defeat)</li>
+          </ul>
+
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">🎲 Modifier System</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>Random modifiers added every 2 stages (18 types total)</li>
+            <li>Stat: Increased damage taken, slower movement, reduced max HP, slower ATK speed, reduced ATK</li>
+            <li>Restriction: Half healing, fewer items, fewer choices, no bombs, random upgrade</li>
+            <li>Enemy: Faster enemies, enemy swarm, bigger enemies, boss HP up</li>
+            <li>Special: Bigger player, fog of war, no knockback, stop damage</li>
+          </ul>
+
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">⚡ Post-Max Level-Ups</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>6 special choices appear after all abilities are maxed</li>
+            <li>Berserk, Overdrive, Shield, Haste, Full Heal, Score Bonus</li>
+          </ul>
+
+          <h4 style="margin:0.5rem 0; color:#d8b4fe;">🏆 Endless Reward Skins</h4>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>Unlock 1 exclusive skin per stage clear (12 skins total)</li>
+            <li>Skin section renamed to "Endless Rewards"</li>
+          </ul>
+        </div>
+
         <!-- Ver 2.4 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(34,197,94,0.15); border-left:4px solid #22c55e; border-radius:8px;">
           <h3 style="margin:0 0 0.5rem; color:#4ade80; font-size:1.3rem;">Ver 2.4 <span style="font-size:0.8rem; opacity:0.7;">- 2025/12/29</span></h3>
