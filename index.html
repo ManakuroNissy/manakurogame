@@ -11051,8 +11051,8 @@ if (state.player && pm > 0) {
 // spawn enemies
 state.spawnTimer -= dt;
 
-// エンドレスモード：周回に応じてスポーン計算用時間にオフセットを加える
-// 周回1(3-4ステージ目)=4分後相当、周回2=8分後相当…
+// エンドレスモード：ステージクリア数に応じてスポーン計算用時間にオフセットを加える
+// 1周目S2=4分後相当、2周目S1=8分後相当、2周目S2=12分後相当…
 const spawnTimeOffset = state.endlessMode ? state.endlessStagesCleared * 240 : 0;
 const effectiveSpawnTime = state.timeSec + spawnTimeOffset;
 
@@ -16449,7 +16449,7 @@ function endlessNextStage() {
   const _nxtTimeOfs = state.endlessStagesCleared * 240;
   state.bossTimer = (_nxtTimeOfs >= 360 ? 40 + Math.random() * 15 : 60 + Math.random() * 20);
   state.bigBossTimer = (_nxtTimeOfs >= 360 ? 100 + Math.random() * 25 : 140 + Math.random() * 30);
-  state.difficulty = 1;
+  state.difficulty = 1 + Math.floor(_nxtTimeOfs / 20);
 
   // 障害物を新ステージに合わせて再設定
   const currentStageData = STAGES[state.currentStage];
