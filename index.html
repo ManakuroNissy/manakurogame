@@ -816,6 +816,10 @@ body[data-hc] .hc-badges{ display: flex; }
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
 
 .tutorial-slide-icon {
   text-align: center;
@@ -3181,6 +3185,8 @@ try {
       <button id="hudPauseBtn2" class="hud-ctrl-btn" style="padding:3px 8px; font-size:14px;">⏸</button>
     </div>
   </div>
+  <!-- エンドレスモード：モディファイア常時表示 -->
+  <div id="endlessModHud" style="display:none; padding:2px 8px; margin-top:2px; background:rgba(139,92,246,0.2); border-radius:6px; font-size:0.85rem; text-align:center;"></div>
   <!-- 非表示の要素（互換性のため残す） -->
   <span id="hpval" style="display:none;"></span>
   <span id="wep" style="display:none;">-</span>
@@ -7046,6 +7052,13 @@ function goToTitle() {
   // エンドレスモードのリザルト要素を削除
   const endlessResult = document.getElementById('endlessResult');
   if (endlessResult) endlessResult.remove();
+  // ステージ遷移オーバーレイが残っていたら削除
+  const stageOverlay = document.getElementById('endlessStageOverlay');
+  if (stageOverlay) stageOverlay.remove();
+
+  // エンドレスモードHUD非表示
+  const modHud = document.getElementById('endlessModHud');
+  if (modHud) modHud.style.display = 'none';
 
   // エンドレスモードリセット
   state.endlessMode = false;
@@ -7609,6 +7622,9 @@ async function startEndlessMode() {
   const lang = getLang();
   const msg = lang === 'ja' ? '♾️ エンドレスモード開始！' : '♾️ Endless Mode Start!';
   addEffect('text', { x: state.player.x, y: state.player.y, life: 2.0, text: msg });
+
+  // HUDモディファイア表示（初期は縛りなし）
+  updateEndlessModifierHud();
 }
 
   function resetGame(){
@@ -8501,6 +8517,10 @@ if (e.key === 'k' || e.key === 'K') state.player.hp = Math.min(state.player.maxH
 
 // Spawns
 function spawnEnemy(){
+  // エンドレスモード：敵出現計算用の実効時間（周回で序盤の虚無を解消）
+  const _spawnTimeOfs = state.endlessMode ? state.endlessStagesCleared * 240 : 0;
+  const tEff = state.timeSec + _spawnTimeOfs;
+
   const B = worldBounds();              // ← ズーム反映の表示境界
   const margin = 30;
   const side = Math.floor(Math.random()*4);
@@ -8521,18 +8541,18 @@ function spawnEnemy(){
     y = rnd(B.minY - margin, B.maxY + margin);
   }
 
-  const shooterProb = state.timeSec > 150 ? 0.04 : 0.0;
+  const shooterProb = tEff > 150 ? 0.04 : 0.0;
   // ワーパーとボムはステージ2では出現しない（丸い敵なので）
-  const warperProb = (state.currentStage !== 'stage2' && state.timeSec > 240) ? 0.025 : 0.0;
-  const laserProb = state.timeSec > 180 ? 0.015 : 0.0;   // 3分以降
-  const bomProb = (state.currentStage !== 'stage2' && state.timeSec > 120) ? 0.03 : 0.0;
-  
+  const warperProb = (state.currentStage !== 'stage2' && tEff > 240) ? 0.025 : 0.0;
+  const laserProb = tEff > 180 ? 0.015 : 0.0;   // 3分以降
+  const bomProb = (state.currentStage !== 'stage2' && tEff > 120) ? 0.03 : 0.0;
+
   // ステージ2専用敵
-  const spinnerProb = (state.currentStage === 'stage2' && state.timeSec > 60) ? 0.08 : 0.0;
-  const dasherProb = (state.currentStage === 'stage2' && state.timeSec > 90) ? 0.06 : 0.0;
-  const sniperProb = (state.currentStage === 'stage2' && state.timeSec > 120) ? 0.05 : 0.0;
-  const orbiterProb = (state.currentStage === 'stage2' && state.timeSec > 90) ? 0.04 : 0.0;
-  const pillarTrapProb = (state.currentStage === 'stage2' && state.timeSec > 180) ? 0.02 : 0.0;
+  const spinnerProb = (state.currentStage === 'stage2' && tEff > 60) ? 0.08 : 0.0;
+  const dasherProb = (state.currentStage === 'stage2' && tEff > 90) ? 0.06 : 0.0;
+  const sniperProb = (state.currentStage === 'stage2' && tEff > 120) ? 0.05 : 0.0;
+  const orbiterProb = (state.currentStage === 'stage2' && tEff > 90) ? 0.04 : 0.0;
+  const pillarTrapProb = (state.currentStage === 'stage2' && tEff > 180) ? 0.02 : 0.0;
   
   const roll = Math.random();
 
@@ -8602,9 +8622,9 @@ function spawnEnemy(){
     const difficulty = state.mode.difficulty || 'normal';
     let baseLimit;
     if (difficulty === 'easy') {
-      baseLimit = state.timeSec >= 480 ? 3 : 2;  // Easy: 2/3体
+      baseLimit = tEff >= 480 ? 3 : 2;  // Easy: 2/3体
     } else {
-      baseLimit = state.timeSec >= 480 ? 5 : 3;  // Normal以上: 3/5体
+      baseLimit = tEff >= 480 ? 5 : 3;  // Normal以上: 3/5体
     }
     const sniperLimit = state.mode.hardcore ? baseLimit + 1 : baseLimit;
     const existingSnipers = state.enemies.filter(en => en.type === 'sniper').length;
@@ -8808,8 +8828,8 @@ function spawnEnemy(){
 
     // 時間経過で出現数が増える
     let spawnCount = 1; // デフォルト1体
-    if (state.timeSec >= 420) spawnCount = 3; // 7分以降は3体
-    else if (state.timeSec >= 300) spawnCount = 2; // 5分以降は2体
+    if (tEff >= 420) spawnCount = 3; // 7分以降は3体
+    else if (tEff >= 300) spawnCount = 2; // 5分以降は2体
 
     // 左右どちらかの端に配置（画面内側に少し入れる）
     const B = worldBounds();
@@ -8848,7 +8868,7 @@ function spawnEnemy(){
     const diffMods = state.mode.getDifficultyMods();
     let hp = 16 + state.difficulty*2.2;
     hp *= diffMods.hpMul;  // 難易度によるHP倍率
-    if (state.timeSec >= 360) hp *= 2.0;
+    if (tEff >= 360) hp *= 2.0;
 
     const dForSpeed = Math.min(state.difficulty, 16);
     const sp = 30 + dForSpeed*4.5;
@@ -8888,8 +8908,9 @@ function spawnMidBoss(){
   else if (side===2){ x = rnd(B.minX - margin, B.maxX + margin); y = B.maxY + margin; }
   else { x = B.minX - margin; y = rnd(B.minY - margin, B.maxY + margin); }
 
+  const _midBossTimeOfs = state.endlessMode ? state.endlessStagesCleared * 240 : 0;
   let hp = 420 + state.difficulty*120;
-  if (state.timeSec>=360) hp *= 1.6;
+  if ((state.timeSec + _midBossTimeOfs) >=360) hp *= 1.6;
   hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
   const e = {
@@ -8926,8 +8947,9 @@ function spawnBigBoss(){
   else if (side===2){ x = rnd(B.minX - margin, B.maxX + margin); y = B.maxY + margin; }
   else { x = B.minX - margin; y = rnd(B.minY - margin, B.maxY + margin); }
 
+  const _bigBossTimeOfs = state.endlessMode ? state.endlessStagesCleared * 240 : 0;
   let hp = 1000 + state.difficulty*240;
-  if (state.timeSec>=360) hp *= 1.6;
+  if ((state.timeSec + _bigBossTimeOfs) >=360) hp *= 1.6;
   hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
   const e = {
@@ -10900,19 +10922,22 @@ if (state.paused){
       state.finalSpawned = true;
     }
     
-    state.difficulty = 1 + Math.floor(state.timeSec/20);
+    // エンドレスモード：周回に応じてdifficulty計算にオフセットを加える
+    const _diffTimeOfs = state.endlessMode ? state.endlessStagesCleared * 240 : 0;
+    const _effTime = state.timeSec + _diffTimeOfs;
+    state.difficulty = 1 + Math.floor(_effTime/20);
 
     // Boss timers
     if(state.player.level>=3){
-      state.bossTimer -= dt; 
+      state.bossTimer -= dt;
       state.bigBossTimer -= dt;
       if(state.bossTimer<=0){
         spawnMidBoss();
-        state.bossTimer = (state.timeSec>=360 ? 40 + Math.random()*15 : 60 + Math.random()*20);
+        state.bossTimer = (_effTime>=360 ? 40 + Math.random()*15 : 60 + Math.random()*20);
       }
       if(state.bigBossTimer<=0){
         spawnBigBoss();
-        state.bigBossTimer = (state.timeSec>=360 ? 100 + Math.random()*25 : 140 + Math.random()*30);
+        state.bigBossTimer = (_effTime>=360 ? 100 + Math.random()*25 : 140 + Math.random()*30);
       }
     }
 
@@ -11026,10 +11051,15 @@ if (state.player && pm > 0) {
 // spawn enemies
 state.spawnTimer -= dt;
 
+// エンドレスモード：周回に応じてスポーン計算用時間にオフセットを加える
+// 周回1(3-4ステージ目)=4分後相当、周回2=8分後相当…
+const spawnTimeOffset = state.endlessMode ? state.endlessStagesCleared * 240 : 0;
+const effectiveSpawnTime = state.timeSec + spawnTimeOffset;
+
 // 序盤はゆっくり、だんだん短く。下限は0.38s
-let spawnRate = Math.max(0.38, 1.20 - state.timeSec * 0.004);
+let spawnRate = Math.max(0.38, 1.20 - effectiveSpawnTime * 0.004);
 // 後半(6分〜)は少し加速
-if (state.timeSec >= 360) spawnRate = Math.max(0.34, spawnRate * 0.85);
+if (effectiveSpawnTime >= 360) spawnRate = Math.max(0.34, spawnRate * 0.85);
 // 難易度によるスポーン間隔調整
 const diffMods = state.mode.getDifficultyMods();
 if (diffMods.spawnMul !== 1.0) {
@@ -11038,20 +11068,20 @@ if (diffMods.spawnMul !== 1.0) {
 
 if (state.spawnTimer <= 0) {
   // いまの雑魚数と上限
-  let cap = currentTrashCap(state.timeSec);
+  let cap = currentTrashCap(effectiveSpawnTime);
   cap = Math.floor(cap * diffMods.spawnMul);  // 難易度による上限調整
-  
+
   // ★画面サイズによる上限調整（スマホは敵が少なめ）
   const screenFactor = getScreenSpawnFactor();
   cap = Math.floor(cap * screenFactor);
-  
+
   const alive = countTrash();
   const room  = Math.max(0, cap - alive);
 
   if (room > 0) {
     // バッチ数は緩やかに増える（最大3体/サイクル）
     // 0〜220s: 1体, 220〜440s: 2体, 440s〜: 3体
-    const batchBase = 1 + Math.min(2, Math.floor(state.timeSec / 220));
+    const batchBase = 1 + Math.min(2, Math.floor(effectiveSpawnTime / 220));
     const batch = Math.min(batchBase, room); // 上限までに抑える
 
     for (let n = 0; n < batch; n++) spawnEnemy();
@@ -16353,6 +16383,22 @@ const ENDLESS_MODIFIERS = [
   { id: 'stopDamage',   nameJa: '停止ダメージ',   nameEn: 'Stop Damage',      icon: '🏃', apply: () => { state._endlessStopDamage = true; state._stopDmgTimer = 0; } },
 ];
 
+// --- エンドレスモード：HUDモディファイア表示更新 ---
+function updateEndlessModifierHud() {
+  const el = document.getElementById('endlessModHud');
+  if (!el) return;
+  if (!state.endlessMode || state.endlessModifiers.length === 0) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'block';
+  const lang = getLang();
+  el.innerHTML = state.endlessModifiers.map(m => {
+    const name = lang === 'ja' ? m.nameJa : m.nameEn;
+    return `<span title="${name}" style="cursor:default;">${m.icon}</span>`;
+  }).join(' ');
+}
+
 // --- エンドレスモード：次のステージへ遷移 ---
 function endlessNextStage() {
   const lang = getLang();
@@ -16369,31 +16415,28 @@ function endlessNextStage() {
   const prevModCount = Math.max(0, Math.floor((cleared - 1) / 2));
   const newModsNeeded = modCount - prevModCount;
 
+  // 新しい縛りを決定（まだapplyしない、表示後にapply）
+  const newMods = [];
   if (newModsNeeded > 0) {
-    // 未使用の縛りからランダムに選ぶ
     const usedIds = state.endlessModifiers.map(m => m.id);
     const available = ENDLESS_MODIFIERS.filter(m => !usedIds.includes(m.id));
     for (let i = 0; i < newModsNeeded && available.length > 0; i++) {
       const idx = Math.floor(Math.random() * available.length);
       const mod = available.splice(idx, 1)[0];
-      state.endlessModifiers.push(mod);
-      mod.apply();
-      const modName = lang === 'ja' ? mod.nameJa : mod.nameEn;
-      // 縛り通知は少し遅らせて表示
-      setTimeout(() => {
-        addEffect('text', { x: state.player.x, y: state.player.y - 40, life: 2.5, text: `${mod.icon} ${modName}` });
-      }, 400);
+      newMods.push(mod);
     }
   }
 
   // ステージ切替
   state.currentStage = nextStageId;
 
-  // 敵・弾・アイテムをクリア（プレイヤー状態は維持）
+  // 敵・弾・アイテム・経験値をクリア（プレイヤー状態は維持）
   state.enemies.length = 0;
   state.bullets.length = 0;
   state.enemyBullets.length = 0;
   state.items.length = 0;
+  state.gems.length = 0;
+  state.sparks.length = 0;
   state.effects.length = 0;
   if (state._q) state._q.length = 0;
 
@@ -16402,8 +16445,10 @@ function endlessNextStage() {
   state.finalSpawned = false;
   state._finalBonusAwarded = false;
   state.spawnTimer = 0;
-  state.bossTimer = 60 + Math.random() * 20;
-  state.bigBossTimer = 140 + Math.random() * 30;
+  // エンドレス：周回が進んでいたら中ボス・大ボスも早く出す
+  const _nxtTimeOfs = state.endlessStagesCleared * 240;
+  state.bossTimer = (_nxtTimeOfs >= 360 ? 40 + Math.random() * 15 : 60 + Math.random() * 20);
+  state.bigBossTimer = (_nxtTimeOfs >= 360 ? 100 + Math.random() * 25 : 140 + Math.random() * 30);
   state.difficulty = 1;
 
   // 障害物を新ステージに合わせて再設定
@@ -16432,26 +16477,63 @@ function endlessNextStage() {
   state.player.y = WORLD.h * 0.5;
   state.player.iTime = 2.0; // 2秒間の無敵時間
 
-  // ゲーム再開
-  state.paused = false;
+  // 一時停止してステージ遷移オーバーレイを表示
+  state.paused = true;
   state.gameover = false;
   state.winCountdown = 0;
 
-  // ステージ通知
   const stageNum = nextStageId === 'stage1' ? '1' : '2';
   const roundNum = state.endlessRound + 1;
-  const stageText = lang === 'ja'
-    ? `🔄 Round ${roundNum} - Stage ${stageNum}`
-    : `🔄 Round ${roundNum} - Stage ${stageNum}`;
-  addEffect('text', { x: state.player.x, y: state.player.y, life: 2.0, text: stageText });
 
-  // 縛り一覧を表示
-  if (state.endlessModifiers.length > 0) {
-    const modList = state.endlessModifiers.map(m => m.icon).join(' ');
-    setTimeout(() => {
-      addEffect('text', { x: state.player.x, y: state.player.y + 30, life: 2.5, text: modList });
-    }, 800);
+  // オーバーレイ生成
+  const overlay = document.createElement('div');
+  overlay.id = 'endlessStageOverlay';
+  overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-family:sans-serif; cursor:pointer;';
+
+  let html = `<div style="text-align:center; max-width:500px; padding:2rem;">`;
+  html += `<div style="font-size:2.5rem; font-weight:900; color:#a78bfa; margin-bottom:0.5rem;">🔄 Round ${roundNum} - Stage ${stageNum}</div>`;
+
+  // 新しい縛り追加の表示
+  if (newMods.length > 0) {
+    const newLabel = lang === 'ja' ? '🎲 新しい縛り追加！' : '🎲 New Modifier Added!';
+    html += `<div style="font-size:1.5rem; color:#fbbf24; margin:1rem 0 0.5rem; font-weight:700;">${newLabel}</div>`;
+    for (const mod of newMods) {
+      const modName = lang === 'ja' ? mod.nameJa : mod.nameEn;
+      html += `<div style="font-size:1.3rem; margin:0.3rem 0; padding:0.5rem 1rem; background:rgba(168,85,247,0.3); border:1px solid #8b5cf6; border-radius:8px;">${mod.icon} ${modName}</div>`;
+    }
   }
+
+  // 全縛り一覧
+  if (state.endlessModifiers.length > 0 || newMods.length > 0) {
+    const allLabel = lang === 'ja' ? '現在の縛り' : 'Active Modifiers';
+    const allMods = [...state.endlessModifiers, ...newMods];
+    html += `<div style="font-size:1rem; color:#94a3b8; margin-top:1rem;">${allLabel}:</div>`;
+    html += `<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-top:0.5rem;">`;
+    for (const mod of allMods) {
+      const modName = lang === 'ja' ? mod.nameJa : mod.nameEn;
+      html += `<span style="font-size:0.95rem; padding:4px 8px; background:rgba(100,116,139,0.4); border-radius:6px;" title="${modName}">${mod.icon} ${modName}</span>`;
+    }
+    html += `</div>`;
+  }
+
+  const tapLabel = lang === 'ja' ? 'タップしてスタート' : 'Tap to Start';
+  html += `<div style="margin-top:1.5rem; font-size:1rem; color:#64748b; animation:pulse 1.5s infinite;">▶ ${tapLabel}</div>`;
+  html += `</div>`;
+  overlay.innerHTML = html;
+
+  document.body.appendChild(overlay);
+
+  overlay.onclick = () => {
+    // 新しい縛りを適用
+    for (const mod of newMods) {
+      state.endlessModifiers.push(mod);
+      mod.apply();
+    }
+    // HUDのモディファイア表示を更新
+    updateEndlessModifierHud();
+    overlay.remove();
+    state.paused = false;
+  };
 }
 
 // --- エンドレスモード：ファイナルボスHP調整 ---
