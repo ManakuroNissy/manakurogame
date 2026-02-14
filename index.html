@@ -7517,33 +7517,6 @@ function showStageSelect() {
   }
   cardsContainer.appendChild(stage2Card);
 
-  // エンドレスモード（両ステージクリアで解放）
-  const stage2Cleared = saveData.stageProgress?.stage2?.cleared || false;
-  const endlessUnlocked = stage1Cleared && stage2Cleared;
-  const endlessCard = document.createElement('div');
-  endlessCard.style.cssText = `background:${endlessUnlocked ? 'linear-gradient(135deg, #1e1b4b, #312e81)' : '#1e293b'}; border-radius:12px; padding:1.5rem; ${endlessUnlocked ? 'cursor:pointer; border:2px solid #8b5cf6;' : 'opacity:0.5;'}; margin-bottom:1rem;`;
-  const endlessDesc = lang === 'ja'
-    ? 'ステージ1と2を交互に繰り返す。周回ごとに難易度UP＆縛りルールが追加！'
-    : 'Alternate between Stages 1 & 2. Difficulty increases each round with modifiers!';
-  const endlessBestData = JSON.parse(localStorage.getItem('endless_best') || '{}');
-  const endlessBest = endlessBestData.stages
-    ? `<span style="color:#fbbf24;">🏆 ${lang === 'ja' ? 'ベスト' : 'Best'}: ${endlessBestData.stages} ${lang === 'ja' ? 'ステージ' : 'stages'}</span>`
-    : '';
-  endlessCard.innerHTML = `
-    <h3 style="margin:0 0 0.5rem; color:#a78bfa; font-size:1.4rem;">♾️ ${lang === 'ja' ? 'エンドレスモード' : 'Endless Mode'}</h3>
-    <p style="margin:0 0 0.5rem; color:#cbd5e1;">${endlessDesc}</p>
-    ${endlessUnlocked
-      ? endlessBest
-      : '<span style="color:#ef4444;">' + (lang === 'ja' ? '両ステージクリアで解放' : 'Clear both stages to unlock') + '</span>'
-    }
-  `;
-  if (endlessUnlocked) {
-    endlessCard.onmouseenter = () => endlessCard.style.background = 'linear-gradient(135deg, #312e81, #4c1d95)';
-    endlessCard.onmouseleave = () => endlessCard.style.background = 'linear-gradient(135deg, #1e1b4b, #312e81)';
-    endlessCard.onclick = () => startEndlessMode().catch(e => console.warn(e));
-  }
-  cardsContainer.appendChild(endlessCard);
-
   // 閉じるボタン
   document.getElementById('closeStageSelect').onclick = () => {
     modal.style.display = 'none';
