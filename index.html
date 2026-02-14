@@ -1892,6 +1892,9 @@ try {
       <button id="startHardcoreBtn" class="btn" style="background:#8b5cf6; white-space:nowrap;">🔥 Hardcore（鬼）</button>
     </div>
     
+    <!-- エンドレスモードボタン -->
+    <button id="startEndlessBtn" class="btn" style="background:linear-gradient(135deg, #7c3aed, #a855f7); width:100%; max-width:360px; margin-top:8px; font-size:1.1rem; padding:10px; border:2px solid #8b5cf6; display:none; white-space:nowrap;">♾️ Endless Mode</button>
+
     <!-- 区切り線 -->
     <div style="width:80%; height:1px; background:linear-gradient(90deg, transparent, #444, transparent); margin:12px auto;"></div>
     
@@ -2005,6 +2008,12 @@ try {
     if (updateLogBtn) updateLogBtn.textContent = t('btn_update_log');
     if (settingsBtn) settingsBtn.textContent = t('btn_settings');
     
+    // エンドレスモードボタン
+    const endlessBtn = document.getElementById('startEndlessBtn');
+    if (endlessBtn && endlessBtn.style.display !== 'none') {
+      endlessBtn.textContent = lang === 'ja' ? '♾️ エンドレスモード' : '♾️ Endless Mode';
+    }
+
     // バージョンノート
     const versionNote = document.getElementById('versionNote');
     if (versionNote) versionNote.textContent = t('version_note');
@@ -6421,6 +6430,18 @@ if (!window.__START_BOUND) {
     };
   }
   
+  // エンドレスモードボタン
+  const startEndlessBtn = document.getElementById('startEndlessBtn');
+  if (startEndlessBtn) {
+    const saveData = window.loadSaveData();
+    const s1Cleared = saveData.stageProgress?.stage1?.cleared || false;
+    const s2Cleared = saveData.stageProgress?.stage2?.cleared || false;
+    if (s1Cleared && s2Cleared) {
+      startEndlessBtn.style.display = 'block';
+      startEndlessBtn.onclick = () => startEndlessMode().catch(e => console.warn(e));
+    }
+  }
+
   // RANKINGボタン
   const rankingBtn = document.getElementById('rankingBtn');
   if (rankingBtn) {
@@ -7010,7 +7031,18 @@ function goToTitle() {
   // スタート画面を表示
   const startEl = document.getElementById('start');
   if (startEl) startEl.style.display = 'flex';
-  
+
+  // エンドレスモードボタンの表示更新
+  const endlessBtnTitle = document.getElementById('startEndlessBtn');
+  if (endlessBtnTitle) {
+    const sd = window.loadSaveData();
+    const unlocked = (sd.stageProgress?.stage1?.cleared || false) && (sd.stageProgress?.stage2?.cleared || false);
+    endlessBtnTitle.style.display = unlocked ? 'block' : 'none';
+    if (unlocked) {
+      endlessBtnTitle.onclick = () => startEndlessMode().catch(e => console.warn(e));
+    }
+  }
+
   // エンドレスモードのリザルト要素を削除
   const endlessResult = document.getElementById('endlessResult');
   if (endlessResult) endlessResult.remove();
