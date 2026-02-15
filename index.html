@@ -6043,9 +6043,9 @@ magnet:{ active:false, time:0, dur:1.0, speed:1800 },
           return { hpMul: 2.0, dmgMul: 1.5, spawnMul: 1.5, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 };  // ★HP 1.8→2.0
         case 'endless': {
           const round = state.endlessRound || 0;
-          const hpScale = Math.pow(1.25, round);   // 周回ごとにHP+25%
-          const dmgScale = Math.pow(1.15, round);   // 周回ごとにダメージ+15%
-          const spawnScale = 1.0 + round * 0.1;     // 周回ごとにスポーン+10%
+          const hpScale = Math.pow(1.35, round);   // 周回ごとにHP+35%
+          const dmgScale = Math.pow(1.20, round);   // 周回ごとにダメージ+20%
+          const spawnScale = 1.0 + round * 0.15;    // 周回ごとにスポーン+15%
           return { hpMul: hpScale, dmgMul: dmgScale, spawnMul: spawnScale, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 };
         }
         default:
