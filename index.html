@@ -9628,10 +9628,8 @@ function offerUpgrades(){
   if (state.endlessMode) {
     const pool = ALL_UPGRADES.filter(u => u.can());
     if (pool.length === 0) {
-      // 全カンスト → 即スコアボーナス
-      state.score = (state.score || 0) + 10000;
-      try { if (scoreVal) scoreVal.textContent = Math.floor(state.score); } catch(_){}
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🏆 +10,000!' });
+      // 全カンスト → 特別選択肢6つを表示
+      showLevelUp(ENDLESS_POST_MAX_UPGRADES.slice());
       return;
     }
   }
@@ -16842,6 +16840,77 @@ function getEndlessTimeOffset() {
   if (!state.endlessMode) return 0;
   return Math.min(state.endlessStagesCleared * 240, 480);
 }
+
+// --- エンドレスモード：カンスト後レベルアップ選択肢 ---
+const ENDLESS_POST_MAX_UPGRADES = [
+  {
+    id: 'berserk', isEndlessBonus: true,
+    get name() { return getLang() === 'ja' ? '🔥 バーサーク' : '🔥 Berserk'; },
+    desc: () => getLang() === 'ja' ? '15秒間 攻撃力+50%' : 'ATK +50% for 15s',
+    can: () => true,
+    apply: () => {
+      const origDmg = state.mods.dmgMul;
+      state.mods.dmgMul *= 1.5;
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🔥 BERSERK!' });
+      addEffect('aura', { x: state.player.x, y: state.player.y, r: 40, life: 15, life0: 15 });
+      setTimeout(() => { state.mods.dmgMul = origDmg; }, 15000);
+    }
+  },
+  {
+    id: 'overdrive', isEndlessBonus: true,
+    get name() { return getLang() === 'ja' ? '⚡ オーバードライブ' : '⚡ Overdrive'; },
+    desc: () => getLang() === 'ja' ? '10秒間 攻撃速度2倍' : 'ATK Speed x2 for 10s',
+    can: () => true,
+    apply: () => {
+      const origRate = state.mods.rateMul;
+      state.mods.rateMul *= 0.5;
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '⚡ OVERDRIVE!' });
+      setTimeout(() => { state.mods.rateMul = origRate; }, 10000);
+    }
+  },
+  {
+    id: 'shield', isEndlessBonus: true,
+    get name() { return getLang() === 'ja' ? '🛡️ シールド' : '🛡️ Shield'; },
+    desc: () => getLang() === 'ja' ? '5秒間 完全無敵' : 'Invincible for 5s',
+    can: () => true,
+    apply: () => {
+      state.player.iTime = 5.0;
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🛡️ SHIELD!' });
+    }
+  },
+  {
+    id: 'haste', isEndlessBonus: true,
+    get name() { return getLang() === 'ja' ? '💨 ヘイスト' : '💨 Haste'; },
+    desc: () => getLang() === 'ja' ? '15秒間 移動速度+60%' : 'Move Speed +60% for 15s',
+    can: () => true,
+    apply: () => {
+      const origSpd = state.player.speed;
+      state.player.speed *= 1.6;
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💨 HASTE!' });
+      setTimeout(() => { state.player.speed = origSpd; }, 15000);
+    }
+  },
+  {
+    id: 'fullHeal', isEndlessBonus: true,
+    get name() { return getLang() === 'ja' ? '💖 HP全回復' : '💖 Full Heal'; },
+    desc: () => getLang() === 'ja' ? 'HPを全回復' : 'Restore all HP',
+    can: () => true,
+    apply: () => {
+      state.player.hp = state.player.maxHp;
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💖 FULL HEAL!' });
+    }
+  },
+  {
+    id: 'scoreBonus', isEndlessBonus: true,
+    get name() { return getLang() === 'ja' ? '🏆 スコアボーナス' : '🏆 Score Bonus'; },
+    desc: () => getLang() === 'ja' ? 'スコア +2000' : 'Score +2000',
+    can: () => true,
+    apply: () => {
+      state.score = (state.score || 0) + 2000;
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🏆 +2000!' });
+    }
+  }
+];
 
 // --- エンドレスモード：ファイナルボスHP調整 ---
 function getEndlessBossHpMultiplier() {
