@@ -4711,6 +4711,8 @@ function visibleBounds(radius = 0){
   }
 
   function unlockAchievement(achievementId) {
+    // エンドレスモードでは実績を解除しない
+    if (state && state.endlessMode) return;
     const achievements = loadAchievements();
     if (achievements[achievementId]) return; // 既に解除済み
 
@@ -4946,8 +4948,11 @@ function visibleBounds(radius = 0){
   }
 
   function checkKillAchievements(enemy) {
+    // エンドレスモードでは実績を記録しない
+    if (state && state.endlessMode) return;
+
     const totalKills = (state.kills || 0) + (state.bossKills || 0);
-    
+
     // 初撃破
     if (totalKills === 1) unlockAchievement('first_kill');
     
@@ -4975,6 +4980,7 @@ function visibleBounds(radius = 0){
   window.checkKillAchievements = checkKillAchievements;  // ★グローバルに公開
 
   function checkLevelAchievements() {
+    if (state && state.endlessMode) return;
     if (state.player.level >= 20) unlockAchievement('level_20');
     if (state.player.level >= 25) unlockAchievement('level_25');
   }
