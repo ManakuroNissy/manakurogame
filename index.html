@@ -15,109 +15,11 @@ window.addEventListener('unhandledrejection', function(event) {
 
 <title>10min's Survivor</title>
 
-<!-- GameDistribution SDK -->
+<!-- Ad SDK stubs (no-op for itch.io / GitHub) -->
 <script>
-window["GD_OPTIONS"] = {
-  "gameId": "21a66beedfb74d09b6b8435f699f9fe5",
-  "onEvent": function(event) {
-    switch (event.name) {
-      case "SDK_GAME_START":
-        // 広告終了 → ゲーム再開
-        if (window._gdAdCallback) {
-          window._gdAdCallback();
-          window._gdAdCallback = null;
-        }
-        // ミュート解除
-        if (window.bgm && window._gdWasMuted === false) {
-          try { bgm.setVolume(0.09); } catch(e) {}
-        }
-        // 広告終了 → 隠したUI要素を復元
-        document.querySelectorAll('.gd-ad-hidden').forEach(function(el) {
-          el.classList.remove('gd-ad-hidden');
-        });
-        break;
-      case "SDK_GAME_PAUSE":
-        // 広告表示中 → ゲームをミュート
-        if (window.bgm) {
-          window._gdWasMuted = false;
-          try { bgm.setVolume(0); } catch(e) {}
-        }
-        // 広告表示中 → ゲームUI要素を隠す
-        ['gameover','gameclear','levelup','endlessStageOverlay'].forEach(function(id) {
-          var el = document.getElementById(id);
-          if (el && el.style.display !== 'none') {
-            el.classList.add('gd-ad-hidden');
-          }
-        });
-        break;
-      case "SDK_READY":
-        console.log('[GD] SDK Ready');
-        break;
-      case "SDK_ERROR":
-        console.warn('[GD] SDK Error');
-        // エラー時もコールバック実行（ゲームが止まらないように）
-        if (window._gdAdCallback) {
-          window._gdAdCallback();
-          window._gdAdCallback = null;
-        }
-        break;
-    }
-  }
-};
-(function(d, s, id) {
-  var js, fjs = d.getElementsByTagName(s)[0];
-  if (d.getElementById(id)) return;
-  js = d.createElement(s);
-  js.id = id;
-  js.src = 'https://html5.api.gamedistribution.com/main.min.js';
-  fjs.parentNode.insertBefore(js, fjs);
-}(document, 'script', 'gamedistribution-jssdk'));
-
-/**
- * GameDistribution SDKが利用可能かどうか
- */
-function isGDReady() {
-  return typeof gdsdk !== 'undefined' && typeof gdsdk.showAd === 'function';
-}
-
-/**
- * 広告を表示するヘルパー関数
- * @param {Function} callback - 広告終了後に実行する関数
- */
-function showGDInterstitial(callback) {
-  if (typeof gdsdk !== 'undefined' && typeof gdsdk.showAd === 'function') {
-    window._gdAdCallback = callback;
-    try {
-      gdsdk.showAd();
-    } catch(e) {
-      console.warn('[GD] showAd error:', e);
-      if (callback) callback();
-    }
-  } else {
-    // SDKが読み込まれていない場合はそのまま続行
-    if (callback) callback();
-  }
-}
-
-/**
- * リワード広告を表示するヘルパー関数
- * @param {Function} onComplete - 視聴完了時
- * @param {Function} onSkip - スキップ/失敗時
- */
-function showGDRewarded(onComplete, onSkip) {
-  if (typeof gdsdk !== 'undefined' && typeof gdsdk.showAd === 'function') {
-    window._gdAdCallback = null; // SDK_GAME_STARTでは呼ばない
-    try {
-      gdsdk.showAd(gdsdk.AdType.Rewarded)
-        .then(() => { if (onComplete) onComplete(); })
-        .catch(() => { if (onSkip) onSkip(); });
-    } catch(e) {
-      if (onSkip) onSkip();
-    }
-  } else {
-    if (onSkip) onSkip();
-  }
-}
+function isGDReady() { return false; }
+function showGDInterstitial(callback) { if (callback) callback(); }
+function showGDRewarded(onComplete, onSkip) { if (onSkip) onSkip(); }
 </script>
 
 <style>
