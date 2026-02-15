@@ -6374,6 +6374,48 @@ const PHYSICAL_BULLET_SET = new Set(['bullet', 'rubber', 'rock', 'poison', 'homi
       }
     }
   }, {passive:true});
+
+  // ★隠しコマンド：タイトルロゴ5連タップで全解除（スマホ用デバッグ）
+  (function() {
+    const titleH1 = document.querySelector('#startContent h1');
+    if (!titleH1) return;
+    let tapCount = 0;
+    let tapTimer = null;
+    titleH1.addEventListener('click', function() {
+      tapCount++;
+      clearTimeout(tapTimer);
+      if (tapCount >= 5) {
+        tapCount = 0;
+        // 全ステージクリア
+        const saveData = loadSaveData();
+        if (!saveData.stageProgress) saveData.stageProgress = {};
+        ['stage1', 'stage2'].forEach(function(s) {
+          if (!saveData.stageProgress[s]) saveData.stageProgress[s] = {};
+          saveData.stageProgress[s].cleared = true;
+          if (!saveData.stageProgress[s].difficulties) saveData.stageProgress[s].difficulties = {};
+          ['easy', 'normal', 'hard', 'hardcore'].forEach(function(d) {
+            saveData.stageProgress[s].difficulties[d] = true;
+          });
+        });
+        saveSaveData(saveData);
+        STAGES.stage2.unlocked = true;
+        // 全実績解除
+        const achievements = loadAchievements();
+        Object.keys(ACHIEVEMENTS).forEach(function(id) {
+          if (!achievements[id]) {
+            achievements[id] = { unlockedAt: new Date().toISOString() };
+          }
+        });
+        saveAchievements(achievements);
+        // エンドレスボタン解放
+        const eBtn = document.getElementById('startEndlessBtn');
+        if (eBtn && window._unlockEndlessButton) window._unlockEndlessButton(eBtn);
+        showStartToast('🔓 ALL CLEAR! 全ステージ＆全実績解除');
+      } else {
+        tapTimer = setTimeout(function() { tapCount = 0; }, 1500);
+      }
+    });
+  })();
 })();
 
 // ★デバッグ用：全武器フルパワー化
