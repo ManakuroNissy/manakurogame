@@ -1897,7 +1897,7 @@ try {
     </div>
     
     <!-- エンドレスモードボタン -->
-    <button id="startEndlessBtn" class="btn" style="background:linear-gradient(135deg, #7c3aed, #a855f7); width:100%; max-width:360px; margin-top:8px; font-size:1.1rem; padding:10px; border:2px solid #8b5cf6; display:none; white-space:nowrap;">♾️ Endless Mode</button>
+    <button id="startEndlessBtn" class="btn" style="background:#334155; width:100%; max-width:360px; margin-top:8px; font-size:1.1rem; padding:10px; border:2px solid #475569; opacity:0.5; white-space:nowrap; cursor:not-allowed;" disabled>🔒 Endless Mode</button>
 
     <!-- 区切り線 -->
     <div style="width:80%; height:1px; background:linear-gradient(90deg, transparent, #444, transparent); margin:12px auto;"></div>
@@ -2014,8 +2014,8 @@ try {
     
     // エンドレスモードボタン
     const endlessBtn = document.getElementById('startEndlessBtn');
-    if (endlessBtn && endlessBtn.style.display !== 'none') {
-      endlessBtn.textContent = lang === 'ja' ? '♾️ エンドレスモード' : '♾️ Endless Mode';
+    if (endlessBtn && window._unlockEndlessButton) {
+      window._unlockEndlessButton(endlessBtn);
     }
 
     // バージョンノート
@@ -6439,14 +6439,33 @@ if (!window.__START_BOUND) {
   // エンドレスモードボタン
   const startEndlessBtn = document.getElementById('startEndlessBtn');
   if (startEndlessBtn) {
+    unlockEndlessButton(startEndlessBtn);
+  }
+
+  function unlockEndlessButton(btn) {
     const saveData = window.loadSaveData();
     const s1Cleared = saveData.stageProgress?.stage1?.cleared || false;
     const s2Cleared = saveData.stageProgress?.stage2?.cleared || false;
+    const lang = getLang();
     if (s1Cleared && s2Cleared) {
-      startEndlessBtn.style.display = 'block';
-      startEndlessBtn.onclick = () => startEndlessMode().catch(e => console.warn(e));
+      btn.disabled = false;
+      btn.style.background = 'linear-gradient(135deg, #7c3aed, #a855f7)';
+      btn.style.border = '2px solid #8b5cf6';
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
+      btn.textContent = lang === 'ja' ? '♾️ エンドレスモード' : '♾️ Endless Mode';
+      btn.onclick = () => startEndlessMode().catch(e => console.warn(e));
+    } else {
+      btn.disabled = true;
+      btn.style.background = '#334155';
+      btn.style.border = '2px solid #475569';
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+      const lockText = lang === 'ja' ? '🔒 両ステージクリアで解放' : '🔒 Clear both stages to unlock';
+      btn.textContent = lockText;
     }
   }
+  window._unlockEndlessButton = unlockEndlessButton;
 
   // RANKINGボタン
   const rankingBtn = document.getElementById('rankingBtn');
@@ -7038,15 +7057,10 @@ function goToTitle() {
   const startEl = document.getElementById('start');
   if (startEl) startEl.style.display = 'flex';
 
-  // エンドレスモードボタンの表示更新
+  // エンドレスモードボタンの状態更新
   const endlessBtnTitle = document.getElementById('startEndlessBtn');
-  if (endlessBtnTitle) {
-    const sd = window.loadSaveData();
-    const unlocked = (sd.stageProgress?.stage1?.cleared || false) && (sd.stageProgress?.stage2?.cleared || false);
-    endlessBtnTitle.style.display = unlocked ? 'block' : 'none';
-    if (unlocked) {
-      endlessBtnTitle.onclick = () => startEndlessMode().catch(e => console.warn(e));
-    }
+  if (endlessBtnTitle && window._unlockEndlessButton) {
+    window._unlockEndlessButton(endlessBtnTitle);
   }
 
   // エンドレスモードのリザルト要素を削除
