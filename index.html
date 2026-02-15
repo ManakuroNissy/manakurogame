@@ -14,6 +14,101 @@ window.addEventListener('unhandledrejection', function(event) {
 </script>
 
 <title>10min's Survivor</title>
+
+<!-- GameDistribution SDK -->
+<script>
+window["GD_OPTIONS"] = {
+  "gameId": "21a66beedfb74d09b6b8435f699f9fe5",
+  "onEvent": function(event) {
+    switch (event.name) {
+      case "SDK_GAME_START":
+        // 広告終了 → ゲーム再開
+        if (window._gdAdCallback) {
+          window._gdAdCallback();
+          window._gdAdCallback = null;
+        }
+        // ミュート解除
+        if (window.bgm && window._gdWasMuted === false) {
+          try { bgm.setVolume(0.09); } catch(e) {}
+        }
+        break;
+      case "SDK_GAME_PAUSE":
+        // 広告表示中 → ゲームをミュート
+        if (window.bgm) {
+          window._gdWasMuted = false;
+          try { bgm.setVolume(0); } catch(e) {}
+        }
+        break;
+      case "SDK_READY":
+        console.log('[GD] SDK Ready');
+        break;
+      case "SDK_ERROR":
+        console.warn('[GD] SDK Error');
+        // エラー時もコールバック実行（ゲームが止まらないように）
+        if (window._gdAdCallback) {
+          window._gdAdCallback();
+          window._gdAdCallback = null;
+        }
+        break;
+    }
+  }
+};
+(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s);
+  js.id = id;
+  js.src = 'https://html5.api.gamedistribution.com/main.min.js';
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'gamedistribution-jssdk'));
+
+/**
+ * GameDistribution SDKが利用可能かどうか
+ */
+function isGDReady() {
+  return typeof gdsdk !== 'undefined' && typeof gdsdk.showAd === 'function';
+}
+
+/**
+ * 広告を表示するヘルパー関数
+ * @param {Function} callback - 広告終了後に実行する関数
+ */
+function showGDInterstitial(callback) {
+  if (typeof gdsdk !== 'undefined' && typeof gdsdk.showAd === 'function') {
+    window._gdAdCallback = callback;
+    try {
+      gdsdk.showAd();
+    } catch(e) {
+      console.warn('[GD] showAd error:', e);
+      if (callback) callback();
+    }
+  } else {
+    // SDKが読み込まれていない場合はそのまま続行
+    if (callback) callback();
+  }
+}
+
+/**
+ * リワード広告を表示するヘルパー関数
+ * @param {Function} onComplete - 視聴完了時
+ * @param {Function} onSkip - スキップ/失敗時
+ */
+function showGDRewarded(onComplete, onSkip) {
+  if (typeof gdsdk !== 'undefined' && typeof gdsdk.showAd === 'function') {
+    window._gdAdCallback = null; // SDK_GAME_STARTでは呼ばない
+    try {
+      gdsdk.showAd(gdsdk.AdType.Rewarded)
+        .then(() => { if (onComplete) onComplete(); })
+        .catch(() => { if (onSkip) onSkip(); });
+    } catch(e) {
+      if (onSkip) onSkip();
+    }
+  } else {
+    if (onSkip) onSkip();
+  }
+}
+</script>
+
 <style>
   html,body { margin:0; height:100%; background:#0e0e0f; color:#eee; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif; }
 #wrap {
@@ -1090,7 +1185,9 @@ try {
       gameover_title: 'GAME OVER',
       gameover_time: '生存時間',
       gameover_score: 'スコア',
-      
+      revive_btn: '📺 広告を見て復活！',
+      revive_note: '1ゲームにつき1回のみ',
+
       // ===== ゲームクリア =====
       clear_title: 'STAGE CLEAR!',
       clear_time: 'クリアタイム',
@@ -1452,7 +1549,9 @@ try {
       gameover_title: 'GAME OVER',
       gameover_time: 'Survival Time',
       gameover_score: 'Score',
-      
+      revive_btn: '📺 Watch Ad to Revive!',
+      revive_note: 'Once per game',
+
       // ===== Game Clear =====
       clear_title: 'STAGE CLEAR!',
       clear_time: 'Clear Time',
@@ -2321,13 +2420,12 @@ try {
     <h2 id="gameoverTitle">GAME OVER</h2>
     <div class="sub" id="gameoverSub">Try again!</div>
     
-    <!-- 復活ボタン（広告機能が有効になったら復活）
-    <div id="reviveAdContainer" style="margin:0.5rem 0;">
-      <button id="reviveAdBtn" class="btn" style="background:#4b5563; opacity:0.5; cursor:not-allowed;" disabled>
-        📺 <span data-i18n="revive_btn">広告で復活（準備中）</span>
+    <div id="reviveAdContainer" style="margin:0.8rem 0; display:none;">
+      <button id="reviveAdBtn" class="btn" style="background:linear-gradient(135deg, #f59e0b, #ef4444); font-size:1.1rem; padding:12px 24px; border:2px solid #fbbf24; animation:pulse 1.5s infinite;">
+        📺 <span id="reviveAdText">広告を見て復活！</span>
       </button>
+      <div style="font-size:0.75rem; color:#94a3b8; margin-top:4px;" id="reviveAdNote">1ゲームにつき1回のみ</div>
     </div>
-    -->
     
     <!-- 解除された実績表示エリア -->
     <div id="gameoverAchievements" style="display:none; margin:1rem 0; padding:1rem; background:rgba(102,126,234,0.15); border-radius:8px; max-width:600px;">
@@ -6335,21 +6433,25 @@ replayBtn.onclick = () => {
   // ランキング消去
   const rankingModal = document.getElementById('rankingModal');
   if (rankingModal) rankingModal.remove();
-  
-  // 状態をリセット
-  state.gameover = false;
-  state._pendingRanking = null;
-  
-  // 配列を事前クリア（前回のエフェクトが見えないように）
-  state.effects.length = 0;
-  state.bullets.length = 0;
-  state.enemyBullets.length = 0;
-  state.sparks.length = 0;
-  
-  state.mode.hardcore = false;      // ← ノーマルで再挑戦
+
   clearEl.style.display='none';
-  resetGame();
-  syncPauseButton();
+
+  // === ミッドロール広告（リプレイ前） ===
+  showGDInterstitial(function() {
+    // 状態をリセット
+    state.gameover = false;
+    state._pendingRanking = null;
+
+    // 配列を事前クリア（前回のエフェクトが見えないように）
+    state.effects.length = 0;
+    state.bullets.length = 0;
+    state.enemyBullets.length = 0;
+    state.sparks.length = 0;
+
+    state.mode.hardcore = false;      // ← ノーマルで再挑戦
+    resetGame();
+    syncPauseButton();
+  });
 };
 
 // resetGame() の最後あたりでクリア画面も隠す
@@ -6659,27 +6761,30 @@ if (!window.__START_BOUND) {
 }
 
 
-retryBtn.onclick = () => { 
+retryBtn.onclick = () => {
   // ランキング消去
   const rankingModal = document.getElementById('rankingModal');
   if (rankingModal) rankingModal.remove();
-  
+
   // ゲームオーバー画面を隠す
   if (goEl) goEl.style.display = 'none';
-  
-  // 状態をリセット
-  state.gameover = false;
-  state._pendingRanking = null;
-  
-  // 配列を事前クリア（前回のエフェクトが見えないように）
-  state.effects.length = 0;
-  state.bullets.length = 0;
-  state.enemyBullets.length = 0;
-  state.sparks.length = 0;
-  
-  ensureEndScoreNodes();
-  resetGame(); 
-  syncPauseButton(); 
+
+  // === ミッドロール広告（リトライ前） ===
+  showGDInterstitial(function() {
+    // 状態をリセット
+    state.gameover = false;
+    state._pendingRanking = null;
+
+    // 配列を事前クリア（前回のエフェクトが見えないように）
+    state.effects.length = 0;
+    state.bullets.length = 0;
+    state.enemyBullets.length = 0;
+    state.sparks.length = 0;
+
+    ensureEndScoreNodes();
+    resetGame();
+    syncPauseButton();
+  });
 };
 
 
@@ -7358,8 +7463,81 @@ function triggerGameOver(){
   // 解除された実績を表示（ゲームオーバー版）
   if (typeof displayUnlockedAchievementsGameover === 'function') displayUnlockedAchievementsGameover();
 
+  // === 復活ボタン表示（1ゲーム1回のみ） ===
+  const reviveContainer = document.getElementById('reviveAdContainer');
+  const reviveBtn = document.getElementById('reviveAdBtn');
+  const reviveText = document.getElementById('reviveAdText');
+  const reviveNote = document.getElementById('reviveAdNote');
+  if (reviveContainer && reviveBtn) {
+    if (!state._reviveUsed && isGDReady()) {
+      // 復活可能＆SDK利用可能：ボタンを表示
+      reviveContainer.style.display = 'block';
+      reviveText.textContent = t('revive_btn');
+      reviveNote.textContent = t('revive_note');
+      reviveBtn.onclick = () => {
+        reviveBtn.disabled = true;
+        reviveBtn.style.opacity = '0.5';
+        reviveText.textContent = '⏳...';
+        showGDRewarded(
+          // 視聴完了 → 復活
+          function() { revivePlayer(); },
+          // スキップ/失敗 → 何もしない
+          function() {
+            reviveBtn.disabled = false;
+            reviveBtn.style.opacity = '1';
+            reviveText.textContent = t('revive_btn');
+          }
+        );
+      };
+    } else {
+      // 既に使用済み：非表示
+      reviveContainer.style.display = 'none';
+    }
+  }
+
   // フローティング・ジョイスティックOFF
   delete document.body.dataset.fjoy;
+}
+
+// === 広告視聴後の復活処理 ===
+function revivePlayer() {
+  state._reviveUsed = true;
+
+  // 復活ボタンを非表示
+  const reviveContainer = document.getElementById('reviveAdContainer');
+  if (reviveContainer) reviveContainer.style.display = 'none';
+
+  // ゲームオーバー画面を非表示
+  const goEl = document.getElementById('gameover');
+  if (goEl) {
+    goEl.style.display = 'none';
+    goEl.style.visibility = 'hidden';
+    goEl.style.pointerEvents = 'none';
+  }
+
+  // プレイヤー復活
+  state.gameover = false;
+  state.paused = false;
+  state.player.visible = true;
+  state.player.hp = state.player.maxHp;  // HP100%回復
+  state.player.iTime = 3.0;              // 3秒間無敵
+
+  // 周囲の敵弾をクリア（復活直後の即死防止）
+  state.enemyBullets.length = 0;
+
+  // フローティング・ジョイスティック復帰
+  document.body.dataset.fjoy = '';
+
+  // ポーズボタン同期
+  if (typeof syncPauseButton === 'function') syncPauseButton();
+
+  // 復活エフェクト
+  const lang = getLang();
+  const msg = lang === 'ja' ? '✨ 復活！' : '✨ Revived!';
+  addEffect('text', { x: state.player.x, y: state.player.y - 40, life: 2.0, text: msg });
+
+  // タイムスタンプ更新（ポーズ中の時間ずれ防止）
+  state.last = performance.now();
 }
 
 // === エンド画面（GO/クリア）に大スコアを差し込む ===
@@ -7563,50 +7741,53 @@ function showStageSelect() {
 async function startStage(stageId, hardcore) {
   try {
     ensureEndScoreNodes();
-    
+
     // フルスクリーン試行（失敗しても続行）
     try {
       await tryFullscreenAndLandscape();
     } catch(e) { /* 無視 */ }
-    
-    // ★BGM再生処理を追加
+
+    // タイトルBGMを停止（広告前に止める）
     try {
       if (window.initAudioOnce) initAudioOnce();
       if (window.AC && AC.state === 'suspended') AC.resume().catch(()=>{});
-      // タイトルBGMを停止
       if (window.titleBgm) titleBgm.stop();
-      // メインBGMを再生
-      if (window.bgm) {
-        bgm.load('main.mp3');
-        bgm.setVolume(0.09);
-        const p = bgm.play();
-        if (p && p.catch) p.catch(() => {});
-      }
     } catch(e) { /* 無視 */ }
-    
-    state.currentStage = stageId;
-    state.mode.hardcore = hardcore;
-    // 難易度モードを設定
-    state.mode.difficulty = window._pendingDifficulty || (hardcore ? 'hardcore' : 'normal');
-    resetGame();
-    state.started = true;
-    state.paused = false;
+
+    // 画面を先に切り替え
     document.getElementById('start').style.display = 'none';
     document.getElementById('stageSelectModal').style.display = 'none';
-    
-    // HUDを表示
-    const hud = document.querySelector('.hud');
-    if (hud) hud.style.display = 'flex';
-    const hudTop = document.getElementById('hudTop');
-    if (hudTop) hudTop.style.display = 'none';  // hudTopは使わない
-    
-    // HUDの幅をプレイ領域に合わせる
-    if (typeof updateMainHud === 'function') updateMainHud();
-    
-    state.last = performance.now();
-    syncPauseButton();
-    // ポーズボタンを表示
-    if (pauseBtn) pauseBtn.style.display = '';
+
+    // === プリロール広告 ===
+    showGDInterstitial(function() {
+      try {
+        // BGM再生（広告後）
+        if (window.bgm) {
+          bgm.load('main.mp3');
+          bgm.setVolume(0.09);
+          const p = bgm.play();
+          if (p && p.catch) p.catch(() => {});
+        }
+      } catch(e) { /* 無視 */ }
+
+      state.currentStage = stageId;
+      state.mode.hardcore = hardcore;
+      state.mode.difficulty = window._pendingDifficulty || (hardcore ? 'hardcore' : 'normal');
+      resetGame();
+      state.started = true;
+      state.paused = false;
+
+      const hud = document.querySelector('.hud');
+      if (hud) hud.style.display = 'flex';
+      const hudTop = document.getElementById('hudTop');
+      if (hudTop) hudTop.style.display = 'none';
+
+      if (typeof updateMainHud === 'function') updateMainHud();
+
+      state.last = performance.now();
+      syncPauseButton();
+      if (pauseBtn) pauseBtn.style.display = '';
+    });
   } catch(e) {
     console.warn('startStage error:', e);
   }
@@ -7648,11 +7829,15 @@ async function startEndlessMode() {
 }
 
   function resetGame(){
+    // 復活フラグリセット（新しいゲームでは復活可能に）
+    state._reviveUsed = false;
+
     // このセッションの実績リストをリセット
     window._unlockedThisSession = [];
-    
+
     // 無料リロール状態もリセット
     window._freeRerollUsed = false;
+    window._adRerollUsed = false;
     
     // セッショントラッキングリセット
     sessionTracking = {
@@ -9562,15 +9747,49 @@ function showLevelUp(choices){
   };
   btnContainer.appendChild(freeRerollBtn);
 
-  /* ===== 広告リロール・ボタン（広告機能が有効になったら復活）
+  // ===== 広告リロール・ボタン（無料リロール使用後に1回だけ使える） =====
   const adRerollBtn = document.createElement('button');
   adRerollBtn.id = 'adRerollBtn';
   adRerollBtn.className = 'btn';
-  adRerollBtn.style.cssText = 'background:#4b5563; opacity:0.5; cursor:not-allowed;';
-  adRerollBtn.disabled = true;
-  adRerollBtn.textContent = lang === 'ja' ? '📺 広告リロール（準備中）' : '📺 Ad Reroll (Coming Soon)';
-  btnContainer.appendChild(adRerollBtn);
-  */
+
+  const canAdReroll = window._freeRerollUsed && !window._adRerollUsed && isGDReady();
+  adRerollBtn.disabled = !canAdReroll;
+  adRerollBtn.style.cssText = canAdReroll
+    ? 'background:linear-gradient(135deg, #f59e0b, #ef4444); border:2px solid #fbbf24;'
+    : 'background:#4b5563; opacity:0.5; cursor:not-allowed;';
+  adRerollBtn.textContent = window._adRerollUsed
+    ? (lang === 'ja' ? '📺 広告リロール済み' : '📺 Ad Reroll Used')
+    : (lang === 'ja' ? '📺 広告で引き直す' : '📺 Ad Reroll');
+
+  adRerollBtn.onclick = () => {
+    if (!canAdReroll) return;
+    adRerollBtn.disabled = true;
+    adRerollBtn.style.opacity = '0.5';
+    adRerollBtn.textContent = '⏳...';
+    showGDRewarded(
+      // 視聴完了 → リロール実行
+      function() {
+        window._adRerollUsed = true;
+        sessionTracking.rerollCount++;
+        achievementProgress.totalRerolls++;
+        if (sessionTracking.rerollCount >= 15) unlockAchievement('reroll_20');
+        const choiceCount = state._endlessLessChoices ? 2 : 4;
+        const newChoices = pickUpgradeChoices(choiceCount);
+        showLevelUp(newChoices);
+      },
+      // スキップ/失敗 → ボタン復帰
+      function() {
+        adRerollBtn.disabled = false;
+        adRerollBtn.style.opacity = '1';
+        adRerollBtn.style.cssText = 'background:linear-gradient(135deg, #f59e0b, #ef4444); border:2px solid #fbbf24;';
+        adRerollBtn.textContent = lang === 'ja' ? '📺 広告で引き直す' : '📺 Ad Reroll';
+      }
+    );
+  };
+  // SDKが利用可能な場合のみ広告リロールボタンを表示
+  if (isGDReady()) {
+    btnContainer.appendChild(adRerollBtn);
+  }
 
   // 最初のカードにフォーカス（キーボード操作のしやすさ向上）
   const first = cardRow.querySelector('.card');
@@ -16421,7 +16640,6 @@ function updateEndlessModifierHud() {
 
 // --- エンドレスモード：次のステージへ遷移 ---
 function endlessNextStage() {
-  const lang = getLang();
   const nextStageId = state.currentStage === 'stage1' ? 'stage2' : 'stage1';
 
   // 周回カウント（2ステージで1周）
@@ -16503,6 +16721,15 @@ function endlessNextStage() {
   state.gameover = false;
   state.winCountdown = 0;
 
+  // === エンドレスステージ間ミッドロール広告 ===
+  showGDInterstitial(function() {
+    _showEndlessStageOverlay(nextStageId, newMods);
+  });
+}
+
+// エンドレスモード：ステージ遷移オーバーレイ表示（広告後に呼ばれる）
+function _showEndlessStageOverlay(nextStageId, newMods) {
+  const lang = getLang();
   const stageNum = nextStageId === 'stage1' ? '1' : '2';
   const roundNum = state.endlessRound + 1;
 
