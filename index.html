@@ -16763,7 +16763,9 @@ function spawnFinalBoss(){
   // ★ステージ2はHP60%に（80%からさらに20%減）
   const hpMul = state.currentStage === 'stage2' ? 0.6 : 1.0;
   const endlessMul = getEndlessBossHpMultiplier(); // エンドレスモード倍率
-  const hp   = hp0 * diffMods.hpMul * hpMul * endlessMul;  // 難易度によるHP倍率
+  let hp = hp0 * diffMods.hpMul * hpMul * endlessMul;  // 難易度によるHP倍率
+  // エンドレスモード：ボスHPの上限は100,000
+  if (state.endlessMode) hp = Math.min(hp, 100000);
 
   const e = {
     x, y,
