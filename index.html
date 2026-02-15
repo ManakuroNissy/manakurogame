@@ -5450,6 +5450,13 @@ function visibleBounds(radius = 0){
     poop:       { nameJa: '元ご馳走',     nameEn: 'Ex-Feast',     adsRequired: 5 },
     bluecat:    { nameJa: 'ロボねこ',     nameEn: 'Robo Cat',     adsRequired: 6 },
     blackmouse: { nameJa: '黒ネズミ',     nameEn: 'Black Mouse',  adsRequired: 6 },
+    // --- Premium Effect Skins（広告視聴報酬） ---
+    flame:      { nameJa: 'フレイム',     nameEn: 'Flame',        adsRequired: 3, premium: true },
+    frost:      { nameJa: 'フロスト',     nameEn: 'Frost',        adsRequired: 3, premium: true },
+    prism:      { nameJa: 'プリズム',     nameEn: 'Prism',        adsRequired: 5, premium: true },
+    neon:       { nameJa: 'ネオン',       nameEn: 'Neon',         adsRequired: 5, premium: true },
+    cosmo:      { nameJa: 'コスモ',       nameEn: 'Cosmo',        adsRequired: 10, premium: true },
+    phantom:    { nameJa: 'ファントム',   nameEn: 'Phantom',      adsRequired: 10, premium: true },
   };
 
   const AD_SKIN_SAVE_KEY = 'adSkinProgress';
@@ -5467,6 +5474,46 @@ function visibleBounds(radius = 0){
       localStorage.setItem(AD_SKIN_SAVE_KEY, JSON.stringify(progress));
     } catch (e) {}
   }
+
+  // --- Premium Skin: 広告視聴カウント（GitHub/itch版ではコメントアウト） ---
+  /*
+  const AD_WATCH_COUNT_KEY = 'adWatchCount';
+  function getAdWatchCount() {
+    try { return parseInt(localStorage.getItem(AD_WATCH_COUNT_KEY) || '0', 10); }
+    catch(e) { return 0; }
+  }
+  function incrementAdWatchCount() {
+    const count = getAdWatchCount() + 1;
+    localStorage.setItem(AD_WATCH_COUNT_KEY, String(count));
+    checkPremiumSkinUnlocks(count);
+    return count;
+  }
+  function checkPremiumSkinUnlocks(count) {
+    const thresholds = [
+      { at: 3, skins: ['flame','frost'] },
+      { at: 5, skins: ['prism','neon'] },
+      { at: 10, skins: ['cosmo','phantom'] },
+    ];
+    const progress = loadAdSkinProgress();
+    let unlocked = false;
+    for (const t of thresholds) {
+      if (count >= t.at) {
+        for (const key of t.skins) {
+          if ((progress[key]||0) < AD_SKINS[key].adsRequired) {
+            progress[key] = AD_SKINS[key].adsRequired;
+            unlocked = true;
+          }
+        }
+      }
+    }
+    if (unlocked) {
+      saveAdSkinProgress(progress);
+      const lang = typeof getLang === 'function' ? getLang() : 'en';
+      alert(lang === 'ja' ? '🎉 プレミアムスキン解放！' : '🎉 Premium Skin Unlocked!');
+    }
+  }
+  window.incrementAdWatchCount = incrementAdWatchCount;
+  */
 
   function getSelectedAdSkin() {
     try {
@@ -5726,11 +5773,193 @@ function visibleBounds(radius = 0){
         context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
         context.beginPath(); context.arc(cx, cy + faceOffY, faceR, 0, Math.PI * 2); context.stroke();
         break;
+
+      // === Premium Effect Skins ===
+      case 'flame': {
+        // 赤→橙グラデーション + 揺らめく輪郭
+        const t = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
+        const flicker = Math.sin(t * 8) * r * 0.06;
+        const grad = context.createRadialGradient(cx, cy, 0, cx, cy, r + flicker);
+        grad.addColorStop(0, '#ffdd44');
+        grad.addColorStop(0.4, '#ff6600');
+        grad.addColorStop(1, '#cc2200');
+        context.fillStyle = grad;
+        context.beginPath(); context.arc(cx, cy, r + flicker, 0, Math.PI*2); context.fill();
+        // 炎の先端（上方向に3つの揺れる突起）
+        for (let i = 0; i < 3; i++) {
+          const ang = -Math.PI/2 + (i-1) * 0.5 + Math.sin(t * 6 + i*2) * 0.15;
+          const tipLen = r * (0.35 + Math.sin(t * 10 + i*3) * 0.1);
+          context.fillStyle = '#ffaa00';
+          context.beginPath();
+          context.moveTo(cx + Math.cos(ang-0.2)*r*0.5, cy + Math.sin(ang-0.2)*r*0.5);
+          context.lineTo(cx + Math.cos(ang)*(r+tipLen), cy + Math.sin(ang)*(r+tipLen));
+          context.lineTo(cx + Math.cos(ang+0.2)*r*0.5, cy + Math.sin(ang+0.2)*r*0.5);
+          context.fill();
+        }
+        // 白いコア
+        context.fillStyle = 'rgba(255,255,200,0.6)';
+        context.beginPath(); context.arc(cx, cy, r*0.35, 0, Math.PI*2); context.fill();
+        // 目
+        context.fillStyle = '#000';
+        context.beginPath(); context.arc(cx-r*0.25, cy-r*0.05, r*0.1, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.25, cy-r*0.05, r*0.1, 0, Math.PI*2); context.fill();
+        break;
+      }
+      case 'frost': {
+        // 水色→白グラデーション + 氷結晶トゲ
+        const grad = context.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.5, '#b3e5fc');
+        grad.addColorStop(1, '#4fc3f7');
+        context.fillStyle = grad;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.fill();
+        // 6方向の氷結晶トゲ
+        context.fillStyle = 'rgba(200,240,255,0.8)';
+        for (let i = 0; i < 6; i++) {
+          const ang = i * Math.PI / 3;
+          context.beginPath();
+          context.moveTo(cx + Math.cos(ang-0.15)*r*0.7, cy + Math.sin(ang-0.15)*r*0.7);
+          context.lineTo(cx + Math.cos(ang)*(r*1.25), cy + Math.sin(ang)*(r*1.25));
+          context.lineTo(cx + Math.cos(ang+0.15)*r*0.7, cy + Math.sin(ang+0.15)*r*0.7);
+          context.fill();
+        }
+        // 白い縁取り
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.stroke();
+        // 目
+        context.fillStyle = '#1565c0';
+        context.beginPath(); context.arc(cx-r*0.25, cy-r*0.05, r*0.1, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.25, cy-r*0.05, r*0.1, 0, Math.PI*2); context.fill();
+        break;
+      }
+      case 'prism': {
+        // HSLサイクルで虹色変化
+        const t = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
+        const hue = (t * 50) % 360;
+        context.fillStyle = `hsl(${hue}, 85%, 60%)`;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.fill();
+        // 虹色の光沢ハイライト
+        const hGrad = context.createRadialGradient(cx - r*0.3, cy - r*0.3, 0, cx, cy, r);
+        hGrad.addColorStop(0, 'rgba(255,255,255,0.5)');
+        hGrad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+        hGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        context.fillStyle = hGrad;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.fill();
+        // 白い縁取り
+        context.strokeStyle = `hsl(${(hue+180)%360}, 80%, 80%)`; context.lineWidth = r * 0.1;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.stroke();
+        // 目（白抜き）
+        context.fillStyle = '#fff';
+        context.beginPath(); context.arc(cx-r*0.25, cy-r*0.05, r*0.12, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.25, cy-r*0.05, r*0.12, 0, Math.PI*2); context.fill();
+        context.fillStyle = '#333';
+        context.beginPath(); context.arc(cx-r*0.25, cy-r*0.05, r*0.06, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.25, cy-r*0.05, r*0.06, 0, Math.PI*2); context.fill();
+        break;
+      }
+      case 'neon': {
+        // 黒い本体 + シアンの回路線
+        const t = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
+        context.fillStyle = '#111';
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.fill();
+        // 回路線パターン
+        const glow = 0.6 + Math.sin(t * 3) * 0.3;
+        context.strokeStyle = `rgba(0,255,255,${glow})`; context.lineWidth = r * 0.07;
+        // 水平線
+        context.beginPath(); context.moveTo(cx-r*0.7, cy); context.lineTo(cx+r*0.7, cy); context.stroke();
+        // 縦線（左）
+        context.beginPath(); context.moveTo(cx-r*0.35, cy-r*0.6); context.lineTo(cx-r*0.35, cy+r*0.6); context.stroke();
+        // L字（右）
+        context.beginPath(); context.moveTo(cx+r*0.35, cy-r*0.5); context.lineTo(cx+r*0.35, cy+r*0.2); context.lineTo(cx+r*0.65, cy+r*0.2); context.stroke();
+        // ドット
+        context.fillStyle = `rgba(0,255,255,${glow})`;
+        context.beginPath(); context.arc(cx-r*0.35, cy-r*0.6, r*0.08, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.65, cy+r*0.2, r*0.08, 0, Math.PI*2); context.fill();
+        // 外枠（シアン）
+        context.strokeStyle = `rgba(0,255,255,${glow*0.5})`; context.lineWidth = r * 0.06;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.stroke();
+        // 目（シアン発光）
+        context.fillStyle = `rgba(0,255,255,${glow})`;
+        context.beginPath(); context.arc(cx-r*0.2, cy-r*0.15, r*0.1, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.2, cy-r*0.15, r*0.1, 0, Math.PI*2); context.fill();
+        break;
+      }
+      case 'cosmo': {
+        // 黒地 + 星空テクスチャ + 周回する小星
+        const t = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
+        // 宇宙背景
+        const grad = context.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grad.addColorStop(0, '#1a0533');
+        grad.addColorStop(1, '#000011');
+        context.fillStyle = grad;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.fill();
+        // 瞬く星（固定位置、明るさが変化）
+        const starPositions = [[0.3,-0.4],[-0.5,0.2],[0.1,0.5],[-0.4,-0.3],[0.5,-0.1],[0.2,0.3],[-0.1,-0.6],[0.4,0.4]];
+        for (let i = 0; i < starPositions.length; i++) {
+          const sp = starPositions[i];
+          const sx = cx + sp[0]*r*0.8, sy = cy + sp[1]*r*0.8;
+          const bright = 0.4 + Math.sin(t * 3 + i * 1.7) * 0.4;
+          context.fillStyle = `rgba(255,255,255,${bright})`;
+          context.beginPath(); context.arc(sx, sy, r*0.05, 0, Math.PI*2); context.fill();
+        }
+        // 周回する星（2つ）
+        for (let i = 0; i < 2; i++) {
+          const orbitAng = t * 1.5 + i * Math.PI;
+          const orbitR = r * 1.2;
+          const ox = cx + Math.cos(orbitAng) * orbitR;
+          const oy = cy + Math.sin(orbitAng) * orbitR * 0.4;
+          context.fillStyle = '#ffd700';
+          // ★形
+          context.beginPath();
+          for (let j = 0; j < 5; j++) {
+            const a = -Math.PI/2 + j * Math.PI*2/5;
+            const sr = j%2===0 ? r*0.12 : r*0.05;
+            if (j===0) context.moveTo(ox+Math.cos(a)*sr, oy+Math.sin(a)*sr);
+            else context.lineTo(ox+Math.cos(a)*sr, oy+Math.sin(a)*sr);
+          }
+          context.closePath(); context.fill();
+        }
+        // 薄い紫の縁取り
+        context.strokeStyle = 'rgba(168,85,247,0.5)'; context.lineWidth = r * 0.08;
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.stroke();
+        // 目（白い星）
+        context.fillStyle = '#fff';
+        context.beginPath(); context.arc(cx-r*0.25, cy-r*0.05, r*0.1, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.25, cy-r*0.05, r*0.1, 0, Math.PI*2); context.fill();
+        break;
+      }
+      case 'phantom': {
+        // 半透明紫→黒 + sin波で輪郭揺らぎ
+        const t = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
+        const wobble = Math.sin(t * 5) * r * 0.08;
+        context.globalAlpha = 0.55;
+        const grad = context.createRadialGradient(cx, cy, 0, cx, cy, r + wobble);
+        grad.addColorStop(0, '#7c3aed');
+        grad.addColorStop(0.6, '#4c1d95');
+        grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+        context.fillStyle = grad;
+        // 揺らぐ輪郭（多角形近似）
+        context.beginPath();
+        for (let i = 0; i <= 24; i++) {
+          const ang = (i / 24) * Math.PI * 2;
+          const rr = r + Math.sin(t * 4 + ang * 3) * r * 0.1 + wobble;
+          if (i === 0) context.moveTo(cx + Math.cos(ang)*rr, cy + Math.sin(ang)*rr);
+          else context.lineTo(cx + Math.cos(ang)*rr, cy + Math.sin(ang)*rr);
+        }
+        context.closePath(); context.fill();
+        context.globalAlpha = 1;
+        // 目（赤い発光）
+        const eyeGlow = 0.5 + Math.sin(t * 2) * 0.3;
+        context.fillStyle = `rgba(255,80,80,${eyeGlow})`;
+        context.beginPath(); context.arc(cx-r*0.25, cy-r*0.1, r*0.12, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.25, cy-r*0.1, r*0.12, 0, Math.PI*2); context.fill();
+        break;
+      }
     }
     context.restore();
   }
 
-  // 広告スキングリッド生成（準備中）
+  // 広告スキングリッド生成
   function renderAdSkinGrid() {
     const grid = document.getElementById('adSkinGrid');
     if (!grid) return;
@@ -5739,20 +5968,24 @@ function visibleBounds(radius = 0){
     const progress = loadAdSkinProgress();
     const selected = getSelectedAdSkin();
     const skinOrder = ['cat','bunny','chicken','panda','robot','ninja','dragon','skull','moai','poop','bluecat','blackmouse'];
+    // --- Premium skins (広告版のみ表示。GitHub/itch版はコメントアウト) ---
+    // const premiumOrder = ['flame','frost','prism','neon','cosmo','phantom'];
 
     grid.innerHTML = '';
 
-    for (let i = 0; i < skinOrder.length; i++) {
-      const key = skinOrder[i];
+    // 既存スキン描画ヘルパー
+    function _renderSkinCell(key, labelText) {
       const skin = AD_SKINS[key];
+      if (!skin) return;
       const unlocked = (progress[key] || 0) >= skin.adsRequired;
       const isSelected = selected === key;
       const name = lang === 'ja' ? skin.nameJa : skin.nameEn;
+      const isPremium = !!skin.premium;
 
       const cell = document.createElement('div');
-      cell.style.cssText = `text-align:center; padding:0.4rem; border-radius:8px; cursor:${unlocked ? 'pointer' : 'default'}; background:${isSelected ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.05)'}; border:2px solid ${isSelected ? '#8b5cf6' : unlocked ? '#4ade80' : '#333'}; opacity:${unlocked ? '1' : '0.4'}; transition:all 0.2s;`;
+      const borderColor = isSelected ? '#8b5cf6' : unlocked ? (isPremium ? '#fbbf24' : '#4ade80') : '#333';
+      cell.style.cssText = `text-align:center; padding:0.4rem; border-radius:8px; cursor:${unlocked ? 'pointer' : 'default'}; background:${isSelected ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.05)'}; border:2px solid ${borderColor}; opacity:${unlocked ? '1' : '0.4'}; transition:all 0.2s;`;
 
-      // ミニキャンバスでスキンをプレビュー描画
       const cvs = document.createElement('canvas');
       cvs.width = 40; cvs.height = 40;
       cvs.style.cssText = 'width:40px; height:40px; display:block; margin:0 auto;';
@@ -5772,22 +6005,36 @@ function visibleBounds(radius = 0){
 
       const label = document.createElement('div');
       label.style.cssText = 'font-size:0.6rem; color:#cbd5e1; margin-top:0.2rem;';
-      label.textContent = unlocked ? name : `Stage ${i + 1}`;
+      label.textContent = unlocked ? name : labelText;
       cell.appendChild(label);
 
       if (unlocked) {
         cell.onclick = () => {
-          if (isSelected) {
-            setSelectedAdSkin('');
-          } else {
-            setSelectedAdSkin(key);
-          }
-          renderAdSkinGrid(); // 再描画
+          if (isSelected) { setSelectedAdSkin(''); } else { setSelectedAdSkin(key); }
+          renderAdSkinGrid();
         };
       }
-
       grid.appendChild(cell);
     }
+
+    // 通常スキン
+    for (let i = 0; i < skinOrder.length; i++) {
+      _renderSkinCell(skinOrder[i], `Stage ${i + 1}`);
+    }
+
+    // --- Premium section（広告版のみ。GitHub/itch版はコメントアウト） ---
+    /*
+    if (premiumOrder.length > 0) {
+      const divider = document.createElement('div');
+      divider.style.cssText = 'grid-column: 1 / -1; border-top: 2px solid #fbbf24; margin: 0.5rem 0 0.3rem; padding-top: 0.3rem;';
+      divider.innerHTML = '<span style="color:#fbbf24; font-size:0.75rem;">✨ ' + (lang==='ja' ? 'プレミアムスキン' : 'Premium Skins') + '</span>';
+      grid.appendChild(divider);
+      for (const key of premiumOrder) {
+        const skin = AD_SKINS[key];
+        _renderSkinCell(key, 'Ad ×' + skin.adsRequired);
+      }
+    }
+    */
   }
 
   // グローバル公開
@@ -8712,11 +8959,12 @@ if (e.key.length === 1) {
   }
   // alladskinsコマンド：全広告スキン解放
   if (window._secretBuffer.endsWith('alladskins')) {
-    const AD_SKINS_KEYS = ['cat','bunny','chicken','panda','robot','ninja','dragon','skull','moai','poop','bluecat','blackmouse'];
+    const AD_SKINS_KEYS = ['cat','bunny','chicken','panda','robot','ninja','dragon','skull','moai','poop','bluecat','blackmouse',
+                           'flame','frost','prism','neon','cosmo','phantom'];
     const progress = {};
     AD_SKINS_KEYS.forEach(k => progress[k] = 99);
     localStorage.setItem('adSkinProgress', JSON.stringify(progress));
-    alert('🎉 全広告スキン解放！');
+    alert('🎉 全広告スキン解放！（プレミアム含む）');
     window._secretBuffer = '';
     if (window.renderAdSkinGrid) window.renderAdSkinGrid();
   }
@@ -14394,25 +14642,67 @@ if (selectedAdSkin && window.drawAdSkin) {
   const pr = state.player.r;
   let rotation = 0;
   
-  // レアスキン（5回以上CM）は特別アニメーション
-  const RARE_SKINS = ['dragon', 'skull', 'moai', 'poop', 'bluecat', 'blackmouse'];
+  // レアスキン（5回以上CM）+ プレミアムスキンは特別アニメーション
+  const RARE_SKINS = ['dragon', 'skull', 'moai', 'poop', 'bluecat', 'blackmouse',
+                      'flame', 'frost', 'prism', 'neon', 'cosmo', 'phantom'];
   if (RARE_SKINS.includes(selectedAdSkin)) {
     const now = Date.now();
-    const cycle10s = (now % 10000) / 1000; // 0〜10秒
-    
-    // 10秒に1回ジャンプ（0〜0.2秒）
+    const cycle10s = (now % 10000) / 1000;
     if (cycle10s < 0.2) {
       const jumpProgress = Math.sin((cycle10s / 0.2) * Math.PI);
       py -= jumpProgress * 6;
     }
-    
-    // 時々くるっと回転（30秒に1回、0〜0.4秒で1回転）
-    const cycle30s = (now % 30000) / 1000; // 0〜30秒
+    const cycle30s = (now % 30000) / 1000;
     if (cycle30s < 0.4) {
       rotation = (cycle30s / 0.4) * Math.PI * 2;
     }
   }
-  
+
+  // --- プレミアムスキン：ファントム残像（プレイヤー描画の前に描く） ---
+  if (selectedAdSkin === 'phantom') {
+    if (!state._phantomTrail) state._phantomTrail = [];
+    state._phantomTrail.push({ x: state.player.x, y: state.player.y, t: state.t });
+    while (state._phantomTrail.length > 0 && state.t - state._phantomTrail[0].t > 0.3) {
+      state._phantomTrail.shift();
+    }
+    for (const trail of state._phantomTrail) {
+      const age = state.t - trail.t;
+      const alpha = 0.25 * (1 - age / 0.3);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      window.drawAdSkin(ctx, 'phantom', trail.x, trail.y, pr);
+      ctx.restore();
+    }
+  }
+
+  // --- プレミアムスキン：常時エフェクト（パーティクル生成） ---
+  const PREMIUM_SKINS = ['flame','frost','prism','neon','cosmo','phantom'];
+  if (PREMIUM_SKINS.includes(selectedAdSkin) && state.started && !state.paused) {
+    const _speed = Math.hypot(state.player.vx||0, state.player.vy||0);
+    if (selectedAdSkin === 'flame' && _speed > 15) {
+      // 炎トレイル：移動中のみ
+      addEffect('flameTrail', { x: px + rnd(-3,3), y: py + rnd(-3,3), life: 0.35, life0: 0.35 });
+    }
+    if (selectedAdSkin === 'frost' && Math.random() < 0.15) {
+      // 雪：常時低確率で生成
+      addEffect('snowFlake', { x: px + rnd(-pr*2,pr*2), y: py - pr - rnd(0,10), life: 1.5, life0: 1.5, vx: rnd(-8,8), vy: rnd(10,25) });
+    }
+    if (selectedAdSkin === 'prism') {
+      if (_speed > 15) {
+        addEffect('rainbowTrail', { x: px + rnd(-2,2), y: py + rnd(-2,2), life: 0.4, life0: 0.4, hue: (state.t*50)%360 });
+      } else if (Math.random() < 0.1) {
+        // 停止時キラキラ
+        const a = rnd(0, Math.PI*2);
+        addEffect('rainbowTrail', { x: px + Math.cos(a)*pr*0.8, y: py + Math.sin(a)*pr*0.8, life: 0.5, life0: 0.5, hue: rnd(0,360) });
+      }
+    }
+    if (selectedAdSkin === 'neon' && Math.random() < 0.08) {
+      // 電気スパーク
+      const a = rnd(0, Math.PI*2);
+      addEffect('neonSpark', { x: px + Math.cos(a)*pr, y: py + Math.sin(a)*pr, life: 0.25, life0: 0.25, vx: Math.cos(a)*rnd(30,80), vy: Math.sin(a)*rnd(30,80) });
+    }
+  }
+
   // 回転がある場合はctxを回転させて描画
   if (rotation !== 0) {
     ctx.save();
@@ -15594,7 +15884,107 @@ for (const ef of state.effects) {
   }
 
 } else if (ef.type === 'poisonField') {
-  // poisonFieldは敵より下のレイヤーで描画済み（下記参照）→ここではスキップ
+  // poisonFieldは敵より下のレイヤーで描画済み→ここではスキップ
+
+  // === Premium Skin Effects ===
+  } else if (ef.type === 'flameTrail') {
+    ctx.save();
+    const a = Math.max(0, ef.life / (ef.life0 || 0.35));
+    const sz = 5 * a;
+    const grad = ctx.createRadialGradient(ef.x, ef.y, 0, ef.x, ef.y, sz);
+    grad.addColorStop(0, `rgba(255,200,50,${0.8*a})`);
+    grad.addColorStop(1, `rgba(255,80,0,${0.2*a})`);
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+  } else if (ef.type === 'snowFlake') {
+    ctx.save();
+    const a = Math.max(0, ef.life / (ef.life0 || 1.5));
+    ef.x += (ef.vx || 0) * (1/60);
+    ef.y += (ef.vy || 0) * (1/60);
+    ctx.globalAlpha = 0.7 * a;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2;
+    // 十字 + X字で雪結晶
+    const sz = 3;
+    ctx.beginPath();
+    ctx.moveTo(ef.x-sz, ef.y); ctx.lineTo(ef.x+sz, ef.y);
+    ctx.moveTo(ef.x, ef.y-sz); ctx.lineTo(ef.x, ef.y+sz);
+    ctx.moveTo(ef.x-sz*0.7, ef.y-sz*0.7); ctx.lineTo(ef.x+sz*0.7, ef.y+sz*0.7);
+    ctx.moveTo(ef.x+sz*0.7, ef.y-sz*0.7); ctx.lineTo(ef.x-sz*0.7, ef.y+sz*0.7);
+    ctx.stroke();
+    ctx.restore();
+
+  } else if (ef.type === 'rainbowTrail') {
+    ctx.save();
+    const a = Math.max(0, ef.life / (ef.life0 || 0.4));
+    const sz = 4 * a;
+    const hue = ef.hue || 0;
+    ctx.globalAlpha = 0.7 * a;
+    ctx.fillStyle = `hsl(${hue}, 90%, 65%)`;
+    ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.fill();
+    // 白いコア
+    ctx.globalAlpha = 0.4 * a;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(ef.x, ef.y, sz*0.4, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+
+  } else if (ef.type === 'neonSpark') {
+    ctx.save();
+    const a = Math.max(0, ef.life / (ef.life0 || 0.25));
+    ef.x += (ef.vx || 0) * (1/60);
+    ef.y += (ef.vy || 0) * (1/60);
+    ctx.globalAlpha = 0.9 * a;
+    ctx.strokeStyle = `rgba(0,255,255,${a})`;
+    ctx.lineWidth = 1.5;
+    // ミニ稲妻（3セグメント）
+    ctx.beginPath();
+    ctx.moveTo(ef.x, ef.y);
+    ctx.lineTo(ef.x + 3, ef.y - 4);
+    ctx.lineTo(ef.x - 2, ef.y - 7);
+    ctx.lineTo(ef.x + 1, ef.y - 11);
+    ctx.stroke();
+    ctx.restore();
+
+  } else if (ef.type === 'starBurst') {
+    ctx.save();
+    const a = Math.max(0, ef.life / 0.5);
+    ef.x += (ef.vx || 0) * (1/60);
+    ef.y += (ef.vy || 0) * (1/60);
+    ef.vx = (ef.vx || 0) * 0.97;
+    ef.vy = (ef.vy || 0) * 0.97;
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#ffd700';
+    // ★形
+    ctx.beginPath();
+    const sr = 4 * a;
+    for (let j = 0; j < 10; j++) {
+      const ang = -Math.PI/2 + j * Math.PI/5;
+      const rr = j%2===0 ? sr : sr*0.4;
+      if (j===0) ctx.moveTo(ef.x+Math.cos(ang)*rr, ef.y+Math.sin(ang)*rr);
+      else ctx.lineTo(ef.x+Math.cos(ang)*rr, ef.y+Math.sin(ang)*rr);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+
+  } else if (ef.type === 'voidCollapse') {
+    ctx.save();
+    const a = Math.max(0, ef.life / 0.4);
+    const progress = 1 - a;
+    // 前半: 拡大、後半: 縮小
+    let sz;
+    if (progress < 0.4) {
+      sz = (ef.r || 30) * (progress / 0.4);
+    } else {
+      sz = (ef.r || 30) * (1 - (progress - 0.4) / 0.6);
+    }
+    ctx.globalAlpha = 0.7 * a;
+    ctx.fillStyle = '#111';
+    ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.fill();
+    // 紫の縁
+    ctx.strokeStyle = `rgba(124,58,237,${0.6*a})`; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
 
   } else if (ef.type === 'aim') {
     // 汎用の赤系予告線（ボスdashなど）
@@ -16442,6 +16832,15 @@ if (!e._counted) {
       try { dropGem(e.x, e.y, 1); } catch(_){}
     }
     try { spark(e.x, e.y, e.type === 'miniTriangle' ? 5 : 10); } catch(_){}  // ★スパーク追加
+    // プレミアムスキン撃破エフェクト
+    try {
+      const _ks = window.getSelectedAdSkin ? window.getSelectedAdSkin() : null;
+      if (_ks === 'cosmo') {
+        for (let _k=0;_k<5;_k++){const _a=rnd(0,Math.PI*2),_v=rnd(60,140);addEffect('starBurst',{x:e.x,y:e.y,vx:Math.cos(_a)*_v,vy:Math.sin(_a)*_v,life:0.5});}
+      } else if (_ks === 'phantom') {
+        addEffect('voidCollapse',{x:e.x,y:e.y,r:25,life:0.4});
+      }
+    } catch(_){}
   }
 
   e.dead = true; e.hp = 0;
