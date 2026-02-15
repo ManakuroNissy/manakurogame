@@ -6123,9 +6123,18 @@ magnet:{ active:false, time:0, dur:1.0, speed:1800 },
           result = { hpMul: 2.0, dmgMul: 1.5, spawnMul: 1.5, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 }; break;
         case 'endless': {
           const round = state.endlessRound || 0;
-          const hpScale = Math.pow(1.35, round);
-          const dmgScale = Math.pow(1.20, round);
-          const spawnScale = 1.0 + round * 0.15;
+          let hpScale, dmgScale, spawnScale;
+          if (round <= 3) {
+            hpScale = Math.pow(1.35, round);
+            dmgScale = Math.pow(1.20, round);
+            spawnScale = 1.0 + round * 0.15;
+          } else {
+            // 4周目以降：加速スケーリング
+            const extra = round - 3;
+            hpScale = Math.pow(1.35, 3) * Math.pow(1.5, extra);
+            dmgScale = Math.pow(1.20, 3) * Math.pow(1.3, extra);
+            spawnScale = 1.45 + extra * 0.25;
+          }
           result = { hpMul: hpScale, dmgMul: dmgScale, spawnMul: spawnScale, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 }; break;
         }
         default:
@@ -6144,7 +6153,7 @@ magnet:{ active:false, time:0, dur:1.0, speed:1800 },
   endlessRound: 0,        // 周回数（2ステージで1周）
   endlessStagesCleared: 0, // クリアしたステージ数
   endlessTotalTime: 0,     // 総プレイ時間
-  endlessModifiers: [],    // 現在適用中の縛りルール
+  endlessModifiers: [],    // レガシー（互換性のため残存）
   endlessStageBossHpMul: 1.0, // ボスHP倍率（周回で上昇）
   };
   
@@ -7852,20 +7861,14 @@ async function startEndlessMode() {
   state.endlessStagesCleared = 0;
   state.endlessTotalTime = 0;
   state.endlessModifiers = [];
-  state.endlessStageBossHpMul = 1.0;
-  // 縛りフラグをリセット
-  state._endlessHealHalf = false;
-  state._endlessItemDrought = false;
-  state._endlessLessChoices = false;
-  state._endlessNoBomb = false;
-  state._endlessRandomPick = false;
-  state._endlessEnemyFast = false;
-  state._endlessEnemySwarm = false;
-  state._endlessEnemyBig = false;
+  // 固定効果フラグをリセット
   state._endlessFog = false;
-  state._endlessNoKnockback = false;
-  state._endlessStopDamage = false;
-  state._stopDmgTimer = 0;
+  state._endlessSpeedMul = 0;
+  state._endlessBombActive = false;
+  state._endlessBombTimer = 0;
+  state._endlessBombInterval = 6.0;
+  state._endlessBombPending = [];
+  state._endlessDoubleBoss = false;
 
   window._pendingDifficulty = 'endless';
   await startStage('stage1', false);
@@ -7971,21 +7974,15 @@ state.sizeLv = 0; // 弾サイズレベルリセット
       state.endlessStagesCleared = 0;
       state.endlessTotalTime = 0;
       state.endlessModifiers = [];
-      state.endlessStageBossHpMul = 1.0;
     }
-    // 縛りフラグリセット（endlessNextStageでは再適用される）
-    state._endlessHealHalf = false;
-    state._endlessItemDrought = false;
-    state._endlessLessChoices = false;
-    state._endlessNoBomb = false;
-    state._endlessRandomPick = false;
-    state._endlessEnemyFast = false;
-    state._endlessEnemySwarm = false;
-    state._endlessEnemyBig = false;
+    // 固定効果フラグリセット
     state._endlessFog = false;
-    state._endlessNoKnockback = false;
-    state._endlessStopDamage = false;
-    state._stopDmgTimer = 0;
+    state._endlessSpeedMul = 0;
+    state._endlessBombActive = false;
+    state._endlessBombTimer = 0;
+    state._endlessBombInterval = 6.0;
+    state._endlessBombPending = [];
+    state._endlessDoubleBoss = false;
     state.spawnTimer = 0;
     state.difficulty = 1;
     state.timeSec = 0;
@@ -9125,14 +9122,10 @@ function spawnEnemy(){
     });
   }
 
-  // エンドレスモード縛り：最後にpushされた敵に適用
-  if (state.endlessMode && state.enemies.length > 0) {
+  // エンドレスモード：敵スピードブースト適用
+  if (state._endlessSpeedMul && state.enemies.length > 0) {
     const lastE = state.enemies[state.enemies.length - 1];
-    if (state._endlessEnemyFast && lastE.speed) lastE.speed *= 1.3;
-    if (state._endlessEnemyBig) {
-      lastE.size = Math.floor(lastE.size * 1.4);
-      if (lastE.sizeW) lastE.sizeW = Math.floor(lastE.sizeW * 1.4);
-    }
+    if (lastE.speed) lastE.speed *= state._endlessSpeedMul;
   }
 }
 
@@ -9168,6 +9161,7 @@ function spawnMidBoss(){
     burstCd: 0, burstInterval: 2.5, burstCount: 0, burstMax: 5,
     beamCd: 3, beamInterval: 6.0, beamCharging: false, beamChargeTime: 0, beamAngle: 0 // ★5→3秒、10→6秒間隔に短縮
   };
+  if (state._endlessSpeedMul) e.speed *= state._endlessSpeedMul;
 
   state.enemies.push(e);
   flashBossMsg();
@@ -9207,6 +9201,7 @@ function spawnBigBoss(){
     laserCd: 2, laserInterval: 4.0,
     dashPhase: 'idle', dashCd: 2.0, dashInterval: 8.0, dashWarnTime: 0, dashTargetX: 0, dashTargetY: 0, dashAngle: 0 // ★dashCd追加（2秒で最初の突進）
   };
+  if (state._endlessSpeedMul) e.speed *= state._endlessSpeedMul;
 
   state.enemies.push(e);
   flashBossMsg();
@@ -9317,7 +9312,6 @@ function addEffect(type, data){
 function spawnItemRandom(){
   let chance = 0.03;
   if (state.mods.doubleItem) chance *= 2;   // ← ここはそのまま
-  if (state._endlessItemDrought) chance *= 0.3; // アイテム枯渇縛り
 
   if (Math.random() < chance) {
     const B = worldBounds();        // ← ズーム対応の表示境界
@@ -9328,7 +9322,6 @@ function spawnItemRandom(){
     let roll = Math.random();
     // ボム封印縛り：nukeをmagnetに変換
     let kind = roll < 0.45 ? 'magnet' : roll < 0.75 ? 'nuke' : 'heal';
-    if (state._endlessNoBomb && kind === 'nuke') kind = 'magnet';
     const rByKind =
   kind==='magnet' ? 10 :
   kind==='nuke'   ? 10 :
@@ -9399,7 +9392,7 @@ if(it.kind==='magnet'){
   // アイテムカウント（宝箱除く）
   sessionTracking.itemsCollected++;
   
-  let healMul = state._endlessHealHalf ? 0.5 : 1.0; // 回復量半減縛り
+  let healMul = 1.0;
   const amount = Math.round(state.player.maxHp * 0.35 * healMul);
   state.player.hp = Math.min(state.player.maxHp, state.player.hp + amount);
   const healText = getLang() === 'ja' ? `回復 +${amount}` : `Heal +${amount}`;
@@ -9465,10 +9458,19 @@ function openChest(pickCount = 2) {
     });
   });
 
-  // 候補を抽選（can() を満たすものから最大6つ）★5→6に変更
+  // 候補を抽選（can() を満たすものから最大6つ）
   const pool = ALL_UPGRADES.filter(u => u.can());
+  // カンスト時：即スコアボーナス
+  if (state.endlessMode && pool.length === 0) {
+    state.score = (state.score || 0) + 10000;
+    try { if (scoreVal) scoreVal.textContent = Math.floor(state.score); } catch(_){}
+    addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🏆 +10,000!' });
+    chestEl.style.display = 'none';
+    chestHUD.style.display = 'none';
+    return;
+  }
   const choices = [];
-  while (choices.length < 6 && pool.length) { // ★5→6に変更
+  while (choices.length < 6 && pool.length) {
     const i = (Math.random() * pool.length) | 0;
     choices.push(pool.splice(i, 1)[0]);
   }
@@ -9626,32 +9628,17 @@ function offerUpgrades(){
   if (state.endlessMode) {
     const pool = ALL_UPGRADES.filter(u => u.can());
     if (pool.length === 0) {
-      // 全カンスト → 特別選択肢6つを表示
-      showLevelUp(ENDLESS_POST_MAX_UPGRADES.slice());
-      return;
-    }
-  }
-
-  // エンドレスモード：ランダム取得縛り
-  if (state._endlessRandomPick) {
-    const pool = ALL_UPGRADES.filter(u => u.can());
-    if (pool.length > 0) {
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      pick.apply();
-      const nameText = typeof pick.name === 'string' ? pick.name : pick.name;
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: `🎲 ${nameText}` });
-      return; // UIを出さずに即適用
-    }
-    // poolが空ならカンスト後処理へ
-    if (state.endlessMode) {
-      showLevelUp(ENDLESS_POST_MAX_UPGRADES.slice());
+      // 全カンスト → 即スコアボーナス
+      state.score = (state.score || 0) + 10000;
+      try { if (scoreVal) scoreVal.textContent = Math.floor(state.score); } catch(_){}
+      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🏆 +10,000!' });
       return;
     }
   }
 
   // このレベルアップ中にリロールを使ったかどうか（1回だけ）
   window._rerollUsedThisLevel = false;
-  const choiceCount = state._endlessLessChoices ? 2 : 4; // 選択肢減少縛り
+  const choiceCount = 4;
   const choices = pickUpgradeChoices(choiceCount);
   showLevelUp(choices);
 }
@@ -9810,7 +9797,7 @@ function showLevelUp(choices){
         sessionTracking.rerollCount++;
         achievementProgress.totalRerolls++;
         if (sessionTracking.rerollCount >= 15) unlockAchievement('reroll_20');
-        const choiceCount = state._endlessLessChoices ? 2 : 4;
+        const choiceCount = 4;
         const newChoices = pickUpgradeChoices(choiceCount);
         showLevelUp(newChoices);
       },
@@ -11169,7 +11156,8 @@ const lvlOpen   = (levelupEl && levelupEl.style.display === 'flex');
 const chestOpen = (chestEl  && chestEl.style.display  === 'flex');
 const startBonusOpen = !!document.getElementById('startBonusModal');
 const pauseMenuOpen = !!document.getElementById('pauseMenuModal');
-state.paused = !!(lvlOpen || chestOpen || startBonusOpen || pauseMenuOpen || state.manualPaused);
+const endlessOverlayOpen = !!document.getElementById('endlessStageOverlay');
+state.paused = !!(lvlOpen || chestOpen || startBonusOpen || pauseMenuOpen || endlessOverlayOpen || state.manualPaused);
 
 // オーバーレイ/手動いずれかで停止していたらここで抜ける
 if (state.paused){
@@ -11206,6 +11194,7 @@ if (state.paused){
     const bossSpawnTime = state.endlessMode ? 240 : 600; // エンドレス:4分、通常:10分
     if (!state.finalSpawned && state.timeSec >= bossSpawnTime) {
       spawnFinalBoss();
+      if (state._endlessDoubleBoss) spawnFinalBoss(); // 7周目+: 2体スポーン
       state.finalSpawned = true;
     }
     
@@ -11219,10 +11208,12 @@ if (state.paused){
       state.bigBossTimer -= dt;
       if(state.bossTimer<=0){
         spawnMidBoss();
+        if (state._endlessDoubleBoss) spawnMidBoss(); // 7周目+: 2体スポーン
         state.bossTimer = (_effTime>=360 ? 40 + Math.random()*15 : 60 + Math.random()*20);
       }
       if(state.bigBossTimer<=0){
         spawnBigBoss();
+        if (state._endlessDoubleBoss) spawnBigBoss(); // 7周目+: 2体スポーン
         state.bigBossTimer = (_effTime>=360 ? 100 + Math.random()*25 : 140 + Math.random()*30);
       }
     }
@@ -11271,7 +11262,6 @@ if (state.player && pm > 0) {
       else if (lv === 3) healRate = 0.012; // Lv3: 1.2%/sec (元の1.5倍)
       
       let healPerSec = state.player.maxHp * healRate;
-      if (state._endlessHealHalf) healPerSec *= 0.5; // 回復量半減縛り
       state.player.hp = Math.min(state.player.maxHp, state.player.hp + healPerSec * dt);
     }
 
@@ -11310,8 +11300,8 @@ if (state.player && pm > 0) {
   state.player.y = clamp(newY, b.minY, b.maxY);
 }
 
-    // エンドレス縛り：停止ダメージ
-    updateEndlessStopDamage(dt, vx, vy);
+    // エンドレス：予告爆弾投下
+    updateEndlessBombs(dt);
 
     // invincible timer
     if (state.player.iTime > 0) {
@@ -12019,8 +12009,7 @@ for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
       e.hitFlash = Math.max(0, e.hitFlash - dt*2.5);
       
       // 敵ノックバック速度の適用（減衰つき）- ピラートラップは固定
-      // エンドレス縛り：ノックバック無効
-if ((e.kbx || e.kby) && e.type !== 'pillarTrap' && !state._endlessNoKnockback){
+if ((e.kbx || e.kby) && e.type !== 'pillarTrap'){
   e.x += e.kbx * dt;
   e.y += e.kby * dt;
   const drag = 6.0;
@@ -16047,8 +16036,6 @@ function currentTrashCap(tSec) {
   else if (tSec < 240)  cap = 40;
   else if (tSec < 360)  cap = 60;
   else cap = Math.min(150, 30 + Math.floor((tSec - 360) / 20));
-  // エンドレス縛り：敵大群
-  if (state._endlessEnemySwarm) cap = Math.floor(cap * 1.4);
   return cap;
 }
 
@@ -16377,8 +16364,16 @@ if (!e._counted) {
 
   if (e.type === 'final') {
     playKillSound('final'); // ファイナルボス効果音
-    if (state.endlessMode) {
-      // === エンドレスモード：次のステージへ遷移 ===
+    // ダブルボス：残りのファイナルボスをチェック
+    const remainingFinals = state.enemies.filter(en => en.type === 'final' && en !== e && en.hp > 0);
+    if (state.endlessMode && remainingFinals.length > 0) {
+      // まだファイナルボスが残っている → エフェクトだけ出して続行
+      try {
+        addEffect('megaNova', { x: e.x, y: e.y, r: 200, life: 0.5 });
+        for (let k = 0; k < 10; k++) spark(e.x + (Math.random()-0.5)*30, e.y + (Math.random()-0.5)*30, 14);
+      } catch(_){}
+    } else if (state.endlessMode) {
+      // === エンドレスモード：全ファイナルボス撃破 → 次のステージへ遷移 ===
       state.paused = true;
       try {
         addEffect('flash', { life: 0.06 });
@@ -16617,45 +16612,101 @@ function displayUnlockedAchievementsGameover() {
 // === エンドレスモード システム ===
 // ============================================================
 
-// --- 縛りルール定義（18種類） ---
-const ENDLESS_MODIFIERS = [
-  // ステータス系
-  { id: 'dmgTakenUp',   nameJa: '被ダメUP',       nameEn: 'DMG Taken UP',     icon: '💔', apply: () => { state.mods.damageMul = (state.mods.damageMul || 1.0) / 0.7; } },
-  { id: 'slowMove',     nameJa: '鈍足',           nameEn: 'Slow Move',        icon: '🐌', apply: () => { state.player.speed *= 0.75; } },
-  { id: 'hpDown',       nameJa: 'HP上限DOWN',     nameEn: 'Max HP Down',      icon: '💀', apply: () => { state.player.maxHp = Math.floor(state.player.maxHp * 0.7); state.player.hp = Math.min(state.player.hp, state.player.maxHp); } },
-  { id: 'atkSpdDown',   nameJa: '攻撃速度DOWN',   nameEn: 'ATK Speed Down',   icon: '⏳', apply: () => { state.mods.rateMul *= 1.33; } },
-  { id: 'dmgDown',      nameJa: '火力DOWN',       nameEn: 'ATK Down',         icon: '📉', apply: () => { state.mods.dmgMul *= 0.8; } },
-  // 制限系
-  { id: 'healHalf',     nameJa: '回復量半減',     nameEn: 'Heal Halved',      icon: '🩹', apply: () => { state._endlessHealHalf = true; } },
-  { id: 'itemDrought',  nameJa: 'アイテム枯渇',   nameEn: 'Item Drought',     icon: '🏜️', apply: () => { state._endlessItemDrought = true; } },
-  { id: 'lessChoices',  nameJa: '選択肢減少',     nameEn: 'Less Choices',     icon: '🎰', apply: () => { state._endlessLessChoices = true; } },
-  { id: 'noBomb',       nameJa: 'ボム封印',       nameEn: 'No Bombs',         icon: '🚫', apply: () => { state._endlessNoBomb = true; } },
-  { id: 'randomPick',   nameJa: 'ランダム取得',   nameEn: 'Random Pick',      icon: '🎲', apply: () => { state._endlessRandomPick = true; } },
-  // 敵強化系
-  { id: 'enemyFast',    nameJa: '敵高速化',       nameEn: 'Fast Enemies',     icon: '⚡', apply: () => { state._endlessEnemyFast = true; } },
-  { id: 'enemySwarm',   nameJa: '敵大群',         nameEn: 'Enemy Swarm',      icon: '🐜', apply: () => { state._endlessEnemySwarm = true; } },
-  { id: 'enemyBig',     nameJa: '敵巨大化',       nameEn: 'Big Enemies',      icon: '🦣', apply: () => { state._endlessEnemyBig = true; } },
-  { id: 'bossHpUp',     nameJa: 'ボス強化',       nameEn: 'Boss HP Up',       icon: '👹', apply: () => { state.endlessStageBossHpMul *= 1.5; } },
-  // 特殊系
-  { id: 'playerBig',    nameJa: '自機巨大化',     nameEn: 'Player Big',       icon: '🎈', apply: () => { state.player.r = Math.min(28, state.player.r * 1.5); } },
-  { id: 'fogOfWar',     nameJa: '視界縮小',       nameEn: 'Fog of War',       icon: '🌫️', apply: () => { state._endlessFog = true; } },
-  { id: 'noKnockback',  nameJa: 'ノックバック無効', nameEn: 'No Knockback',    icon: '🧱', apply: () => { state._endlessNoKnockback = true; } },
-  { id: 'stopDamage',   nameJa: '停止ダメージ',   nameEn: 'Stop Damage',      icon: '🏃', apply: () => { state._endlessStopDamage = true; state._stopDmgTimer = 0; } },
+// --- 縛りルール定義（廃止：固定効果に移行済み） ---
+const ENDLESS_MODIFIERS = [];
+
+// --- エンドレスモード：周回ごとの固定効果テーブル ---
+const ENDLESS_ROUND_EFFECTS = [
+  { round: 1, icon: '🎈', nameJa: '主人公が大きくなる', nameEn: 'Player Size Up' },
+  { round: 2, icon: '⚡', nameJa: '敵のスピードUP',   nameEn: 'Enemies Faster' },
+  { round: 3, icon: '💣', nameJa: '予告爆弾投下',     nameEn: 'Warning Bombs' },
+  { round: 4, icon: '💣💣', nameJa: '爆弾頻度2倍',    nameEn: 'Double Bombs' },
+  { round: 5, icon: '🌫️', nameJa: '視界縮小',         nameEn: 'Fog of War' },
+  { round: 6, icon: '👹👹', nameJa: 'ボス2体出現',    nameEn: 'Double Bosses' },
 ];
 
-// --- エンドレスモード：HUDモディファイア表示更新 ---
+// --- エンドレスモード：固定効果を周回に応じて適用 ---
+function applyEndlessRoundEffects() {
+  const round = state.endlessRound || 0;
+  // Round 2+: プレイヤー巨大化（初回のみ）
+  if (round >= 1 && state.player.r < 21) {
+    state.player.r = 21; // 14 * 1.5
+  }
+  // Round 3+: 敵スピードブースト
+  if (round >= 2) {
+    state._endlessSpeedMul = 1.2;
+  }
+  // Round 4+: 爆弾投下開始
+  if (round >= 3 && !state._endlessBombActive) {
+    state._endlessBombActive = true;
+    state._endlessBombTimer = 6.0;
+    state._endlessBombInterval = 6.0;
+  }
+  // Round 5+: 爆弾頻度2倍
+  if (round >= 4) {
+    state._endlessBombInterval = 3.0;
+  }
+  // Round 6+: 霧
+  if (round >= 5) {
+    state._endlessFog = true;
+  }
+  // Round 7+: ダブルボス
+  if (round >= 6) {
+    state._endlessDoubleBoss = true;
+  }
+}
+
+// --- エンドレスモード：予告爆弾投下システム ---
+function updateEndlessBombs(dt) {
+  if (!state.endlessMode || !state._endlessBombActive) return;
+  state._endlessBombTimer -= dt;
+  if (state._endlessBombTimer <= 0) {
+    const B = worldBounds();
+    const tx = rnd(B.minX + 60, B.maxX - 60);
+    const ty = rnd(B.minY + 60, B.maxY - 60);
+    if (!state._endlessBombPending) state._endlessBombPending = [];
+    state._endlessBombPending.push({ x: tx, y: ty, warn: 2.0 });
+    state._endlessBombTimer = state._endlessBombInterval;
+  }
+  if (state._endlessBombPending) {
+    for (let i = state._endlessBombPending.length - 1; i >= 0; i--) {
+      const b = state._endlessBombPending[i];
+      b.warn -= dt;
+      addEffect('bombWarn', { x: b.x, y: b.y, r: 86, life: dt * 1.1 });
+      if (b.warn <= 0) {
+        const d = Math.hypot(state.player.x - b.x, state.player.y - b.y);
+        if (d < state.player.r + 86 && state.player.iTime <= 0 && !state._debugInvincible) {
+          const diffMods = state.mode.getDifficultyMods();
+          const finalDmg = Math.round(50 * (diffMods.dmgMul || 1.0) * state.mods.damageMul);
+          state.player.hp -= finalDmg;
+          state.player.iTime = 0.8;
+        }
+        addEffect('explosion', { x: b.x, y: b.y, r: 115, life: 0.4 });
+        state._endlessBombPending.splice(i, 1);
+      }
+    }
+  }
+}
+
+// --- エンドレスモード：HUD固定効果アイコン表示更新 ---
 function updateEndlessModifierHud() {
   const el = document.getElementById('endlessModHud');
   if (!el) return;
-  if (!state.endlessMode || state.endlessModifiers.length === 0) {
+  if (!state.endlessMode) {
+    el.style.display = 'none';
+    return;
+  }
+  const round = state.endlessRound || 0;
+  const active = ENDLESS_ROUND_EFFECTS.filter(e => e.round <= round);
+  if (active.length === 0) {
     el.style.display = 'none';
     return;
   }
   el.style.display = 'block';
   const lang = getLang();
-  el.innerHTML = state.endlessModifiers.map(m => {
-    const name = lang === 'ja' ? m.nameJa : m.nameEn;
-    return `<span title="${name}" style="cursor:default;">${m.icon}</span>`;
+  el.innerHTML = active.map(e => {
+    const name = lang === 'ja' ? e.nameJa : e.nameEn;
+    return `<span title="${name}" style="cursor:default;">${e.icon}</span>`;
   }).join(' ');
 }
 
@@ -16668,23 +16719,8 @@ function endlessNextStage() {
     state.endlessRound++;
   }
 
-  // 縛りルール付与（2ステージごとに増加、最初の2ステージは縛りなし）
-  const cleared = state.endlessStagesCleared;
-  const modCount = Math.max(0, Math.floor(cleared / 2)); // 0,0,1,1,2,2,3,3...
-  const prevModCount = Math.max(0, Math.floor((cleared - 1) / 2));
-  const newModsNeeded = modCount - prevModCount;
-
-  // 新しい縛りを決定（まだapplyしない、表示後にapply）
-  const newMods = [];
-  if (newModsNeeded > 0) {
-    const usedIds = state.endlessModifiers.map(m => m.id);
-    const available = ENDLESS_MODIFIERS.filter(m => !usedIds.includes(m.id));
-    for (let i = 0; i < newModsNeeded && available.length > 0; i++) {
-      const idx = Math.floor(Math.random() * available.length);
-      const mod = available.splice(idx, 1)[0];
-      newMods.push(mod);
-    }
-  }
+  // 固定効果を適用
+  applyEndlessRoundEffects();
 
   // ステージ切替
   state.currentStage = nextStageId;
@@ -16699,6 +16735,8 @@ function endlessNextStage() {
   state.sparks.length = 0;
   state.effects.length = 0;
   if (state._q) state._q.length = 0;
+  // 爆弾pendingもクリア
+  if (state._endlessBombPending) state._endlessBombPending.length = 0;
 
   // タイマー・ボススポーンをリセット
   state.timeSec = 0;
@@ -16744,15 +16782,16 @@ function endlessNextStage() {
 
   // === エンドレスステージ間ミッドロール広告 ===
   showGDInterstitial(function() {
-    _showEndlessStageOverlay(nextStageId, newMods);
+    _showEndlessStageOverlay(nextStageId);
   });
 }
 
 // エンドレスモード：ステージ遷移オーバーレイ表示（広告後に呼ばれる）
-function _showEndlessStageOverlay(nextStageId, newMods) {
+function _showEndlessStageOverlay(nextStageId) {
   const lang = getLang();
   const stageNum = nextStageId === 'stage1' ? '1' : '2';
   const roundNum = state.endlessRound + 1;
+  const round = state.endlessRound || 0;
 
   // オーバーレイ生成
   const overlay = document.createElement('div');
@@ -16762,25 +16801,24 @@ function _showEndlessStageOverlay(nextStageId, newMods) {
   let html = `<div style="text-align:center; max-width:500px; padding:2rem;">`;
   html += `<div style="font-size:2.5rem; font-weight:900; color:#a78bfa; margin-bottom:0.5rem;">🔄 Round ${roundNum} - Stage ${stageNum}</div>`;
 
-  // 新しい縛り追加の表示
-  if (newMods.length > 0) {
-    const newLabel = lang === 'ja' ? '🎲 新しい縛り追加！' : '🎲 New Modifier Added!';
+  // 今回追加される固定効果
+  const newEffect = ENDLESS_ROUND_EFFECTS.find(e => e.round === round);
+  if (newEffect) {
+    const newLabel = lang === 'ja' ? '⚠️ 新たな試練！' : '⚠️ New Challenge!';
     html += `<div style="font-size:1.5rem; color:#fbbf24; margin:1rem 0 0.5rem; font-weight:700;">${newLabel}</div>`;
-    for (const mod of newMods) {
-      const modName = lang === 'ja' ? mod.nameJa : mod.nameEn;
-      html += `<div style="font-size:1.3rem; margin:0.3rem 0; padding:0.5rem 1rem; background:rgba(168,85,247,0.3); border:1px solid #8b5cf6; border-radius:8px;">${mod.icon} ${modName}</div>`;
-    }
+    const effectName = lang === 'ja' ? newEffect.nameJa : newEffect.nameEn;
+    html += `<div style="font-size:1.3rem; margin:0.3rem 0; padding:0.5rem 1rem; background:rgba(239,68,68,0.3); border:1px solid #ef4444; border-radius:8px;">${newEffect.icon} ${effectName}</div>`;
   }
 
-  // 全縛り一覧
-  if (state.endlessModifiers.length > 0 || newMods.length > 0) {
-    const allLabel = lang === 'ja' ? '現在の縛り' : 'Active Modifiers';
-    const allMods = [...state.endlessModifiers, ...newMods];
+  // 現在アクティブな全効果一覧
+  const activeEffects = ENDLESS_ROUND_EFFECTS.filter(e => e.round <= round);
+  if (activeEffects.length > 0) {
+    const allLabel = lang === 'ja' ? '現在の試練' : 'Active Challenges';
     html += `<div style="font-size:1rem; color:#94a3b8; margin-top:1rem;">${allLabel}:</div>`;
     html += `<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-top:0.5rem;">`;
-    for (const mod of allMods) {
-      const modName = lang === 'ja' ? mod.nameJa : mod.nameEn;
-      html += `<span style="font-size:0.95rem; padding:4px 8px; background:rgba(100,116,139,0.4); border-radius:6px;" title="${modName}">${mod.icon} ${modName}</span>`;
+    for (const ef of activeEffects) {
+      const efName = lang === 'ja' ? ef.nameJa : ef.nameEn;
+      html += `<span style="font-size:0.95rem; padding:4px 8px; background:rgba(100,116,139,0.4); border-radius:6px;" title="${efName}">${ef.icon} ${efName}</span>`;
     }
     html += `</div>`;
   }
@@ -16793,12 +16831,6 @@ function _showEndlessStageOverlay(nextStageId, newMods) {
   document.body.appendChild(overlay);
 
   overlay.onclick = () => {
-    // 新しい縛りを適用
-    for (const mod of newMods) {
-      state.endlessModifiers.push(mod);
-      mod.apply();
-    }
-    // HUDのモディファイア表示を更新
     updateEndlessModifierHud();
     overlay.remove();
     state.paused = false;
@@ -16839,76 +16871,6 @@ function endlessUnlockSkin(stagesCleared) {
   }
 }
 
-// --- エンドレスモード：カンスト後レベルアップ選択肢 ---
-const ENDLESS_POST_MAX_UPGRADES = [
-  {
-    id: 'berserk', isEndlessBonus: true,
-    get name() { return getLang() === 'ja' ? '🔥 バーサーク' : '🔥 Berserk'; },
-    desc: () => getLang() === 'ja' ? '15秒間 攻撃力+50%' : 'ATK +50% for 15s',
-    can: () => true,
-    apply: () => {
-      const origDmg = state.mods.dmgMul;
-      state.mods.dmgMul *= 1.5;
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🔥 BERSERK!' });
-      addEffect('aura', { x: state.player.x, y: state.player.y, r: 40, life: 15, life0: 15 });
-      setTimeout(() => { state.mods.dmgMul = origDmg; }, 15000);
-    }
-  },
-  {
-    id: 'overdrive', isEndlessBonus: true,
-    get name() { return getLang() === 'ja' ? '⚡ オーバードライブ' : '⚡ Overdrive'; },
-    desc: () => getLang() === 'ja' ? '10秒間 攻撃速度2倍' : 'ATK Speed x2 for 10s',
-    can: () => true,
-    apply: () => {
-      const origRate = state.mods.rateMul;
-      state.mods.rateMul *= 0.5;
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '⚡ OVERDRIVE!' });
-      setTimeout(() => { state.mods.rateMul = origRate; }, 10000);
-    }
-  },
-  {
-    id: 'shield', isEndlessBonus: true,
-    get name() { return getLang() === 'ja' ? '🛡️ シールド' : '🛡️ Shield'; },
-    desc: () => getLang() === 'ja' ? '5秒間 完全無敵' : 'Invincible for 5s',
-    can: () => true,
-    apply: () => {
-      state.player.iTime = 5.0;
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🛡️ SHIELD!' });
-    }
-  },
-  {
-    id: 'haste', isEndlessBonus: true,
-    get name() { return getLang() === 'ja' ? '💨 ヘイスト' : '💨 Haste'; },
-    desc: () => getLang() === 'ja' ? '15秒間 移動速度+60%' : 'Move Speed +60% for 15s',
-    can: () => true,
-    apply: () => {
-      const origSpd = state.player.speed;
-      state.player.speed *= 1.6;
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💨 HASTE!' });
-      setTimeout(() => { state.player.speed = origSpd; }, 15000);
-    }
-  },
-  {
-    id: 'fullHeal', isEndlessBonus: true,
-    get name() { return getLang() === 'ja' ? '💖 HP全回復' : '💖 Full Heal'; },
-    desc: () => getLang() === 'ja' ? 'HPを全回復' : 'Restore all HP',
-    can: () => true,
-    apply: () => {
-      state.player.hp = state.player.maxHp;
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '💖 FULL HEAL!' });
-    }
-  },
-  {
-    id: 'scoreBonus', isEndlessBonus: true,
-    get name() { return getLang() === 'ja' ? '🏆 スコアボーナス' : '🏆 Score Bonus'; },
-    desc: () => getLang() === 'ja' ? 'スコア +2000' : 'Score +2000',
-    can: () => true,
-    apply: () => {
-      state.score = (state.score || 0) + 2000;
-      addEffect('text', { x: state.player.x, y: state.player.y, life: 1.5, text: '🏆 +2000!' });
-    }
-  }
-];
 
 // --- エンドレスモード：ゲームオーバー時のリザルト生成 ---
 function getEndlessResultHTML() {
@@ -16918,9 +16880,9 @@ function getEndlessResultHTML() {
   const m = Math.floor(totalTime / 60);
   const s = Math.floor(totalTime % 60);
   const round = state.endlessRound + 1;
-  const mods = state.endlessModifiers;
-  const modsText = mods.length > 0
-    ? mods.map(mod => `<span title="${lang === 'ja' ? mod.nameJa : mod.nameEn}">${mod.icon}</span>`).join(' ')
+  const activeEffects = ENDLESS_ROUND_EFFECTS.filter(e => e.round <= (state.endlessRound || 0));
+  const modsText = activeEffects.length > 0
+    ? activeEffects.map(e => `<span title="${lang === 'ja' ? e.nameJa : e.nameEn}">${e.icon}</span>`).join(' ')
     : (lang === 'ja' ? 'なし' : 'None');
 
   return `
@@ -16974,26 +16936,6 @@ function drawEndlessFog(ctx) {
   ctx.restore();
 }
 
-// --- エンドレスモード：停止ダメージ処理（loop関数に注入用） ---
-function updateEndlessStopDamage(dt, vx, vy) {
-  if (!state.endlessMode || !state._endlessStopDamage) return;
-  const isMoving = Math.abs(vx) > 0.01 || Math.abs(vy) > 0.01;
-  if (!isMoving) {
-    state._stopDmgTimer = (state._stopDmgTimer || 0) + dt;
-    if (state._stopDmgTimer >= 1.5) { // 1.5秒静止でダメージ開始
-      const dmgPerSec = 5; // 秒間5ダメージ
-      if (state.player.iTime <= 0) {
-        state.player.hp -= dmgPerSec * dt;
-        // 点滅エフェクト（0.5秒ごと）
-        if (Math.floor(state._stopDmgTimer * 2) % 2 === 0) {
-          state.player.hitFlash = 0.1;
-        }
-      }
-    }
-  } else {
-    state._stopDmgTimer = 0;
-  }
-}
 
 // Final Boss spawn
 function spawnFinalBoss(){
@@ -17014,10 +16956,15 @@ function spawnFinalBoss(){
   if (state.endlessMode) {
     // エンドレスモード：固定HPテーブル（周回ごと）
     const round = state.endlessRound || 0;
-    const s1Table = [15000, 30000, 45000, 50000, 60000];
-    const s2Table = [15000, 25000, 30000, 35000, 40000];
-    const table = state.currentStage === 'stage2' ? s2Table : s1Table;
-    hp = table[Math.min(round, table.length - 1)];
+    const s1Table = [15000, 30000, 45000, 60000];
+    const s2Table = [15000, 25000, 30000, 40000];
+    if (round < s1Table.length) {
+      hp = state.currentStage === 'stage2' ? s2Table[round] : s1Table[round];
+    } else {
+      // 5周目以降：+10000/周（上限なし）
+      const base = state.currentStage === 'stage2' ? 40000 : 60000;
+      hp = base + (round - (s1Table.length - 1)) * 10000;
+    }
   } else {
     // 通常モード：従来どおり
     const endlessMul = getEndlessBossHpMultiplier();
@@ -17053,6 +17000,7 @@ function spawnFinalBoss(){
     shieldRadius: 160, // ★120→160（さらに拡大）
     shieldSpeed: 1.8   // ★1.0→1.8（回転速度アップ）
   };
+  if (state._endlessSpeedMul) e.speed *= state._endlessSpeedMul;
 
   state.enemies.push(e);
   state.finalSpawnAt = state.timeSec || 0;
