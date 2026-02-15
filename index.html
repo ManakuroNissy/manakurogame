@@ -4131,6 +4131,20 @@ function getScreenSpawnFactor() {
   return Math.max(0.6, Math.min(1.0, rawFactor * 1.125)); // 0.8 * 1.125 = 0.9
 }
 
+// ★モバイル向けスケーリング係数（ピラートラップ・ボスサイズ用）
+// 基準: 960x540。小さい画面では0.5〜1.0の範囲で縮小
+function getScreenSizeScale() {
+  const baseWidth = 960;
+  const baseHeight = 540;
+  const cvs = document.getElementById('cv');
+  const screenScale = Math.min(
+    (cvs ? cvs.width : baseWidth) / baseWidth,
+    (cvs ? cvs.height : baseHeight) / baseHeight,
+    1.0
+  );
+  return Math.max(0.5, screenScale);
+}
+
 function computePlayRect(){
   const vw = W / DPR, vh = H / DPR;
 
@@ -6131,7 +6145,7 @@ magnet:{ active:false, time:0, dur:1.0, speed:1800 },
           } else {
             // 4周目以降：加速スケーリング
             const extra = round - 3;
-            hpScale = Math.pow(1.35, 3) * Math.pow(1.5, extra);
+            hpScale = Math.pow(1.35, 3) * Math.pow(1.8, extra);
             dmgScale = Math.pow(1.20, 3) * Math.pow(1.3, extra);
             spawnScale = 1.45 + extra * 0.25;
           }
@@ -7866,7 +7880,7 @@ async function startEndlessMode() {
   state._endlessSpeedMul = 0;
   state._endlessBombActive = false;
   state._endlessBombTimer = 0;
-  state._endlessBombInterval = 6.0;
+  state._endlessBombInterval = 4.0;
   state._endlessBombPending = [];
   state._endlessDoubleBoss = false;
 
@@ -7980,7 +7994,7 @@ state.sizeLv = 0; // 弾サイズレベルリセット
     state._endlessSpeedMul = 0;
     state._endlessBombActive = false;
     state._endlessBombTimer = 0;
-    state._endlessBombInterval = 6.0;
+    state._endlessBombInterval = 4.0;
     state._endlessBombPending = [];
     state._endlessDoubleBoss = false;
     state.spawnTimer = 0;
@@ -8968,16 +8982,17 @@ function spawnEnemy(){
           const currentTraps = state.enemies.filter(en => en.type === 'pillarTrap' && !en.fromBoss).length;
           if (currentTraps >= pillarTrapMax) return;
           
+          const _ptScale = getScreenSizeScale();
           state.enemies.push({
             x: spawnX, y: spawnY,
-            size: 25,
+            size: Math.round(25 * _ptScale),
             hp: 999999,           // 倒せない
             maxHp: 999999,
             type: 'pillarTrap',
             invincible: true,     // 無敵フラグ
             rotation: Math.random() * Math.PI * 2,
             rotationSpeed: 1.5,   // 回転速度
-            laserLength: 250,     // レーザーの長さ
+            laserLength: Math.round(250 * _ptScale),     // レーザーの長さ（画面スケール）
             laserDamage: 40,      // ダメージ/秒（20→40に増加）
             lifeTime: 6.0,        // 存在時間
             timer: 6.0,
@@ -9151,8 +9166,9 @@ function spawnMidBoss(){
   if ((state.timeSec + getEndlessTimeOffset()) >=360) hp *= 1.6;
   hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
+  const _bossScale = getScreenSizeScale();
   const e = {
-    x,y, size: state.currentStage === 'stage2' ? 55 : 48,
+    x,y, size: Math.round((state.currentStage === 'stage2' ? 55 : 48) * _bossScale),
     hp, maxHp:hp, speed: state.currentStage === 'stage2' ? 50 : 80, type:'mid',
     cd:0, hitFlash:0, kbx:0, kby:0,
     // ステージ2用
@@ -9190,8 +9206,9 @@ function spawnBigBoss(){
   if ((state.timeSec + getEndlessTimeOffset()) >=360) hp *= 1.6;
   hp *= diffMods.hpMul;  // 難易度によるHP倍率
 
+  const _bossScale2 = getScreenSizeScale();
   const e = {
-    x,y, size: state.currentStage === 'stage2' ? 80 : 70,
+    x,y, size: Math.round((state.currentStage === 'stage2' ? 80 : 70) * _bossScale2),
     hp, maxHp:hp, speed: state.currentStage === 'stage2' ? 60 : 95, type:'big',
     cd:0, phase:'shoot', tele:0, dashCD:6, dashDir:{x:0,y:0},
     hitFlash:0, kbx:0, kby:0,
@@ -13754,13 +13771,6 @@ if (e.vy) e.y += e.vy * dt;
             const finalDmg = e.dmg * (enemy.type === 'mid' || enemy.type === 'big' || enemy.type === 'final' ? 1.1 : 1.0);
             enemy.hp -= finalDmg;
             
-            // ノックバック（中心から外側へ）- ピラートラップは固定なので除外
-            if (dist > 0 && enemy.type !== 'pillarTrap') {
-              const kb = 150;
-              enemy.kbx = (enemy.kbx || 0) + (dx / dist) * kb;
-              enemy.kby = (enemy.kby || 0) + (dy / dist) * kb;
-            }
-            
             // ヒットエフェクト
             spark(enemy.x, enemy.y, 3);
           }
@@ -14565,6 +14575,21 @@ if(state.weapons.orbit.lv>0){
   }
 }
 
+  // --- poisonField を敵の下に描画 ---
+  for (const ef of state.effects) {
+    if (ef.type !== 'poisonField') continue;
+    ctx.save();
+    const a = Math.max(0, ef.life / (ef.life0 || 5));
+    ctx.globalAlpha = 0.22 * a;
+    ctx.fillStyle = '#7eff7e';
+    ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 0.10 * a;
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, ef.r*0.7 + Math.sin(state.t*2.2)*6, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   // enemies with HP bars
   for(const e of state.enemies){
     const s=e.size;
@@ -14821,16 +14846,17 @@ if(state.weapons.orbit.lv>0){
         }
       } else if(e.type === 'pillarTrap') {
         // ピラートラップ（中心の円＋4方向レーザー）
+        const ptR = e.size * 0.6; // 中心円 (25*0.6=15相当)
         // 中心円
         ctx.beginPath();
-        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.arc(0, 0, ptR, 0, Math.PI * 2);
         ctx.fill();
-        
+
         // 内側の白い円
         ctx.fillStyle = '#fff';
         ctx.globalAlpha = 0.5;
         ctx.beginPath();
-        ctx.arc(0, 0, 8, 0, Math.PI * 2);
+        ctx.arc(0, 0, ptR * 0.53, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
         
@@ -15568,19 +15594,7 @@ for (const ef of state.effects) {
   }
 
 } else if (ef.type === 'poisonField') {
-  ctx.save();
-  const a = Math.max(0, ef.life / (ef.life0 || 5));
-  // 外グロー
-  ctx.globalAlpha = 0.22 * a;
-  ctx.fillStyle = '#7eff7e';
-  ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.fill();
-  // 内ゆらぎ
-  ctx.globalAlpha = 0.10 * a;
-  ctx.beginPath();
-  ctx.arc(ef.x, ef.y, ef.r*0.7 + Math.sin(state.t*2.2)*6, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
-
+  // poisonFieldは敵より下のレイヤーで描画済み（下記参照）→ここではスキップ
 
   } else if (ef.type === 'aim') {
     // 汎用の赤系予告線（ボスdashなど）
@@ -16630,19 +16644,19 @@ function applyEndlessRoundEffects() {
   if (round >= 1 && state.player.r < 21) {
     state.player.r = 21; // 14 * 1.5
   }
-  // Round 3+: 敵スピードブースト
+  // Round 3+: 敵スピードブースト (+40%)
   if (round >= 2) {
-    state._endlessSpeedMul = 1.2;
+    state._endlessSpeedMul = 1.4;
   }
-  // Round 4+: 爆弾投下開始
+  // Round 4+: 爆弾投下開始 (4秒間隔)
   if (round >= 3 && !state._endlessBombActive) {
     state._endlessBombActive = true;
-    state._endlessBombTimer = 6.0;
-    state._endlessBombInterval = 6.0;
+    state._endlessBombTimer = 4.0;
+    state._endlessBombInterval = 4.0;
   }
-  // Round 5+: 爆弾頻度2倍
+  // Round 5+: 爆弾頻度2倍 (2秒間隔)
   if (round >= 4) {
-    state._endlessBombInterval = 3.0;
+    state._endlessBombInterval = 2.0;
   }
   // Round 6+: 霧
   if (round >= 5) {
@@ -16670,16 +16684,16 @@ function updateEndlessBombs(dt) {
     for (let i = state._endlessBombPending.length - 1; i >= 0; i--) {
       const b = state._endlessBombPending[i];
       b.warn -= dt;
-      addEffect('bombWarn', { x: b.x, y: b.y, r: 86, life: dt * 1.1 });
+      addEffect('bombWarn', { x: b.x, y: b.y, r: 129, life: dt * 1.1 });
       if (b.warn <= 0) {
         const d = Math.hypot(state.player.x - b.x, state.player.y - b.y);
-        if (d < state.player.r + 86 && state.player.iTime <= 0 && !state._debugInvincible) {
+        if (d < state.player.r + 129 && state.player.iTime <= 0 && !state._debugInvincible) {
           const diffMods = state.mode.getDifficultyMods();
           const finalDmg = Math.round(50 * (diffMods.dmgMul || 1.0) * state.mods.damageMul);
           state.player.hp -= finalDmg;
           state.player.iTime = 0.8;
         }
-        addEffect('explosion', { x: b.x, y: b.y, r: 115, life: 0.4 });
+        addEffect('explosion', { x: b.x, y: b.y, r: 170, life: 0.4 });
         state._endlessBombPending.splice(i, 1);
       }
     }
@@ -17040,9 +17054,10 @@ function spawnFinalBoss(){
     hp = hp0 * diffMods.hpMul * hpMul * endlessMul;
   }
 
+  const _fbScale = getScreenSizeScale();
   const e = {
     x, y,
-    size: state.currentStage === 'stage2' ? 200 : 84*2, // ★100→200（2倍）
+    size: Math.round((state.currentStage === 'stage2' ? 200 : 84*2) * _fbScale), // 画面スケール適用
     hp, maxHp: hp, speed: state.currentStage === 'stage2' ? 40 : 70, type: 'final', // ★遅く
     phase: 'shoot', cd: 0, tele: 0, dashCD: 5.5, dashDir: {x:0, y:0},
     patternCD: 4.5, blastCharge: 0, blastR: 220, laserAng: 0,
