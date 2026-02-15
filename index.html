@@ -8722,28 +8722,32 @@ function spawnEnemy(){
     }
   } else if (roll < spinnerProb + dasherProb + sniperProb + orbiterProb + pillarTrapProb) {
     // ピラートラップ（柱の上に出現、回転レーザー）
-    // ★同時に1体のみ存在可能 + 予告中も考慮
+    // 同時出現数: 通常1体、エンドレス4周目以降は2体まで
+    const pillarTrapMax = (state.endlessMode && state.endlessRound >= 3) ? 2 : 1;
     const existingPillarTraps = state.enemies.filter(en => en.type === 'pillarTrap' && !en.fromBoss).length;
-    const isPillarTrapPending = state._pillarTrapPending || false; // ★予告中フラグ
-    if (state.obstacles.length > 0 && existingPillarTraps === 0 && !isPillarTrapPending) {
-      // ランダムな柱を選ぶ
-      const obs = state.obstacles[Math.floor(Math.random() * state.obstacles.length)];
-      
-      // ★予告中フラグをセット
-      state._pillarTrapPending = true;
-      
-      // ★出現予告エフェクト（1.2秒間表示）
+    const pendingCount = state._pillarTrapPending || 0; // 予告中の数
+    if (state.obstacles.length > 0 && (existingPillarTraps + pendingCount) < pillarTrapMax) {
+      // トラップが既にいる柱を除外してランダムに選ぶ
+      const usedObs = new Set(state.enemies.filter(en => en.type === 'pillarTrap' && !en.fromBoss).map(en => en.x + ',' + en.y));
+      const availObs = state.obstacles.filter(o => !usedObs.has(o.x + ',' + o.y));
+      if (availObs.length > 0) {
+      const obs = availObs[Math.floor(Math.random() * availObs.length)];
+
+      // 予告中カウントを増やす
+      state._pillarTrapPending = (state._pillarTrapPending || 0) + 1;
+
+      // 出現予告エフェクト（1.2秒間表示）
       addEffect('warning', { x: obs.x, y: obs.y, r: 100, life: 1.2, color: 'rgba(255,50,50,0.7)' });
       addEffect('text', { x: obs.x, y: obs.y - 50, life: 1.2, text: '⚠️ TRAP', size: 20, color: '#ff6666' });
-      
+
       // 1.2秒後に実際に出現
       const spawnX = obs.x, spawnY = obs.y;
       setTimeout(() => {
-        state._pillarTrapPending = false; // ★予告終了
+        state._pillarTrapPending = Math.max(0, (state._pillarTrapPending || 0) - 1); // 予告終了
         if (!state.paused && state.started) {
-          // 再度チェック（遅延中に別のが出た場合を防ぐ）
+          // 再度チェック（遅延中に上限に達した場合を防ぐ）
           const currentTraps = state.enemies.filter(en => en.type === 'pillarTrap' && !en.fromBoss).length;
-          if (currentTraps > 0) return;
+          if (currentTraps >= pillarTrapMax) return;
           
           state.enemies.push({
             x: spawnX, y: spawnY,
@@ -8764,6 +8768,7 @@ function spawnEnemy(){
           addEffect('nova', { x: spawnX, y: spawnY, r: 60, life: 0.3 });
         }
       }, 1200);
+      }
     }
   } else if (roll < spinnerProb + dasherProb + sniperProb + orbiterProb + pillarTrapProb + bomProb) {
     // BOM敵（自爆型）- 出現予告付き
@@ -16446,6 +16451,7 @@ function endlessNextStage() {
   state.currentStage = nextStageId;
 
   // 敵・弾・アイテム・経験値をクリア（プレイヤー状態は維持）
+  state._pillarTrapPending = 0;
   state.enemies.length = 0;
   state.bullets.length = 0;
   state.enemyBullets.length = 0;
