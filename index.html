@@ -159,7 +159,7 @@ html, body {
   .card:hover, .card.sel { outline:2px solid #4aa3ff; }
 .chestHUD {
   position: fixed;                 /* 固定配置にして重なり順を安定させる */
-  top: 24px;
+  top: calc(24px + env(safe-area-inset-top, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 13000;                  /* 半透明オーバーレイ(#chest)より前に */
