@@ -6048,26 +6048,33 @@ magnet:{ active:false, time:0, dur:1.0, speed:1800 },
     unlockedHardcore: false,  // ハードコア解放済み？
     difficulty: 'normal',     // 'easy', 'normal', 'hard', 'hardcore'
     // 難易度別倍率
+    _diffCache: null, _diffCacheKey: '',
     getDifficultyMods: function() {
+      const key = this.difficulty + '|' + (state.endlessRound || 0);
+      if (this._diffCache && this._diffCacheKey === key) return this._diffCache;
+      let result;
       switch(this.difficulty) {
         case 'easy':
-          return { hpMul: 0.6, dmgMul: 0.8, spawnMul: 0.7, bossLimit: 1, startBonusCount: 2, xpMul: 1.3 };
+          result = { hpMul: 0.6, dmgMul: 0.8, spawnMul: 0.7, bossLimit: 1, startBonusCount: 2, xpMul: 1.3 }; break;
         case 'normal':
-          return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 };
+          result = { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 }; break;
         case 'hard':
-          return { hpMul: 1.5, dmgMul: 1.2, spawnMul: 1.2, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 };  // ★HP 1.2→1.5
+          result = { hpMul: 1.5, dmgMul: 1.2, spawnMul: 1.2, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 }; break;
         case 'hardcore':
-          return { hpMul: 2.0, dmgMul: 1.5, spawnMul: 1.5, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 };  // ★HP 1.8→2.0
+          result = { hpMul: 2.0, dmgMul: 1.5, spawnMul: 1.5, bossLimit: 99, startBonusCount: 0, xpMul: 1.0 }; break;
         case 'endless': {
           const round = state.endlessRound || 0;
-          const hpScale = Math.pow(1.35, round);   // 周回ごとにHP+35%
-          const dmgScale = Math.pow(1.20, round);   // 周回ごとにダメージ+20%
-          const spawnScale = 1.0 + round * 0.15;    // 周回ごとにスポーン+15%
-          return { hpMul: hpScale, dmgMul: dmgScale, spawnMul: spawnScale, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 };
+          const hpScale = Math.pow(1.35, round);
+          const dmgScale = Math.pow(1.20, round);
+          const spawnScale = 1.0 + round * 0.15;
+          result = { hpMul: hpScale, dmgMul: dmgScale, spawnMul: spawnScale, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 }; break;
         }
         default:
-          return { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 };
+          result = { hpMul: 1.0, dmgMul: 1.0, spawnMul: 1.0, bossLimit: 99, startBonusCount: 1, xpMul: 1.0 };
       }
+      this._diffCacheKey = key;
+      this._diffCache = result;
+      return result;
     }
   },
   currentStage: 'stage1',  // 現在のステージ
@@ -6244,6 +6251,28 @@ cv.addEventListener('touchcancel', ()=>{ joyHide(); }, {passive:true});
 
 
 const scoreVal = document.getElementById('scoreVal');
+
+// === HUD要素キャッシュ（毎フレームのgetElementById除去用） ===
+const _hpTop = document.getElementById('hpTop');
+const _hpTopVal = document.getElementById('hpTopVal');
+const _xpTop = document.getElementById('xpTop');
+const _xpTopVal = document.getElementById('xpTopVal');
+const _lvTop = document.getElementById('lvTop');
+const _wlTop = document.getElementById('wlTop');
+const _timeTop = document.getElementById('timeTop');
+const _scoreTop = document.getElementById('scoreTop');
+const _hudDiffBadge = document.getElementById('hudDiffBadge');
+const _hudStageBadge = document.getElementById('hudStageBadge');
+const _hpw2 = document.getElementById('hpw2');
+const _xpw2 = document.getElementById('xpw2');
+const _lv2 = document.getElementById('lv2');
+const _scoreVal2 = document.getElementById('scoreVal2');
+const _hudDiffBadge2 = document.getElementById('hudDiffBadge2');
+const _hudStageBadge2 = document.getElementById('hudStageBadge2');
+const _pcTimer = document.getElementById('pcTimer');
+
+// === 定数Set（毎フレーム配列再生成を回避） ===
+const PHYSICAL_BULLET_SET = new Set(['bullet', 'rubber', 'rock', 'poison', 'homing', 'ghost']);
 
 
 
@@ -8310,8 +8339,7 @@ hpValEl.textContent = `${Math.max(0, Math.floor(state.player.hp))} / ${Math.floo
 const m   = Math.floor(state.timeSec/60);
 const s   = (state.timeSec%60)|0;
 const txt = `${m}:${String(s).padStart(2,'0')}`;
-const tf  = document.getElementById('timeFloat'); // 常に浮遊タイマーへ
-if (tf) tf.textContent = `⌛ ${txt}`;
+if (timeFloatEl) timeFloatEl.textContent = `⌛ ${txt}`;
 
   const names = Object.entries(state.weapons)
     .filter(([k,w])=>w.lv>0)
@@ -8350,21 +8378,18 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   else if (typeof state?.xpToNext === 'function') needXP = state.xpToNext(p.level);
   const xpPct = needXP > 0 ? Math.min(100, (xp / needXP) * 100) : 0;
 
-  // 参照要素（hudTop用とhud用の両方）
-  const hpTop    = document.getElementById('hpTop');
-  const hpTopVal = document.getElementById('hpTopVal');
-  const xpTop    = document.getElementById('xpTop');
-  const xpTopVal = document.getElementById('xpTopVal');
-  const lvTop    = document.getElementById('lvTop');
-  const wlTop    = document.getElementById('wlTop');
-  const timeTop  = document.getElementById('timeTop');
-  const scoreTop = document.getElementById('scoreTop');
-  
-  // .hud用のID（統一化のため追加）
-  const hpwEl = document.getElementById('hpw');
-  const xpwEl = document.getElementById('xpw');
-  const lvEl = document.getElementById('lv');
-  const scoreValEl = document.getElementById('scoreVal');
+  // 参照要素（キャッシュ済み変数を使用）
+  const hpTop = _hpTop;
+  const hpTopVal = _hpTopVal;
+  const xpTop = _xpTop;
+  const xpTopVal = _xpTopVal;
+  const lvTop = _lvTop;
+  const wlTop = _wlTop;
+  const timeTop = _timeTop;
+  const scoreTop = _scoreTop;
+  const hpwEl = hpw;
+  const xpwEl = xpw;
+  const scoreValEl = scoreVal;
 
   // HP：幅＆色（20%以下で赤／それ以外は緑）
   const hpWidth = hpPct.toFixed(1) + '%';
@@ -8405,7 +8430,7 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   if (scoreValEl) scoreValEl.textContent = scoreStr;
   
   // 新HUD難易度バッジ
-  const hudDiffBadge = document.getElementById('hudDiffBadge');
+  const hudDiffBadge = _hudDiffBadge;
   if (hudDiffBadge) {
     const diff = state.mode?.difficulty || 'normal';
     if (diff === 'easy') {
@@ -8438,7 +8463,7 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   }
   
   // 新HUDステージバッジ
-  const hudStageBadge = document.getElementById('hudStageBadge');
+  const hudStageBadge = _hudStageBadge;
   if (hudStageBadge) {
     const stageId = state.currentStage || 'stage1';
     const stageNum = stageId === 'stage2' ? '2' : '1';
@@ -8453,12 +8478,12 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   }
   
   // ★コンパクトHUD（スマホ横画面用）の同期
-  const hpw2 = document.getElementById('hpw2');
-  const xpw2 = document.getElementById('xpw2');
-  const lv2 = document.getElementById('lv2');
-  const scoreVal2 = document.getElementById('scoreVal2');
-  const hudDiffBadge2 = document.getElementById('hudDiffBadge2');
-  const hudStageBadge2 = document.getElementById('hudStageBadge2');
+  const hpw2 = _hpw2;
+  const xpw2 = _xpw2;
+  const lv2 = _lv2;
+  const scoreVal2 = _scoreVal2;
+  const hudDiffBadge2 = _hudDiffBadge2;
+  const hudStageBadge2 = _hudStageBadge2;
   
   if (hpw2) {
     hpw2.style.width = hpWidth;
@@ -8505,12 +8530,10 @@ if (scoreVal) scoreVal.textContent = Math.floor(state.score || 0);
   const ss = String(t%60).padStart(2,'0');
 
   if (timeTop) timeTop.textContent = `${mm}:${ss}`;
-// 大タイマーも同期（表示位置は positionPcTimer で調整）
-const pcTimer = document.getElementById('pcTimer');
-if (pcTimer){
-  pcTimer.textContent = `${mm}:${ss}`;
-  pcTimer.style.display = 'block';
-  if (typeof positionPcTimer === 'function') positionPcTimer();
+// 大タイマーも同期（レイアウトは resize/orientationchange で positionPcTimer が処理）
+if (_pcTimer){
+  _pcTimer.textContent = `${mm}:${ss}`;
+  _pcTimer.style.display = 'block';
 }
 
   
@@ -8529,12 +8552,8 @@ if (pcTimer){
   const wrapEl = document.getElementById('wrap');
   if (wrapEl) {
     wrapEl.addEventListener('touchmove', e => {
-      // モーダル内のスクロールは許可
-      const modalIds = ['achievementsModal', 'rankingModal', 'updateLogModal', 'stageSelectModal', 'customizeModal', 'settingsModal', 'pauseMenuModal', 'gameover', 'gameclear', 'start'];
-      const isInModal = modalIds.some(id => {
-        const modal = document.getElementById(id);
-        return modal && modal.contains(e.target);
-      });
+      // モーダル内のスクロールは許可（closestで1回のDOM操作に統合）
+      const isInModal = e.target.closest('#achievementsModal, #rankingModal, #updateLogModal, #stageSelectModal, #customizeModal, #settingsModal, #pauseMenuModal, #gameover, #gameclear, #start');
       if (!isInModal) {
         e.preventDefault();
       }
@@ -8557,12 +8576,8 @@ if (pcTimer){
   // iOS Safari のプルダウンリフレッシュ防止（モーダル内は許可）
   document.addEventListener('touchmove', e => {
     if (e.touches.length === 1) {
-      // モーダル内のスクロールは許可
-      const modalIds = ['achievementsModal', 'rankingModal', 'updateLogModal', 'stageSelectModal', 'customizeModal', 'settingsModal', 'pauseMenuModal', 'gameover', 'gameclear', 'start'];
-      const isInModal = modalIds.some(id => {
-        const modal = document.getElementById(id);
-        return modal && modal.contains(e.target);
-      });
+      // モーダル内のスクロールは許可（closestで1回のDOM操作に統合）
+      const isInModal = e.target.closest('#achievementsModal, #rankingModal, #updateLogModal, #stageSelectModal, #customizeModal, #settingsModal, #pauseMenuModal, #gameover, #gameclear, #start');
       if (!isInModal) {
         e.preventDefault();
       }
@@ -11061,16 +11076,7 @@ if (state.paused){
 }
 
 
-// === GameOverは完全停止（描画だけして抜ける）
-if (state.gameover){
-  draw(); requestAnimationFrame(loop); return;
-}
-
-if (state.paused){
-  draw(); requestAnimationFrame(loop); return;
-}
-
-    state.t += dt; 
+    state.t += dt;
     state.timeSec += dt;
     const B = worldBounds(); // そのフレームで実際に見えているワールド境界
 
@@ -11103,9 +11109,7 @@ if (state.paused){
 // === movement input（浮遊スティック最優先 → なければキーボード/既存入力） ===
 let vx = 0, vy = 0;
 
-// ゲームオーバー/クリア画面表示中は入力を無視
-const goEl = document.getElementById('gameover');
-const clearEl = document.getElementById('gameclear');
+// ゲームオーバー/クリア画面表示中は入力を無視（キャッシュ済み要素を使用）
 const isEndScreen = (goEl && goEl.style.display !== 'none') || (clearEl && clearEl.style.display !== 'none');
 
 if (!isEndScreen) {
@@ -11399,8 +11403,7 @@ if (b.type === 'rock') {
   b.x += b.vx*dt; b.y += b.vy*dt; b.life -= dt;
   
   // 障害物との衝突判定（物理弾のみ）
-  const physicalBullets = ['bullet', 'rubber', 'rock', 'poison', 'homing', 'ghost'];
-  if (physicalBullets.includes(b.type)) {
+  if (PHYSICAL_BULLET_SET.has(b.type)) {
     for (const obs of state.obstacles) {
       const halfSize = obs.size / 2;
       const closestX = clamp(b.x, obs.x - halfSize, obs.x + halfSize);
