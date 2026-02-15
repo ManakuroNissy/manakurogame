@@ -31,6 +31,10 @@ window["GD_OPTIONS"] = {
         if (window.bgm && window._gdWasMuted === false) {
           try { bgm.setVolume(0.09); } catch(e) {}
         }
+        // 広告終了 → 隠したUI要素を復元
+        document.querySelectorAll('.gd-ad-hidden').forEach(function(el) {
+          el.classList.remove('gd-ad-hidden');
+        });
         break;
       case "SDK_GAME_PAUSE":
         // 広告表示中 → ゲームをミュート
@@ -38,6 +42,13 @@ window["GD_OPTIONS"] = {
           window._gdWasMuted = false;
           try { bgm.setVolume(0); } catch(e) {}
         }
+        // 広告表示中 → ゲームUI要素を隠す
+        ['gameover','gameclear','levelup','endlessStageOverlay'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el && el.style.display !== 'none') {
+            el.classList.add('gd-ad-hidden');
+          }
+        });
         break;
       case "SDK_READY":
         console.log('[GD] SDK Ready');
@@ -914,6 +925,12 @@ body[data-hc] .hc-badges{ display: flex; }
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+/* 広告表示中にゲームUI要素を完全に隠す */
+.gd-ad-hidden {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .tutorial-slide-icon {
@@ -7478,15 +7495,11 @@ function triggerGameOver(){
         reviveBtn.disabled = true;
         reviveBtn.style.opacity = '0.5';
         reviveText.textContent = '⏳...';
-        // 広告表示中はゲームオーバー画面を隠す
-        const _goEl = document.getElementById('gameover');
-        if (_goEl) _goEl.style.display = 'none';
         showGDRewarded(
           // 視聴完了 → 復活
           function() { revivePlayer(); },
-          // スキップ/失敗 → ゲームオーバー画面を再表示
+          // スキップ/失敗 → ボタン復帰
           function() {
-            if (_goEl) _goEl.style.cssText = 'display:flex; visibility:visible; pointer-events:auto;';
             reviveBtn.disabled = false;
             reviveBtn.style.opacity = '1';
             reviveText.textContent = t('revive_btn');
