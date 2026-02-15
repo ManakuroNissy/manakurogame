@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -10,6 +10,19 @@
 <script>
 window.addEventListener('unhandledrejection', function(event) {
   event.preventDefault();
+});
+</script>
+
+<script>
+// iOS Safari ピンチズーム防止＆向き変更時スケールリセット
+document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, {passive: false});
+document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, {passive: false});
+document.addEventListener('gestureend', function(e) { e.preventDefault(); }, {passive: false});
+window.addEventListener('orientationchange', function() {
+  var vp = document.querySelector('meta[name="viewport"]');
+  if (vp) {
+    vp.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+  }
 });
 </script>
 
