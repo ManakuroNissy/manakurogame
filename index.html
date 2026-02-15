@@ -4191,7 +4191,6 @@ function computePlayRect(){
     WORLD.w = WORLD_L.w;
     WORLD.h = WORLD_L.h;
   }
-  _wb0Valid = false; // worldBoundsキャッシュ無効化
 }
 
 function updateDock(){
@@ -4421,12 +4420,14 @@ window.addEventListener('resize', layoutTopRightUI);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   
 // 置換：ワールド内の絶対境界（移動・アイテム用）
-// キャッシュ用（radius=0の場合のみ）
-const _wb0 = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
-let _wb0Valid = false;
+// キャッシュ用（radius=0の場合のみ、WORLD.w/h変更を自動検知）
+const _wb0 = { minX: 0, maxX: 0, minY: 0, maxY: 0, _w: -1, _h: -1 };
 function worldBounds(radius = 0){
   if (radius === 0) {
-    if (!_wb0Valid) { _wb0.minX = 0; _wb0.maxX = WORLD.w; _wb0.minY = 0; _wb0.maxY = WORLD.h; _wb0Valid = true; }
+    if (_wb0._w !== WORLD.w || _wb0._h !== WORLD.h) {
+      _wb0.minX = 0; _wb0.maxX = WORLD.w; _wb0.minY = 0; _wb0.maxY = WORLD.h;
+      _wb0._w = WORLD.w; _wb0._h = WORLD.h;
+    }
     return _wb0;
   }
   return { minX: radius, maxX: WORLD.w - radius, minY: radius, maxY: WORLD.h - radius };
