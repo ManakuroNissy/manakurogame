@@ -16815,8 +16815,9 @@ function getEndlessTimeOffset() {
 function getEndlessBossHpMultiplier() {
   if (!state.endlessMode) return 1.0;
   const cleared = state.endlessStagesCleared;
-  if (cleared === 0) return 0.5; // 1周目ボスはHP50%
-  return state.endlessStageBossHpMul;
+  // 1周目: ステージ1=0.25, ステージ2=0.5 / 2周目以降: 0.75
+  if (cleared === 0) return state.currentStage === 'stage2' ? 0.5 : 0.25;
+  return 0.75;
 }
 
 // --- エンドレスモード：スキン報酬 ---
@@ -17012,8 +17013,11 @@ function spawnFinalBoss(){
   const hpMul = state.currentStage === 'stage2' ? 0.6 : 1.0;
   const endlessMul = getEndlessBossHpMultiplier(); // エンドレスモード倍率
   let hp = hp0 * diffMods.hpMul * hpMul * endlessMul;  // 難易度によるHP倍率
-  // エンドレスモード：ボスHPの上限は100,000
-  if (state.endlessMode) hp = Math.min(hp, 100000);
+  // エンドレスモード：ボスHP上限（ステージ1=80000, ステージ2=65000）
+  if (state.endlessMode) {
+    const hpCap = state.currentStage === 'stage2' ? 65000 : 80000;
+    hp = Math.min(hp, hpCap);
+  }
 
   const e = {
     x, y,
