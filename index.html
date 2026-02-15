@@ -138,22 +138,32 @@ html, body {
   inset: 0;
   display: none;             /* JSで flex に切替 */
   align-items: center;
-  justify-content: flex-start; /* ★上寄せでスクロール対応 */
-  flex-direction: column;    /* ← 縦に並べる（改行と同義） */
-  gap: 14px;                 /* 行間 */
-  text-align: center;        /* 中央寄せ */
+  justify-content: flex-start;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
   z-index: 13040;
   background: rgba(0,0,0,.65);
   pointer-events: auto;
-  overflow-y: auto;          /* スクロール可能 */
-  -webkit-overflow-scrolling: touch; /* iOS用スムーズスクロール */
-  padding: 20px 10px;        /* 上下に余白 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px 10px;
   padding-top:    calc(20px + env(safe-area-inset-top, 0px));
   padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
+/* 上下に auto margin のスペーサーで中央寄せ（溢れたらスクロール） */
+#gameover::before, #gameover::after,
+#gameclear::before, #gameclear::after {
+  content: '';
+  flex: 1 0 0px;
+}
 #gameover > *, #gameclear > *{
   pointer-events: auto;
-  flex-shrink: 0;            /* 縮まないように */
+  flex-shrink: 0;
+}
+#clearAchievements, #gameoverAchievements {
+  max-height: 30vh;
+  overflow-y: auto;
 }
 /* 全画面モーダル共通：ノッチ・ホームインジケータ回避 */
 #achievementsModal, #rankingModal, #updateLogModal,
@@ -172,7 +182,7 @@ html, body {
   .card:hover, .card.sel { outline:2px solid #4aa3ff; }
 .chestHUD {
   position: fixed;
-  top: calc(24px + env(safe-area-inset-top, 0px));
+  top: calc(70px + env(safe-area-inset-top, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: 13000;
@@ -432,7 +442,6 @@ html, body {
   
   /* ★縦画面でのクリア/ゲームオーバー画面をスクロール対応 */
   #gameover, #gameclear {
-    justify-content: flex-start !important;
     padding-top: calc(10px + env(safe-area-inset-top, 0px)) !important;
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
   }
@@ -4179,9 +4188,10 @@ function computePlayRect(){
     WORLD.h = 720;
   } else {
     // PC横・iPad: 1200x900
-    WORLD.w = WORLD_L.w; 
+    WORLD.w = WORLD_L.w;
     WORLD.h = WORLD_L.h;
   }
+  _wb0Valid = false; // worldBoundsキャッシュ無効化
 }
 
 function updateDock(){
@@ -4411,13 +4421,15 @@ window.addEventListener('resize', layoutTopRightUI);
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   
 // 置換：ワールド内の絶対境界（移動・アイテム用）
+// キャッシュ用（radius=0の場合のみ）
+const _wb0 = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+let _wb0Valid = false;
 function worldBounds(radius = 0){
-  return {
-    minX: 0 + radius,
-    maxX: WORLD.w - radius,
-    minY: 0 + radius,
-    maxY: WORLD.h - radius
-  };
+  if (radius === 0) {
+    if (!_wb0Valid) { _wb0.minX = 0; _wb0.maxX = WORLD.w; _wb0.minY = 0; _wb0.maxY = WORLD.h; _wb0Valid = true; }
+    return _wb0;
+  }
+  return { minX: radius, maxX: WORLD.w - radius, minY: radius, maxY: WORLD.h - radius };
 }
 
 // 追加：現在ズームで見えている中央の切り抜き（スポーン用）
@@ -4784,14 +4796,21 @@ function visibleBounds(radius = 0){
     window._unlockedThisSession.push(achievementId);
   }
 
+  let _achNotifCount = 0; // 同時表示中の通知数
   function showAchievementNotification(achievementId) {
     const achievement = ACHIEVEMENTS[achievementId];
     if (!achievement) return;
+    // ゲームオーバー/クリア画面表示中はポップアップを抑制
+    const goEl = document.getElementById('gameover');
+    const clEl = document.getElementById('gameclear');
+    if ((goEl && goEl.style.display === 'flex') || (clEl && clEl.style.display === 'flex')) return;
 
+    const offsetY = _achNotifCount * 60; // 通知をスタック表示
     const notification = document.createElement('div');
+    notification.className = 'ach-notif';
     notification.style.cssText = `
       position: fixed;
-      top: calc(20px + env(safe-area-inset-top, 0px));
+      top: calc(${20 + offsetY}px + env(safe-area-inset-top, 0px));
       left: calc(20px + env(safe-area-inset-left, 0px));
       background: linear-gradient(135deg, rgba(102,126,234,0.7) 0%, rgba(118,75,162,0.7) 100%);
       color: #fff;
@@ -4804,6 +4823,7 @@ function visibleBounds(radius = 0){
       pointer-events: none;
       animation: slideInLeft 0.3s ease-out;
     `;
+    _achNotifCount++;
     
     const lang = getLang();
     const unlockText = lang === 'ja' ? '実績解除！' : 'Achievement!';
@@ -4822,7 +4842,7 @@ function visibleBounds(radius = 0){
 
     setTimeout(() => {
       notification.style.animation = 'slideOutLeft 0.3s ease-in';
-      setTimeout(() => notification.remove(), 300);
+      setTimeout(() => { notification.remove(); _achNotifCount = Math.max(0, _achNotifCount - 1); }, 300);
     }, 3000);
   }
 
@@ -11162,7 +11182,25 @@ if (state.paused){
     state.timeSec += dt;
     const B = worldBounds(); // そのフレームで実際に見えているワールド境界
 
-    
+    // 毒フィールドをフレーム頭で抽出（敵ループ内での全エフェクト走査を回避）
+    const _poisonFields = [];
+    for (let _i = 0; _i < state.effects.length; _i++) {
+      if (state.effects[_i].type === 'poisonField') _poisonFields.push(state.effects[_i]);
+    }
+
+    // Orbit武器の位置を事前計算（敵/弾ループで再利用）
+    let _orbitPositions = null;
+    if (state.weapons.orbit.lv > 0) {
+      const _ow = state.weapons.orbit;
+      const _oCount = _ow.awaken ? 8 : (3 + _ow.lv);
+      const _oRing = _ow.baseR + 14*(_ow.lv-1) + (_ow.awaken? 12:0);
+      _orbitPositions = new Array(_oCount);
+      for (let _k = 0; _k < _oCount; _k++) {
+        const _a = _ow.ang + _k * (Math.PI*2/_oCount);
+        _orbitPositions[_k] = { x: state.player.x + Math.cos(_a)*_oRing, y: state.player.y + Math.sin(_a)*_oRing };
+      }
+    }
+
     // Final Boss spawn
     const bossSpawnTime = state.endlessMode ? 240 : 600; // エンドレス:4分、通常:10分
     if (!state.finalSpawned && state.timeSec >= bossSpawnTime) {
@@ -11814,24 +11852,17 @@ if (e.hp <= 0) {
 // rock でも画面外/寿命では通常通り消える（既存処理のまま）
 
 // === Orbit contact damage (no knockback) ===
-if (state.weapons.orbit.lv > 0){
+if (_orbitPositions){
   const w = state.weapons.orbit;
-  const count = w.awaken ? 8 : (3 + w.lv);
-  const ring = w.baseR + 14*(w.lv-1) + (w.awaken? 12:0);
-  const orbR = (w.hitRBase + (w.awaken? 4:0)) * state.mods.sizeMul; // 当たり半径
+  const orbR = (w.hitRBase + (w.awaken? 4:0)) * state.mods.sizeMul;
   const dps = (w.dpsBase + 4*(w.lv-1)) * (w.awaken? 1.4:1.0) * state.mods.dmgMul;
+  const orbR2 = orbR*orbR;
 
   for (const e of state.enemies){
-    // ★スピナーの高速回転中は無効
     if(e.type === 'spinner' && e.spinPhase === 'highspin') continue;
-    
-    for (let k=0; k<count; k++){
-      const ang = w.ang + k*(Math.PI*2/count);
-      const ox = state.player.x + Math.cos(ang)*ring;
-      const oy = state.player.y + Math.sin(ang)*ring;
-      const dx = e.x - ox, dy = e.y - oy;
-      if (dx*dx + dy*dy <= orbR*orbR){
-        // 接触DPS（ノックバックなし）
+    for (let k=0; k<_orbitPositions.length; k++){
+      const dx = e.x - _orbitPositions[k].x, dy = e.y - _orbitPositions[k].y;
+      if (dx*dx + dy*dy <= orbR2){
         e.hp -= dps * dt;
         e.hitFlash = Math.max(e.hitFlash, 0.05);
       }
@@ -11939,16 +11970,10 @@ for (let i = state.enemyBullets.length - 1; i >= 0; i--) {
 
   // Orbit が弾を相殺（レーザーは除く）
   let canceled = false;
-  // ★ignoreOrbitフラグがある弾はオービットで消えない
-  if (b.type !== 'laser' && !b.ignoreOrbit && state.weapons.orbit.lv > 0) {
-    const count = state.weapons.orbit.awaken ? 8 : (3 + state.weapons.orbit.lv);
-    for (let k = 0; k < count && !canceled; k++) {
-      const ang = state.weapons.orbit.ang + k * (Math.PI * 2 / count);
-      const rad = state.weapons.orbit.baseR + 14 * (state.weapons.orbit.lv - 1) + (state.weapons.orbit.awaken ? 12 : 0);
-      const ox = state.player.x + Math.cos(ang) * rad;
-      const oy = state.player.y + Math.sin(ang) * rad;
-      const or = (state.weapons.orbit.awaken ? 18 : 14) * state.mods.sizeMul;
-      if (dist2(b.x, b.y, ox, oy) < (b.r + or) ** 2) {
+  if (b.type !== 'laser' && !b.ignoreOrbit && _orbitPositions) {
+    const or2 = ((state.weapons.orbit.awaken ? 18 : 14) * state.mods.sizeMul);
+    for (let k = 0; k < _orbitPositions.length && !canceled; k++) {
+      if (dist2(b.x, b.y, _orbitPositions[k].x, _orbitPositions[k].y) < (b.r + or2) ** 2) {
         state.enemyBullets.splice(i, 1);
         spark(b.x, b.y, 8);
         canceled = true;
@@ -12008,15 +12033,15 @@ if ((e.kbx || e.kby) && e.type !== 'pillarTrap' && !state._endlessNoKnockback){
 // --- スタン減衰 ---
 e.stun = Math.max(0, (e.stun||0) - dt);
 
-// --- ポイズン減速の取得（その敵が“今”毒に触れているなら遅くする）---
+// --- ポイズン減速の取得（その敵が"今"毒に触れているなら遅くする）---
 let slowMul = 1;                 // 1=等速（遅くするほど小さく）
 const SLOW_IN_FIELD = 0.40;      // 0.55 → 0.40（60%減速に強化）
-for(const ef of state.effects){
-  if(ef.type !== 'poisonField') continue;
+for(let _pi = 0; _pi < _poisonFields.length; _pi++){
+  const ef = _poisonFields[_pi];
   const dx = e.x - ef.x, dy = e.y - ef.y;
   if(dx*dx + dy*dy <= ef.r*ef.r){
     slowMul = Math.min(slowMul, SLOW_IN_FIELD);
-    break; // 1枚見つけたら十分（2枚でも“移動”は最大減速のみにする）
+    break;
   }
 }
 
@@ -13625,8 +13650,8 @@ let touchDmg =
 // ★スピナーの高速回転中は無効
 if(!(e.type === 'spinner' && e.spinPhase === 'highspin')){
   let top1 = 0, top2 = 0;  // 上位2つのDPS
-  for (const ef of state.effects) {
-    if (ef.type !== 'poisonField') continue;
+  for (let _pi = 0; _pi < _poisonFields.length; _pi++) {
+    const ef = _poisonFields[_pi];
     const dx = e.x - ef.x, dy = e.y - ef.y;
     if (dx*dx + dy*dy <= ef.r * ef.r) {
       const dps = ef.dps || 20;
@@ -14410,7 +14435,7 @@ if (selectedAdSkin && window.drawAdSkin) {
 
   if (playerColorVal === 'rainbow') {
     // レインボー：時間で色相変化
-    const hue = (Date.now() / 20) % 360;
+    const hue = (state.t * 50) % 360;
     ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
   } else if (isShiny) {
     // 金属光沢グラデーション（中央が白く光る）
@@ -15303,7 +15328,7 @@ for (const ef of state.effects) {
 
 } else if (ef.type === 'bombWarn') {
   ctx.save();
-  ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.02) * 0.3;
+  ctx.globalAlpha = 0.5 + Math.sin(state.t * 20) * 0.3;
   ctx.strokeStyle = '#ff0000';
   ctx.lineWidth = 4;
   // shadowBlur削除
@@ -15320,7 +15345,7 @@ for (const ef of state.effects) {
 } else if (ef.type === 'pillarArrow') {
   // ★柱の飛ぶ方向を示す矢印
   ctx.save();
-  ctx.globalAlpha = 0.7 + Math.sin(Date.now() * 0.015) * 0.3;
+  ctx.globalAlpha = 0.7 + Math.sin(state.t * 15) * 0.3;
   ctx.strokeStyle = '#ffff00';
   ctx.fillStyle = '#ffff00';
   ctx.lineWidth = 4;
@@ -15351,37 +15376,28 @@ for (const ef of state.effects) {
   ctx.restore();
 
 } else if (ef.type === 'sniperLaser') {
-  // スナイパーのレーザービーム
   const a = Math.max(0, ef.life / 0.15);
-  
+  const endX = ef.x + Math.cos(ef.angle) * ef.length;
+  const endY = ef.y + Math.sin(ef.angle) * ef.length;
+
   ctx.save();
   ctx.globalAlpha = a;
-  
-  // メインビーム（白）
+
   ctx.strokeStyle = '#fff';
   ctx.lineWidth = ef.width;
-  // shadowBlur削除
-  // shadowColor削除
   ctx.beginPath();
   ctx.moveTo(ef.x, ef.y);
-  ctx.lineTo(
-    ef.x + Math.cos(ef.angle) * ef.length,
-    ef.y + Math.sin(ef.angle) * ef.length
-  );
+  ctx.lineTo(endX, endY);
   ctx.stroke();
-  
-  // 外側グロー（赤）
+
   ctx.strokeStyle = '#ff4444';
   ctx.lineWidth = ef.width * 2;
   ctx.globalAlpha = a * 0.5;
   ctx.beginPath();
   ctx.moveTo(ef.x, ef.y);
-  ctx.lineTo(
-    ef.x + Math.cos(ef.angle) * ef.length,
-    ef.y + Math.sin(ef.angle) * ef.length
-  );
+  ctx.lineTo(endX, endY);
   ctx.stroke();
-  
+
   ctx.restore();
 
 } else if (ef.type === 'playerLaser') {
