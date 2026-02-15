@@ -17008,15 +17008,20 @@ function spawnFinalBoss(){
   else { x = B.minX - margin; y = rnd(B.minY - margin, B.maxY + margin); }
 
   const diffMods = state.mode.getDifficultyMods();
-  const hp0 = 50000; // 固定HP（時間による増加なし）
-  // ★ステージ2はHP60%に（80%からさらに20%減）
+  const hp0 = 50000;
   const hpMul = state.currentStage === 'stage2' ? 0.6 : 1.0;
-  const endlessMul = getEndlessBossHpMultiplier(); // エンドレスモード倍率
-  let hp = hp0 * diffMods.hpMul * hpMul * endlessMul;  // 難易度によるHP倍率
-  // エンドレスモード：ボスHP上限（ステージ1=80000, ステージ2=65000）
+  let hp;
   if (state.endlessMode) {
-    const hpCap = state.currentStage === 'stage2' ? 65000 : 80000;
-    hp = Math.min(hp, hpCap);
+    // エンドレスモード：固定HPテーブル（周回ごと）
+    const round = state.endlessRound || 0;
+    const s1Table = [15000, 30000, 45000, 50000, 60000];
+    const s2Table = [15000, 25000, 30000, 35000, 40000];
+    const table = state.currentStage === 'stage2' ? s2Table : s1Table;
+    hp = table[Math.min(round, table.length - 1)];
+  } else {
+    // 通常モード：従来どおり
+    const endlessMul = getEndlessBossHpMultiplier();
+    hp = hp0 * diffMods.hpMul * hpMul * endlessMul;
   }
 
   const e = {
