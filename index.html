@@ -6722,6 +6722,15 @@ const PHYSICAL_BULLET_SET = new Set(['bullet', 'rubber', 'rock', 'poison', 'homi
         saveAchievements(achievements);
         showStartToast('🌈 ALL COLORS UNLOCKED!');
         debugBuffer = '';
+      } else if (debugBuffer.endsWith('allskin')) {
+        // 全スキン解放（エンドレスリワード＋プレミアム）
+        const _allSkinProgress = loadAdSkinProgress();
+        for (const _sk in AD_SKINS) {
+          _allSkinProgress[_sk] = AD_SKINS[_sk].adsRequired;
+        }
+        saveAdSkinProgress(_allSkinProgress);
+        showStartToast('🎭 ALL SKINS UNLOCKED!');
+        debugBuffer = '';
       }
     }
   }, {passive:true});
