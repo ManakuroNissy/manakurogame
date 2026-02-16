@@ -9849,7 +9849,9 @@ function openChest(pickCount = 2) {
         picksLeft--;
         updatePickHUD();
 
-        if (picksLeft <= 0) {
+        // 残りのピック数が0、または未選択のカードがもう残っていない場合は閉じる
+        const remainingCards = choices.length - chosen.size;
+        if (picksLeft <= 0 || remainingCards <= 0) {
           // 少し演出を見せてから閉じる
           setTimeout(() => {
             chestEl.style.display = 'none';
