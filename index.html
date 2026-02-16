@@ -7156,6 +7156,12 @@ retryBtn.onclick = () => {
     state.enemyBullets.length = 0;
     state.sparks.length = 0;
 
+    // エンドレスモード：リトライ時は1周目ステージ1からやり直し
+    state.endlessRound = 0;
+    state.endlessStagesCleared = 0;
+    state.endlessTotalTime = 0;
+    state.endlessModifiers = [];
+
     ensureEndScoreNodes();
     resetGame();
     syncPauseButton();
@@ -15027,6 +15033,23 @@ if(state.weapons.orbit.lv>0){
 }
 
   // poisonFieldはプレイヤー描画前のブロックで描画済み
+
+  // 衝撃波を敵の下に描画
+  for (const ef of state.effects) {
+    if (ef.type !== 'impactRing') continue;
+    ef._drawnEarly = true;
+    const progress = 1 - (ef.life / ef.maxLife);
+    const currentRadius = ef.radius + (ef.maxRadius - ef.radius) * progress;
+    const a = 1 - progress;
+    ctx.save();
+    ctx.globalAlpha = a * 0.35;
+    ctx.strokeStyle = '#ffcc66';
+    ctx.lineWidth = 4 * a + 1;
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, currentRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   // enemies with HP bars
   for(const e of state.enemies){
