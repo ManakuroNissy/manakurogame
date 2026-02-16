@@ -1099,7 +1099,7 @@ try {
       btn_achievements: '🎖️ 実績',
       btn_customize: '🎨 スキン変更',
       btn_update_log: '📝 更新履歴',
-      version_note: 'エンドレスモード追加',
+      version_note: 'スキン＆バグ修正',
       update_log_title: '📝 更新履歴',
       update_log_close: '閉じる',
       btn_settings: '⚙️ 設定',
@@ -1463,7 +1463,7 @@ try {
       btn_achievements: '🎖️ Achievements',
       btn_customize: '🎨 Skin Change',
       btn_update_log: '📝 Update Log',
-      version_note: 'Endless Mode Added',
+      version_note: 'Skin & Bug Fixes',
       update_log_title: '📝 Update Log',
       update_log_close: 'Close',
       btn_settings: '⚙️ Settings',
@@ -1947,7 +1947,7 @@ try {
     
     <!-- バージョン情報 -->
     <div style="font-size:0.85rem; color:#94a3b8; margin-top:-0.3rem;">
-      <span style="opacity:0.7;">Ver 3.0</span> -
+      <span style="opacity:0.7;">Ver 3.1</span> -
       <span style="opacity:0.6; font-size:0.8rem;" id="versionNote">エンドレスモード追加</span>
     </div>
     
@@ -2452,6 +2452,18 @@ try {
       </div>
       
       <div id="updateLogContentJa" style="color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+
+        <!-- Ver 3.1 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(168,85,247,0.15); border-left:4px solid #a855f7; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#c084fc; font-size:1.3rem;">Ver 3.1 <span style="font-size:0.8rem; opacity:0.7;">- 2026/02/16</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>広告スキン「騎士道」「カミサマ」のデザインを一新</li>
+            <li>エンドレスモードのステージ遷移時の固定効果表示を修正</li>
+            <li>宝箱の選択肢が残りより少ない場合のフリーズを修正</li>
+            <li>エンドレスモードのリトライが正しくラウンド1から再開するよう修正</li>
+            <li>岩の衝撃波を半透明化・レイヤー調整</li>
+          </ul>
+        </div>
 
         <!-- Ver 3.0 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(168,85,247,0.15); border-left:4px solid #a855f7; border-radius:8px;">
@@ -3087,6 +3099,18 @@ try {
       
       <!-- English Version -->
       <div id="updateLogContentEn" style="display:none; color:#e2e8f0; line-height:1.8; font-size:0.95rem;">
+
+        <!-- Ver 3.1 -->
+        <div style="margin-bottom:2rem; padding:1rem; background:rgba(168,85,247,0.15); border-left:4px solid #a855f7; border-radius:8px;">
+          <h3 style="margin:0 0 0.5rem; color:#c084fc; font-size:1.3rem;">Ver 3.1 <span style="font-size:0.8rem; opacity:0.7;">- 2026/02/16</span></h3>
+          <ul style="margin:0.5rem 0; padding-left:1.5rem;">
+            <li>Redesigned ad skins: "Knight" and "Divine"</li>
+            <li>Fixed endless mode stage transition showing old effects as new</li>
+            <li>Fixed chest softlock when fewer upgrades available than picks</li>
+            <li>Fixed endless retry now restarts from round 1</li>
+            <li>Rock shockwave made translucent and layered below enemies</li>
+          </ul>
+        </div>
 
         <!-- Ver 3.0 -->
         <div style="margin-bottom:2rem; padding:1rem; background:rgba(168,85,247,0.15); border-left:4px solid #a855f7; border-radius:8px;">
@@ -5448,7 +5472,7 @@ function visibleBounds(radius = 0){
     skull:      { nameJa: 'ダイエット',   nameEn: 'Diet',         adsRequired: 5 },
     moai:       { nameJa: '南の島',       nameEn: 'Island',       adsRequired: 5 },
     poop:       { nameJa: '元ご馳走',     nameEn: 'Ex-Feast',     adsRequired: 5 },
-    bluecat:    { nameJa: 'ナイト',       nameEn: 'Knight',       adsRequired: 6 },
+    bluecat:    { nameJa: '騎士道',       nameEn: 'Knight',       adsRequired: 6 },
     blackmouse: { nameJa: 'カミサマ',     nameEn: 'Divine',       adsRequired: 6 },
     // --- Premium Effect Skins（広告視聴報酬） ---
     flame:      { nameJa: 'フレイム',     nameEn: 'Flame',        adsRequired: 3, premium: true },
@@ -5746,26 +5770,45 @@ function visibleBounds(radius = 0){
         break;
 
       case 'bluecat': {
-        // ナイト（甲冑）
+        // 騎士道（ナイトヘルメット）
         const tK = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
-        // 鋼色ボディ
-        context.fillStyle = '#6b7b8d';
+        // ヘルメット本体（明るめグレー）
+        context.fillStyle = '#9ca3af';
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
-        // バイザー（暗い横長楕円）
+        // 頭頂部の尖り（暗めグレーの三角）
+        context.fillStyle = '#7a818a';
+        context.beginPath();
+        context.moveTo(cx, cy - r * 1.15);
+        context.lineTo(cx - r * 0.35, cy - r * 0.5);
+        context.lineTo(cx + r * 0.35, cy - r * 0.5);
+        context.closePath(); context.fill();
+        // 目元バイザー（ブーメラン型V字スリット）
         context.fillStyle = '#2a2a2a';
-        context.beginPath(); context.ellipse(cx, cy - r * 0.15, r * 0.6, r * 0.25, 0, 0, Math.PI * 2); context.fill();
-        // T字スリット（縦線＋横線）
-        context.fillStyle = '#444';
-        context.fillRect(cx - r * 0.04, cy - r * 0.38, r * 0.08, r * 0.25);
-        context.fillRect(cx - r * 0.35, cy - r * 0.22, r * 0.7, r * 0.1);
-        // 赤い目（T字の横スリット内をキョロキョロ）
+        context.beginPath();
+        context.moveTo(cx - r * 0.6, cy - r * 0.25);
+        context.quadraticCurveTo(cx - r * 0.2, cy - r * 0.05, cx, cy - r * 0.2);
+        context.quadraticCurveTo(cx + r * 0.2, cy - r * 0.05, cx + r * 0.6, cy - r * 0.25);
+        context.quadraticCurveTo(cx + r * 0.2, cy - r * 0.15, cx, cy - r * 0.32);
+        context.quadraticCurveTo(cx - r * 0.2, cy - r * 0.15, cx - r * 0.6, cy - r * 0.25);
+        context.closePath(); context.fill();
+        // 赤い目（バイザー内をキョロキョロ）
         const eyeOffX = Math.sin(tK * 2) * r * 0.12;
         context.fillStyle = '#ff3333';
-        context.beginPath(); context.arc(cx + eyeOffX, cy - r * 0.17, r * 0.06, 0, Math.PI * 2); context.fill();
-        // 胸の十字紋（金色）
-        context.strokeStyle = '#c0a040'; context.lineWidth = r * 0.08; context.lineCap = 'round';
-        context.beginPath(); context.moveTo(cx, cy + r * 0.3); context.lineTo(cx, cy + r * 0.7); context.stroke();
-        context.beginPath(); context.moveTo(cx - r * 0.15, cy + r * 0.42); context.lineTo(cx + r * 0.15, cy + r * 0.42); context.stroke();
+        context.beginPath(); context.arc(cx + eyeOffX, cy - r * 0.2, r * 0.06, 0, Math.PI * 2); context.fill();
+        // 口元マスク背景（薄グレー）
+        context.fillStyle = '#b0b5bc';
+        context.beginPath();
+        context.moveTo(cx - r * 0.4, cy + r * 0.15);
+        context.lineTo(cx + r * 0.4, cy + r * 0.15);
+        context.lineTo(cx + r * 0.3, cy + r * 0.7);
+        context.lineTo(cx - r * 0.3, cy + r * 0.7);
+        context.closePath(); context.fill();
+        // 口元の縦線（鉄格子マスク）
+        context.strokeStyle = '#555'; context.lineWidth = r * 0.05; context.lineCap = 'round';
+        for (let i = -2; i <= 2; i++) {
+          const lx = cx + i * r * 0.12;
+          context.beginPath(); context.moveTo(lx, cy + r * 0.2); context.lineTo(lx, cy + r * 0.65); context.stroke();
+        }
         // 白アウトライン
         context.strokeStyle = '#fff'; context.lineWidth = r * 0.08; context.lineCap = 'butt';
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
@@ -5773,27 +5816,37 @@ function visibleBounds(radius = 0){
       }
 
       case 'blackmouse': {
-        // 神様（カミサマ）
+        // カミサマ（神様）
         const tG = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
         context.save();
-        // 神々しいグロウ（脈動する金色の光）
-        const glowSize = 8 + Math.sin(tG * 3) * 5;
+        // 後光グロウ（強めの脈動）
+        const glowSize = 15 + Math.sin(tG * 3) * 10;
         context.shadowColor = '#ffd700';
         context.shadowBlur = glowSize;
-        // 白ボディ
-        context.fillStyle = '#fff';
+        // 白ヒゲ（ボディ全体を覆う丸い形）
+        context.fillStyle = '#e5e7eb';
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
+        // ヘイロー（太く大きく光る）
+        context.shadowBlur = glowSize + 5;
+        context.strokeStyle = '#ffd700'; context.lineWidth = r * 0.18;
+        context.beginPath(); context.ellipse(cx, cy - r * 0.85, r * 0.65, r * 0.2, 0, 0, Math.PI * 2); context.stroke();
         context.shadowBlur = 0;
-        // 金色ヘイロー（頭上の光の輪）
-        context.strokeStyle = '#ffd700'; context.lineWidth = r * 0.1;
-        context.beginPath(); context.ellipse(cx, cy - r * 0.95, r * 0.5, r * 0.15, 0, 0, Math.PI * 2); context.stroke();
-        // にっこり閉じ目（^_^）
-        context.strokeStyle = '#333'; context.lineWidth = r * 0.07; context.lineCap = 'round';
-        context.beginPath(); context.arc(cx - r * 0.25, cy - r * 0.1, r * 0.12, Math.PI + 0.3, -0.3); context.stroke();
-        context.beginPath(); context.arc(cx + r * 0.25, cy - r * 0.1, r * 0.12, Math.PI + 0.3, -0.3); context.stroke();
-        // 口（ピンクのにっこり弧）
-        context.strokeStyle = '#f472b6'; context.lineWidth = r * 0.06;
-        context.beginPath(); context.arc(cx, cy + r * 0.2, r * 0.15, 0.2, Math.PI - 0.2); context.stroke();
+        // 肌色の顔（上半分〜中央）
+        context.fillStyle = '#f0b060';
+        context.beginPath();
+        context.moveTo(cx - r * 0.55, cy - r * 0.15);
+        context.quadraticCurveTo(cx - r * 0.55, cy - r * 0.7, cx, cy - r * 0.75);
+        context.quadraticCurveTo(cx + r * 0.55, cy - r * 0.7, cx + r * 0.55, cy - r * 0.15);
+        context.lineTo(cx + r * 0.45, cy + r * 0.2);
+        context.quadraticCurveTo(cx, cy + r * 0.35, cx - r * 0.45, cy + r * 0.2);
+        context.closePath(); context.fill();
+        // 丸い黒目
+        context.fillStyle = '#3a2a1a';
+        context.beginPath(); context.arc(cx - r * 0.2, cy - r * 0.2, r * 0.09, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.2, cy - r * 0.2, r * 0.09, 0, Math.PI * 2); context.fill();
+        // にっこり口
+        context.strokeStyle = '#b07840'; context.lineWidth = r * 0.06; context.lineCap = 'round';
+        context.beginPath(); context.arc(cx, cy + r * 0.1, r * 0.12, 0.2, Math.PI - 0.2); context.stroke();
         // 金色アウトライン
         context.strokeStyle = '#ffd700'; context.lineWidth = r * 0.08; context.lineCap = 'butt';
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
