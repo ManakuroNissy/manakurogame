@@ -5771,7 +5771,6 @@ function visibleBounds(radius = 0){
 
       case 'bluecat': {
         // 騎士道（ナイトヘルメット）
-        const tK = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
         // ヘルメット本体（明るめグレー）
         context.fillStyle = '#9ca3af';
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
@@ -5794,10 +5793,10 @@ function visibleBounds(radius = 0){
         context.lineTo(cx, cy + r * 0.1);
         context.lineTo(cx - r * 0.7, cy - r * 0.25);
         context.closePath(); context.fill();
-        // 赤い目（V字スリット内をキョロキョロ）
-        const eyeOffX = Math.sin(tK * 2) * r * 0.15;
+        // 赤い目（左右2つ、V字スリット内に固定）
         context.fillStyle = '#ff3333';
-        context.beginPath(); context.arc(cx + eyeOffX, cy - r * 0.15, r * 0.07, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx - r * 0.3, cy - r * 0.3, r * 0.07, 0, Math.PI * 2); context.fill();
+        context.beginPath(); context.arc(cx + r * 0.3, cy - r * 0.3, r * 0.07, 0, Math.PI * 2); context.fill();
         // 口元マスク背景（薄グレー・横幅2倍）
         context.fillStyle = '#b0b5bc';
         context.beginPath();
