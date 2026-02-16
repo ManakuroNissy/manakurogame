@@ -5996,14 +5996,15 @@ function visibleBounds(radius = 0){
     function _renderSkinCell(key, labelText) {
       const skin = AD_SKINS[key];
       if (!skin) return;
-      const unlocked = (progress[key] || 0) >= skin.adsRequired;
+      const currentCount = progress[key] || 0;
+      const unlocked = currentCount >= skin.adsRequired;
       const isSelected = selected === key;
       const name = lang === 'ja' ? skin.nameJa : skin.nameEn;
       const isPremium = !!skin.premium;
 
       const cell = document.createElement('div');
-      const borderColor = isSelected ? '#8b5cf6' : unlocked ? (isPremium ? '#fbbf24' : '#4ade80') : '#333';
-      cell.style.cssText = `text-align:center; padding:0.4rem; border-radius:8px; cursor:${unlocked ? 'pointer' : 'default'}; background:${isSelected ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.05)'}; border:2px solid ${borderColor}; opacity:${unlocked ? '1' : '0.4'}; transition:all 0.2s;`;
+      const borderColor = isSelected ? '#8b5cf6' : unlocked ? (isPremium ? '#fbbf24' : '#4ade80') : (isPremium ? '#665500' : '#333');
+      cell.style.cssText = `text-align:center; padding:0.4rem; border-radius:8px; cursor:${unlocked ? 'pointer' : 'default'}; background:${isSelected ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.05)'}; border:2px solid ${borderColor}; opacity:${unlocked ? '1' : (isPremium ? '0.7' : '0.4')}; transition:all 0.2s;`;
 
       const cvs = document.createElement('canvas');
       cvs.width = 40; cvs.height = 40;
@@ -6032,6 +6033,33 @@ function visibleBounds(radius = 0){
           if (isSelected) { setSelectedAdSkin(''); } else { setSelectedAdSkin(key); }
           renderAdSkinGrid();
         };
+      } else if (isPremium) {
+        // プレミアムスキン：広告視聴ボタン + カウント表示
+        const countLabel = document.createElement('div');
+        countLabel.style.cssText = 'font-size:0.55rem; color:#fbbf24; margin-top:0.1rem;';
+        countLabel.textContent = `${currentCount}/${skin.adsRequired}`;
+        cell.appendChild(countLabel);
+
+        const adBtn = document.createElement('button');
+        adBtn.style.cssText = 'display:block; width:100%; margin-top:0.2rem; padding:0.2rem 0; background:#fbbf24; color:#000; border:none; border-radius:4px; font-size:0.6rem; font-weight:700; cursor:pointer;';
+        adBtn.textContent = '📺 CM';
+        adBtn.onclick = (e) => {
+          e.stopPropagation();
+          showGDRewarded(() => {
+            // 広告視聴成功
+            const p = loadAdSkinProgress();
+            p[key] = (p[key] || 0) + 1;
+            saveAdSkinProgress(p);
+            if (p[key] >= skin.adsRequired) {
+              const _lang = typeof getLang === 'function' ? getLang() : 'en';
+              alert(_lang === 'ja' ? '🎉 ' + skin.nameJa + ' 解放！' : '🎉 ' + skin.nameEn + ' Unlocked!');
+            }
+            renderAdSkinGrid();
+          }, () => {
+            // 広告スキップ/失敗
+          });
+        };
+        cell.appendChild(adBtn);
       }
       grid.appendChild(cell);
     }
