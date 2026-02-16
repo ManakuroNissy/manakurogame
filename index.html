@@ -10423,6 +10423,8 @@ rock:{
 
     const activeRocks = state.bullets.filter(b=>b.type==='rock').length;
     if(activeRocks>0) return;
+    const activeImpact = state.effects.some(e=>e.type==='impactRing');
+    if(activeImpact) return;
 
     let dir = state.input.lastDir;
     if(Math.hypot(dir.x,dir.y) < 0.1){
