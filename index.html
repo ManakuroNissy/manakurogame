@@ -9977,18 +9977,34 @@ if (pickCount > 1) {
     };
   }
 
-  /* ===== 広告リロール・ボタン（広告機能が有効になったら復活）
-  let chestRerollBtn = document.getElementById('chestRerollBtn');
-  if (!chestRerollBtn) {
-    chestRerollBtn = document.createElement('button');
-    chestRerollBtn.id = 'chestRerollBtn';
-    chestRerollBtn.className = 'btn';
-    chestRerollBtn.style.cssText = 'margin:12px auto 0; display:block; background:#4b5563; opacity:0.5; cursor:not-allowed;';
-    chestEl.appendChild(chestRerollBtn);
+  // ===== 広告リロール・ボタン（宝箱1回につき1回使える） =====
+  if (isGDReady()) {
+    const chestAdBtn = document.createElement('button');
+    chestAdBtn.className = 'btn';
+    chestAdBtn.style.cssText = 'margin:12px auto 0; display:block; background:linear-gradient(135deg, #f59e0b, #ef4444); border:2px solid #fbbf24;';
+    chestAdBtn.textContent = lang === 'ja' ? '📺 広告で引き直す' : '📺 Ad Reroll';
+    chestAdBtn.onclick = () => {
+      chestAdBtn.disabled = true;
+      chestAdBtn.style.opacity = '0.5';
+      chestAdBtn.textContent = '⏳...';
+      showGDRewarded(
+        function() {
+          // 成功 → 宝箱を再オープン
+          chestEl.style.display = 'none';
+          chestHUD.style.display = 'none';
+          openChest(pickCount);
+        },
+        function() {
+          // スキップ/失敗 → ボタン復帰
+          chestAdBtn.disabled = false;
+          chestAdBtn.style.opacity = '1';
+          chestAdBtn.style.cssText = 'margin:12px auto 0; display:block; background:linear-gradient(135deg, #f59e0b, #ef4444); border:2px solid #fbbf24;';
+          chestAdBtn.textContent = lang === 'ja' ? '📺 広告で引き直す' : '📺 Ad Reroll';
+        }
+      );
+    };
+    chestEl.appendChild(chestAdBtn);
   }
-  chestRerollBtn.disabled = true;
-  chestRerollBtn.textContent = lang === 'ja' ? '📺 広告リロール（準備中）' : '📺 Ad Reroll (Coming Soon)';
-  */
 
 }
 
@@ -10115,10 +10131,11 @@ function showLevelUp(choices){
       cardRow.innerHTML = '';
       // 次のレベルアップではまたリロール可能に
       window._freeRerollUsed = false;
+      window._adRerollUsed = false;
     };
     cardRow.appendChild(c);
   }
-  
+
   // ===== 「能力をとらない」選択肢を追加 =====
   const skipCard = document.createElement('button');
   skipCard.className = 'card';
@@ -10137,6 +10154,7 @@ function showLevelUp(choices){
     levelupEl.style.display = 'none';
     cardRow.innerHTML = '';
     window._freeRerollUsed = false;
+    window._adRerollUsed = false;
   };
   cardRow.appendChild(skipCard);
 
@@ -10182,7 +10200,7 @@ function showLevelUp(choices){
   adRerollBtn.id = 'adRerollBtn';
   adRerollBtn.className = 'btn';
 
-  const canAdReroll = window._freeRerollUsed && !window._adRerollUsed && isGDReady();
+  const canAdReroll = !window._adRerollUsed && isGDReady();
   adRerollBtn.disabled = !canAdReroll;
   adRerollBtn.style.cssText = canAdReroll
     ? 'background:linear-gradient(135deg, #f59e0b, #ef4444); border:2px solid #fbbf24;'
