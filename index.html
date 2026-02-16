@@ -7941,6 +7941,8 @@ function triggerGameOver(){
     if (!state._reviveUsed && isGDReady()) {
       // 復活可能＆SDK利用可能：ボタンを表示
       reviveContainer.style.display = 'block';
+      reviveBtn.disabled = false;
+      reviveBtn.style.opacity = '1';
       reviveText.textContent = t('revive_btn');
       reviveNote.textContent = t('revive_note');
       reviveBtn.onclick = () => {
