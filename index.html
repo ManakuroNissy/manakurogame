@@ -5448,8 +5448,8 @@ function visibleBounds(radius = 0){
     skull:      { nameJa: 'ダイエット',   nameEn: 'Diet',         adsRequired: 5 },
     moai:       { nameJa: '南の島',       nameEn: 'Island',       adsRequired: 5 },
     poop:       { nameJa: '元ご馳走',     nameEn: 'Ex-Feast',     adsRequired: 5 },
-    bluecat:    { nameJa: 'ロボねこ',     nameEn: 'Robo Cat',     adsRequired: 6 },
-    blackmouse: { nameJa: '黒ネズミ',     nameEn: 'Black Mouse',  adsRequired: 6 },
+    bluecat:    { nameJa: 'ナイト',       nameEn: 'Knight',       adsRequired: 6 },
+    blackmouse: { nameJa: 'カミサマ',     nameEn: 'Divine',       adsRequired: 6 },
     // --- Premium Effect Skins（広告視聴報酬） ---
     flame:      { nameJa: 'フレイム',     nameEn: 'Flame',        adsRequired: 3, premium: true },
     frost:      { nameJa: 'フロスト',     nameEn: 'Frost',        adsRequired: 3, premium: true },
@@ -5745,34 +5745,61 @@ function visibleBounds(radius = 0){
         context.beginPath(); context.arc(cx, cy + r * 0.2, r * 0.18, 0.2, Math.PI - 0.2); context.stroke();
         break;
 
-      case 'bluecat':
-        context.fillStyle = '#3b82f6';
+      case 'bluecat': {
+        // ナイト（甲冑）
+        const tK = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
+        // 鋼色ボディ
+        context.fillStyle = '#6b7b8d';
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
-        context.fillStyle = '#fff';
-        context.beginPath(); context.arc(cx, cy + r * 0.1, r * 0.7, 0, Math.PI * 2); context.fill();
-        context.fillStyle = '#000';
-        context.beginPath(); context.arc(cx - r * 0.25, cy - r * 0.1, r * 0.1, 0, Math.PI * 2); context.fill();
-        context.beginPath(); context.arc(cx + r * 0.25, cy - r * 0.1, r * 0.1, 0, Math.PI * 2); context.fill();
-        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
+        // バイザー（暗い横長楕円）
+        context.fillStyle = '#2a2a2a';
+        context.beginPath(); context.ellipse(cx, cy - r * 0.15, r * 0.6, r * 0.25, 0, 0, Math.PI * 2); context.fill();
+        // T字スリット（縦線＋横線）
+        context.fillStyle = '#444';
+        context.fillRect(cx - r * 0.04, cy - r * 0.38, r * 0.08, r * 0.25);
+        context.fillRect(cx - r * 0.35, cy - r * 0.22, r * 0.7, r * 0.1);
+        // 赤い目（T字の横スリット内をキョロキョロ）
+        const eyeOffX = Math.sin(tK * 2) * r * 0.12;
+        context.fillStyle = '#ff3333';
+        context.beginPath(); context.arc(cx + eyeOffX, cy - r * 0.17, r * 0.06, 0, Math.PI * 2); context.fill();
+        // 胸の十字紋（金色）
+        context.strokeStyle = '#c0a040'; context.lineWidth = r * 0.08; context.lineCap = 'round';
+        context.beginPath(); context.moveTo(cx, cy + r * 0.3); context.lineTo(cx, cy + r * 0.7); context.stroke();
+        context.beginPath(); context.moveTo(cx - r * 0.15, cy + r * 0.42); context.lineTo(cx + r * 0.15, cy + r * 0.42); context.stroke();
+        // 白アウトライン
+        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08; context.lineCap = 'butt';
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
         break;
+      }
 
-      case 'blackmouse':
-        const earR = r * 0.55, faceR = r * 0.6;
-        const earX = r * 0.8, earY = r * 0.25, faceOffY = r * 0.55;  // earYを0.55→0.25、faceOffYを0.35→0.55に変更
-        context.fillStyle = '#1a1a1a';
-        context.beginPath(); context.arc(cx - earX, cy - earY, earR, 0, Math.PI * 2); context.fill();
-        context.beginPath(); context.arc(cx + earX, cy - earY, earR, 0, Math.PI * 2); context.fill();
-        context.beginPath(); context.arc(cx, cy + faceOffY, faceR, 0, Math.PI * 2); context.fill();
-        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
-        context.beginPath(); context.arc(cx - earX, cy - earY, earR, 0, Math.PI * 2); context.stroke();
-        context.beginPath(); context.arc(cx + earX, cy - earY, earR, 0, Math.PI * 2); context.stroke();
+      case 'blackmouse': {
+        // 神様（カミサマ）
+        const tG = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
+        context.save();
+        // 神々しいグロウ（脈動する金色の光）
+        const glowSize = 8 + Math.sin(tG * 3) * 5;
+        context.shadowColor = '#ffd700';
+        context.shadowBlur = glowSize;
+        // 白ボディ
         context.fillStyle = '#fff';
-        context.beginPath(); context.arc(cx - faceR * 0.4, cy + faceOffY, faceR * 0.2, 0, Math.PI * 2); context.fill();
-        context.beginPath(); context.arc(cx + faceR * 0.4, cy + faceOffY, faceR * 0.2, 0, Math.PI * 2); context.fill();
-        context.strokeStyle = '#fff'; context.lineWidth = r * 0.08;
-        context.beginPath(); context.arc(cx, cy + faceOffY, faceR, 0, Math.PI * 2); context.stroke();
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.fill();
+        context.shadowBlur = 0;
+        // 金色ヘイロー（頭上の光の輪）
+        context.strokeStyle = '#ffd700'; context.lineWidth = r * 0.1;
+        context.beginPath(); context.ellipse(cx, cy - r * 0.95, r * 0.5, r * 0.15, 0, 0, Math.PI * 2); context.stroke();
+        // にっこり閉じ目（^_^）
+        context.strokeStyle = '#333'; context.lineWidth = r * 0.07; context.lineCap = 'round';
+        context.beginPath(); context.arc(cx - r * 0.25, cy - r * 0.1, r * 0.12, Math.PI + 0.3, -0.3); context.stroke();
+        context.beginPath(); context.arc(cx + r * 0.25, cy - r * 0.1, r * 0.12, Math.PI + 0.3, -0.3); context.stroke();
+        // 口（ピンクのにっこり弧）
+        context.strokeStyle = '#f472b6'; context.lineWidth = r * 0.06;
+        context.beginPath(); context.arc(cx, cy + r * 0.2, r * 0.15, 0.2, Math.PI - 0.2); context.stroke();
+        // 金色アウトライン
+        context.strokeStyle = '#ffd700'; context.lineWidth = r * 0.08; context.lineCap = 'butt';
+        context.beginPath(); context.arc(cx, cy, r, 0, Math.PI * 2); context.stroke();
+        context.restore();
         break;
+      }
 
       // === Premium Effect Skins ===
       case 'flame': {
