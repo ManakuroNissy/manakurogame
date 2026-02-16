@@ -6846,10 +6846,16 @@ const PHYSICAL_BULLET_SET = new Set(['bullet', 'rubber', 'rock', 'poison', 'homi
           }
         });
         saveAchievements(achievements);
+        // 全スキン解放
+        const _allSkinProgress = loadAdSkinProgress();
+        for (const _sk in AD_SKINS) {
+          _allSkinProgress[_sk] = AD_SKINS[_sk].adsRequired;
+        }
+        saveAdSkinProgress(_allSkinProgress);
         // エンドレスボタン解放
         const eBtn = document.getElementById('startEndlessBtn');
         if (eBtn && window._unlockEndlessButton) window._unlockEndlessButton(eBtn);
-        showStartToast('🔓 ALL CLEAR! 全ステージ＆全実績解除');
+        showStartToast('🔓 ALL CLEAR! 全ステージ＆全実績＆全スキン解除');
       } else {
         tapTimer = setTimeout(function() { tapCount = 0; }, 1500);
       }
