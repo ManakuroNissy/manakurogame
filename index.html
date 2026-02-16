@@ -17452,8 +17452,8 @@ function _showEndlessStageOverlay(nextStageId) {
   let html = `<div style="text-align:center; max-width:500px; padding:2rem;">`;
   html += `<div style="font-size:2.5rem; font-weight:900; color:#a78bfa; margin-bottom:0.5rem;">🔄 Round ${roundNum} - Stage ${stageNum}</div>`;
 
-  // 今回追加される固定効果
-  const newEffect = ENDLESS_ROUND_EFFECTS.find(e => e.round === round);
+  // 今回追加される固定効果（stage1に戻るタイミングでのみ「新しい」と表示）
+  const newEffect = (nextStageId === 'stage1') ? ENDLESS_ROUND_EFFECTS.find(e => e.round === round) : null;
   if (newEffect) {
     const newLabel = lang === 'ja' ? '⚠️ 新たな試練！' : '⚠️ New Challenge!';
     html += `<div style="font-size:1.5rem; color:#fbbf24; margin:1rem 0 0.5rem; font-weight:700;">${newLabel}</div>`;
