@@ -176,7 +176,7 @@ html, body {
   @media (min-width:600px){ #cardRow{ grid-template-columns:repeat(4,1fr);} }
   @media (min-width:600px){ #chestRow{ grid-template-columns:repeat(3,1fr);} }
   @media (min-width:900px){ #chestRow{ grid-template-columns:repeat(6,1fr);} }
-  .card { background:#181818; border:1px solid #333; border-radius:.6rem; padding:0.6rem; box-shadow:0 4px 18px rgba(0,0,0,.45); cursor:pointer; text-align:left; color:#fff; min-height:auto; }
+  .card { background:#181818; border:1px solid #333; border-radius:.6rem; padding:0.6rem; box-shadow:0 4px 18px rgba(0,0,0,.45); cursor:pointer; text-align:left; color:#fff; min-height:auto; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
   .card h3 { margin:.15rem 0 .3rem; font-size:clamp(0.8rem, 2.5vw, 1rem); color:#fff; }
   .card p { margin:0; color:#e5e5e5; line-height:1.3; font-size:clamp(0.7rem, 2vw, 0.88rem); }
   .card:hover, .card.sel { outline:2px solid #4aa3ff; }
@@ -9055,7 +9055,7 @@ if (_pcTimer){
   if (wrapEl) {
     wrapEl.addEventListener('touchmove', e => {
       // モーダル内のスクロールは許可（closestで1回のDOM操作に統合）
-      const isInModal = e.target.closest('#achievementsModal, #rankingModal, #updateLogModal, #stageSelectModal, #customizeModal, #settingsModal, #pauseMenuModal, #gameover, #gameclear, #start');
+      const isInModal = e.target.closest('#achievementsModal, #rankingModal, #updateLogModal, #stageSelectModal, #customizeModal, #settingsModal, #pauseMenuModal, #gameover, #gameclear, #start, #levelup, #chest');
       if (!isInModal) {
         e.preventDefault();
       }
@@ -9079,7 +9079,7 @@ if (_pcTimer){
   document.addEventListener('touchmove', e => {
     if (e.touches.length === 1) {
       // モーダル内のスクロールは許可（closestで1回のDOM操作に統合）
-      const isInModal = e.target.closest('#achievementsModal, #rankingModal, #updateLogModal, #stageSelectModal, #customizeModal, #settingsModal, #pauseMenuModal, #gameover, #gameclear, #start');
+      const isInModal = e.target.closest('#achievementsModal, #rankingModal, #updateLogModal, #stageSelectModal, #customizeModal, #settingsModal, #pauseMenuModal, #gameover, #gameclear, #start, #levelup, #chest');
       if (!isInModal) {
         e.preventDefault();
       }
@@ -9855,14 +9855,6 @@ function openChest(pickCount = 2) {
 
   // カード行の初期化
   chestRow.innerHTML = '';
-  
-  // ホバー状態リセット：一瞬だけpointer-eventsを無効化
-  chestRow.style.pointerEvents = 'none';
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      chestRow.style.pointerEvents = '';
-    });
-  });
 
   // 候補を抽選（can() を満たすものから最大6つ）
   const pool = ALL_UPGRADES.filter(u => u.can());
@@ -10083,14 +10075,6 @@ function showLevelUp(choices){
   state.paused = true;
   levelupEl.style.display = 'flex';
   cardRow.innerHTML = '';
-  
-  // ホバー状態リセット：一瞬だけpointer-eventsを無効化
-  cardRow.style.pointerEvents = 'none';
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      cardRow.style.pointerEvents = '';
-    });
-  });
 
   // 選択カードを並べる（従来と同じ）
   for (const u of choices) {
