@@ -5776,28 +5776,28 @@ function visibleBounds(radius = 0){
 
       // === Premium Effect Skins ===
       case 'flame': {
-        // 赤→橙グラデーション + 揺らめく輪郭
+        // 炎の有機的な揺らめきボディ（波形ポリゴン）
         const t = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
-        const flicker = Math.sin(t * 8) * r * 0.06;
-        const grad = context.createRadialGradient(cx, cy, 0, cx, cy, r + flicker);
-        grad.addColorStop(0, '#ffdd44');
-        grad.addColorStop(0.4, '#ff6600');
-        grad.addColorStop(1, '#cc2200');
+        const grad = context.createRadialGradient(cx, cy, 0, cx, cy, r * 1.2);
+        grad.addColorStop(0, '#ffee66');
+        grad.addColorStop(0.3, '#ffaa00');
+        grad.addColorStop(0.6, '#ff5500');
+        grad.addColorStop(1, '#cc1100');
         context.fillStyle = grad;
-        context.beginPath(); context.arc(cx, cy, r + flicker, 0, Math.PI*2); context.fill();
-        // 炎の先端（上方向に3つの揺れる突起）
-        for (let i = 0; i < 3; i++) {
-          const ang = -Math.PI/2 + (i-1) * 0.5 + Math.sin(t * 6 + i*2) * 0.15;
-          const tipLen = r * (0.35 + Math.sin(t * 10 + i*3) * 0.1);
-          context.fillStyle = '#ffaa00';
-          context.beginPath();
-          context.moveTo(cx + Math.cos(ang-0.2)*r*0.5, cy + Math.sin(ang-0.2)*r*0.5);
-          context.lineTo(cx + Math.cos(ang)*(r+tipLen), cy + Math.sin(ang)*(r+tipLen));
-          context.lineTo(cx + Math.cos(ang+0.2)*r*0.5, cy + Math.sin(ang+0.2)*r*0.5);
-          context.fill();
+        // 波形ポリゴンで炎っぽい輪郭
+        context.beginPath();
+        for (let i = 0; i <= 28; i++) {
+          const ang = (i / 28) * Math.PI * 2;
+          const isUpper = Math.sin(ang) < -0.1;
+          const wave1 = Math.sin(t * 7 + ang * 3) * r * (isUpper ? 0.18 : 0.06);
+          const wave2 = Math.sin(t * 11 + ang * 5) * r * (isUpper ? 0.10 : 0.03);
+          const rr = r + wave1 + wave2;
+          if (i === 0) context.moveTo(cx + Math.cos(ang)*rr, cy + Math.sin(ang)*rr);
+          else context.lineTo(cx + Math.cos(ang)*rr, cy + Math.sin(ang)*rr);
         }
-        // 白いコア
-        context.fillStyle = 'rgba(255,255,200,0.6)';
+        context.closePath(); context.fill();
+        // 白く光るコア
+        context.fillStyle = 'rgba(255,255,220,0.65)';
         context.beginPath(); context.arc(cx, cy, r*0.35, 0, Math.PI*2); context.fill();
         // 目
         context.fillStyle = '#000';
@@ -5848,40 +5848,49 @@ function visibleBounds(radius = 0){
         // 白い縁取り
         context.strokeStyle = `hsl(${(hue+180)%360}, 80%, 80%)`; context.lineWidth = r * 0.1;
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.stroke();
-        // 目（白抜き）
-        context.fillStyle = '#fff';
-        context.beginPath(); context.arc(cx-r*0.25, cy-r*0.05, r*0.12, 0, Math.PI*2); context.fill();
-        context.beginPath(); context.arc(cx+r*0.25, cy-r*0.05, r*0.12, 0, Math.PI*2); context.fill();
-        context.fillStyle = '#333';
-        context.beginPath(); context.arc(cx-r*0.25, cy-r*0.05, r*0.06, 0, Math.PI*2); context.fill();
-        context.beginPath(); context.arc(cx+r*0.25, cy-r*0.05, r*0.06, 0, Math.PI*2); context.fill();
+        // 目（シンプルな黒丸）
+        context.fillStyle = '#000';
+        context.beginPath(); context.arc(cx-r*0.25, cy-r*0.05, r*0.1, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.25, cy-r*0.05, r*0.1, 0, Math.PI*2); context.fill();
         break;
       }
       case 'neon': {
-        // 黒い本体 + シアンの回路線
+        // 黒い本体 + 黄色の回路線（太め＋発光）
         const t = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
         context.fillStyle = '#111';
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.fill();
-        // 回路線パターン
+        // 回路線パターン（太く発光）
         const glow = 0.6 + Math.sin(t * 3) * 0.3;
-        context.strokeStyle = `rgba(0,255,255,${glow})`; context.lineWidth = r * 0.07;
+        context.save();
+        context.shadowBlur = r * 0.3;
+        context.shadowColor = `rgba(255,255,0,${glow * 0.6})`;
+        context.strokeStyle = `rgba(255,255,0,${glow})`; context.lineWidth = r * 0.12;
         // 水平線
         context.beginPath(); context.moveTo(cx-r*0.7, cy); context.lineTo(cx+r*0.7, cy); context.stroke();
         // 縦線（左）
         context.beginPath(); context.moveTo(cx-r*0.35, cy-r*0.6); context.lineTo(cx-r*0.35, cy+r*0.6); context.stroke();
         // L字（右）
         context.beginPath(); context.moveTo(cx+r*0.35, cy-r*0.5); context.lineTo(cx+r*0.35, cy+r*0.2); context.lineTo(cx+r*0.65, cy+r*0.2); context.stroke();
-        // ドット
-        context.fillStyle = `rgba(0,255,255,${glow})`;
-        context.beginPath(); context.arc(cx-r*0.35, cy-r*0.6, r*0.08, 0, Math.PI*2); context.fill();
-        context.beginPath(); context.arc(cx+r*0.65, cy+r*0.2, r*0.08, 0, Math.PI*2); context.fill();
-        // 外枠（シアン）
-        context.strokeStyle = `rgba(0,255,255,${glow*0.5})`; context.lineWidth = r * 0.06;
+        // ドット（大きく）
+        context.fillStyle = `rgba(255,255,0,${glow})`;
+        context.beginPath(); context.arc(cx-r*0.35, cy-r*0.6, r*0.12, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.65, cy+r*0.2, r*0.12, 0, Math.PI*2); context.fill();
+        context.restore();
+        // 外枠（黄色発光）
+        context.save();
+        context.shadowBlur = r * 0.2;
+        context.shadowColor = `rgba(255,255,0,${glow * 0.4})`;
+        context.strokeStyle = `rgba(255,255,0,${glow*0.5})`; context.lineWidth = r * 0.08;
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.stroke();
-        // 目（シアン発光）
-        context.fillStyle = `rgba(0,255,255,${glow})`;
-        context.beginPath(); context.arc(cx-r*0.2, cy-r*0.15, r*0.1, 0, Math.PI*2); context.fill();
-        context.beginPath(); context.arc(cx+r*0.2, cy-r*0.15, r*0.1, 0, Math.PI*2); context.fill();
+        context.restore();
+        // 目（黄色発光・大きく）
+        context.save();
+        context.shadowBlur = r * 0.25;
+        context.shadowColor = 'rgba(255,255,0,0.6)';
+        context.fillStyle = `rgba(255,255,0,${glow})`;
+        context.beginPath(); context.arc(cx-r*0.2, cy-r*0.15, r*0.14, 0, Math.PI*2); context.fill();
+        context.beginPath(); context.arc(cx+r*0.2, cy-r*0.15, r*0.14, 0, Math.PI*2); context.fill();
+        context.restore();
         break;
       }
       case 'cosmo': {
@@ -5902,23 +5911,31 @@ function visibleBounds(radius = 0){
           context.fillStyle = `rgba(255,255,255,${bright})`;
           context.beginPath(); context.arc(sx, sy, r*0.05, 0, Math.PI*2); context.fill();
         }
-        // 周回する星（2つ）
+        // 周回する星（2つ、大きく光る）
+        context.save();
+        context.shadowBlur = 8;
+        context.shadowColor = '#ffd700';
         for (let i = 0; i < 2; i++) {
           const orbitAng = t * 1.5 + i * Math.PI;
-          const orbitR = r * 1.2;
+          const orbitR = r * 1.3;
           const ox = cx + Math.cos(orbitAng) * orbitR;
           const oy = cy + Math.sin(orbitAng) * orbitR * 0.4;
           context.fillStyle = '#ffd700';
-          // ★形
+          // ★形（10点 = 正しい5角星）
           context.beginPath();
-          for (let j = 0; j < 5; j++) {
-            const a = -Math.PI/2 + j * Math.PI*2/5;
-            const sr = j%2===0 ? r*0.12 : r*0.05;
+          for (let j = 0; j < 10; j++) {
+            const a = -Math.PI/2 + j * Math.PI/5;
+            const sr = j%2===0 ? r*0.2 : r*0.08;
             if (j===0) context.moveTo(ox+Math.cos(a)*sr, oy+Math.sin(a)*sr);
             else context.lineTo(ox+Math.cos(a)*sr, oy+Math.sin(a)*sr);
           }
           context.closePath(); context.fill();
+          // 中心に白い点
+          context.fillStyle = '#fff';
+          context.beginPath(); context.arc(ox, oy, r*0.04, 0, Math.PI*2); context.fill();
         }
+        context.shadowBlur = 0;
+        context.restore();
         // 薄い紫の縁取り
         context.strokeStyle = 'rgba(168,85,247,0.5)'; context.lineWidth = r * 0.08;
         context.beginPath(); context.arc(cx, cy, r, 0, Math.PI*2); context.stroke();
@@ -5932,7 +5949,9 @@ function visibleBounds(radius = 0){
         // 半透明紫→黒 + sin波で輪郭揺らぎ
         const t = (typeof state !== 'undefined' ? state.t : Date.now()/1000) || 0;
         const wobble = Math.sin(t * 5) * r * 0.08;
-        context.globalAlpha = 0.55;
+        // 外側のglobalAlpha（残像用）と0.55を乗算
+        const _prevAlpha = context.globalAlpha;
+        context.globalAlpha = _prevAlpha * 0.55;
         const grad = context.createRadialGradient(cx, cy, 0, cx, cy, r + wobble);
         grad.addColorStop(0, '#7c3aed');
         grad.addColorStop(0.6, '#4c1d95');
@@ -5947,9 +5966,9 @@ function visibleBounds(radius = 0){
           else context.lineTo(cx + Math.cos(ang)*rr, cy + Math.sin(ang)*rr);
         }
         context.closePath(); context.fill();
-        context.globalAlpha = 1;
+        context.globalAlpha = _prevAlpha;
         // 目（赤い発光）
-        const eyeGlow = 0.5 + Math.sin(t * 2) * 0.3;
+        const eyeGlow = (0.5 + Math.sin(t * 2) * 0.3) * _prevAlpha;
         context.fillStyle = `rgba(255,80,80,${eyeGlow})`;
         context.beginPath(); context.arc(cx-r*0.25, cy-r*0.1, r*0.12, 0, Math.PI*2); context.fill();
         context.beginPath(); context.arc(cx+r*0.25, cy-r*0.1, r*0.12, 0, Math.PI*2); context.fill();
@@ -11561,6 +11580,9 @@ if (state.player && pm > 0) {
   
   state.player.x = clamp(newX, b.minX, b.maxX);
   state.player.y = clamp(newY, b.minY, b.maxY);
+  // プレミアムスキン用：実速度を保存
+  state.player.vx = vx * state.player.speed;
+  state.player.vy = vy * state.player.speed;
 }
 
     // エンドレス：予告爆弾投下
@@ -14621,6 +14643,91 @@ for (const b of state.bullets){
     }
   }
 
+// --- プレイヤーの下に描画するもの（ポイズン＋トレイルエフェクト） ---
+{
+  const _belowPlayerTypes = new Set(['poisonField','flameTrail','snowFlake','rainbowTrail','neonSpark','starDust']);
+  for (const ef of state.effects) {
+    if (!_belowPlayerTypes.has(ef.type)) continue;
+    ef._drawnEarly = true; // 後のエフェクトループでスキップ
+    if (ef.type === 'poisonField') {
+      ctx.save();
+      const a = Math.max(0, ef.life / (ef.life0 || 5));
+      ctx.globalAlpha = 0.22 * a;
+      ctx.fillStyle = '#7eff7e';
+      ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 0.10 * a;
+      ctx.beginPath();
+      ctx.arc(ef.x, ef.y, ef.r*0.7 + Math.sin(state.t*2.2)*6, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    } else if (ef.type === 'flameTrail') {
+      ctx.save();
+      const a = Math.max(0, ef.life / (ef.life0 || 0.5));
+      const sz = 10 * a;
+      ctx.shadowBlur = sz * 0.8;
+      ctx.shadowColor = 'rgba(255,120,0,0.6)';
+      const grad = ctx.createRadialGradient(ef.x, ef.y, 0, ef.x, ef.y, sz);
+      grad.addColorStop(0, `rgba(255,220,80,${0.9*a})`);
+      grad.addColorStop(0.5, `rgba(255,120,20,${0.6*a})`);
+      grad.addColorStop(1, `rgba(200,40,0,${0.1*a})`);
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    } else if (ef.type === 'snowFlake') {
+      ctx.save();
+      const a = Math.max(0, ef.life / (ef.life0 || 1.5));
+      ctx.globalAlpha = 0.7 * a;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2;
+      const sz = 3;
+      ctx.beginPath();
+      ctx.moveTo(ef.x-sz, ef.y); ctx.lineTo(ef.x+sz, ef.y);
+      ctx.moveTo(ef.x, ef.y-sz); ctx.lineTo(ef.x, ef.y+sz);
+      ctx.moveTo(ef.x-sz*0.7, ef.y-sz*0.7); ctx.lineTo(ef.x+sz*0.7, ef.y+sz*0.7);
+      ctx.moveTo(ef.x+sz*0.7, ef.y-sz*0.7); ctx.lineTo(ef.x-sz*0.7, ef.y+sz*0.7);
+      ctx.stroke();
+      ctx.restore();
+    } else if (ef.type === 'rainbowTrail') {
+      ctx.save();
+      const a = Math.max(0, ef.life / (ef.life0 || 0.4));
+      const sz = (ef.size || 5) * a;
+      ctx.globalAlpha = 0.45 * a;
+      ctx.fillStyle = ef.color || '#fff';
+      ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    } else if (ef.type === 'neonSpark') {
+      ctx.save();
+      const a = Math.max(0, ef.life / (ef.life0 || 0.25));
+      ctx.globalAlpha = 0.9 * a;
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = 'rgba(255,255,0,0.7)';
+      ctx.strokeStyle = `rgba(255,255,0,${a})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(ef.x, ef.y);
+      ctx.lineTo(ef.x + 5, ef.y - 7);
+      ctx.lineTo(ef.x - 3, ef.y - 12);
+      ctx.lineTo(ef.x + 2, ef.y - 18);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    } else if (ef.type === 'starDust') {
+      ctx.save();
+      const a = Math.max(0, ef.life / (ef.life0 || 0.6));
+      const twinkle = 0.5 + 0.5 * Math.sin((state ? state.t : 0) * 12 + ef.x * 0.5);
+      ctx.globalAlpha = a * twinkle;
+      ctx.fillStyle = '#ffd700';
+      ctx.shadowBlur = 4;
+      ctx.shadowColor = '#ffd700';
+      ctx.beginPath();
+      ctx.arc(ef.x, ef.y, (ef.size || 2) * a, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+  }
+}
+
 // 無敵中は点滅
 if (state.player.iTime > 0 && ((state.t * 20 | 0) % 2 === 0)) {
   ctx.globalAlpha = 0.38; // 薄く
@@ -14661,13 +14768,19 @@ if (selectedAdSkin && window.drawAdSkin) {
   // --- プレミアムスキン：ファントム残像（プレイヤー描画の前に描く） ---
   if (selectedAdSkin === 'phantom') {
     if (!state._phantomTrail) state._phantomTrail = [];
-    state._phantomTrail.push({ x: state.player.x, y: state.player.y, t: state.t });
-    while (state._phantomTrail.length > 0 && state.t - state._phantomTrail[0].t > 0.3) {
+    if (!state._phantomTrailLast) state._phantomTrailLast = 0;
+    // 0.07秒間隔でスナップショット（毎フレームではなく間隔を開ける）
+    if (state.t - state._phantomTrailLast > 0.07) {
+      state._phantomTrail.push({ x: state.player.x, y: state.player.y, t: state.t });
+      state._phantomTrailLast = state.t;
+    }
+    // 0.6秒以上古いものを削除
+    while (state._phantomTrail.length > 0 && state.t - state._phantomTrail[0].t > 0.6) {
       state._phantomTrail.shift();
     }
     for (const trail of state._phantomTrail) {
       const age = state.t - trail.t;
-      const alpha = 0.25 * (1 - age / 0.3);
+      const alpha = 0.45 * (1 - age / 0.6);
       ctx.save();
       ctx.globalAlpha = alpha;
       window.drawAdSkin(ctx, 'phantom', trail.x, trail.y, pr);
@@ -14680,26 +14793,37 @@ if (selectedAdSkin && window.drawAdSkin) {
   if (PREMIUM_SKINS.includes(selectedAdSkin) && state.started && !state.paused) {
     const _speed = Math.hypot(state.player.vx||0, state.player.vy||0);
     if (selectedAdSkin === 'flame' && _speed > 15) {
-      // 炎トレイル：移動中のみ
-      addEffect('flameTrail', { x: px + rnd(-3,3), y: py + rnd(-3,3), life: 0.35, life0: 0.35 });
+      // 炎トレイル：移動方向の反対側（後ろ）に生成 → 本体と重ならない
+      const _fvx = state.player.vx || 0, _fvy = state.player.vy || 0;
+      const _fspd = Math.hypot(_fvx, _fvy) || 1;
+      const _backX = -(_fvx / _fspd) * pr * 0.7;
+      const _backY = -(_fvy / _fspd) * pr * 0.7;
+      addEffect('flameTrail', { x: px + _backX + rnd(-4,4), y: py + _backY + rnd(-4,4), life: 0.5, life0: 0.5 });
     }
     if (selectedAdSkin === 'frost' && Math.random() < 0.15) {
       // 雪：常時低確率で生成
       addEffect('snowFlake', { x: px + rnd(-pr*2,pr*2), y: py - pr - rnd(0,10), life: 1.5, life0: 1.5, vx: rnd(-8,8), vy: rnd(10,25) });
     }
     if (selectedAdSkin === 'prism') {
-      if (_speed > 15) {
-        addEffect('rainbowTrail', { x: px + rnd(-2,2), y: py + rnd(-2,2), life: 0.4, life0: 0.4, hue: (state.t*50)%360 });
-      } else if (Math.random() < 0.1) {
-        // 停止時キラキラ
+      const _rbColors = ['#FF6B6B','#FFB347','#FFEE58','#66BB6A','#42A5F5','#5C6BC0','#AB47BC'];
+      if (_speed > 15 && Math.random() < 0.5) {
+        // 数を半分に減らし、残る時間を倍に
+        const _ci = Math.floor(state.t * 12) % 7;
+        addEffect('rainbowTrail', { x: px + rnd(-pr*0.8, pr*0.8), y: py + rnd(-pr*0.8, pr*0.8), life: 1.0, life0: 1.0, color: _rbColors[_ci], vx: rnd(-25,25), vy: rnd(-25,25), size: rnd(3,6) });
+      } else if (_speed <= 15 && Math.random() < 0.05) {
+        // 停止時キラキラ（半分に）
         const a = rnd(0, Math.PI*2);
-        addEffect('rainbowTrail', { x: px + Math.cos(a)*pr*0.8, y: py + Math.sin(a)*pr*0.8, life: 0.5, life0: 0.5, hue: rnd(0,360) });
+        addEffect('rainbowTrail', { x: px + Math.cos(a)*pr*1.2, y: py + Math.sin(a)*pr*1.2, life: 1.2, life0: 1.2, color: _rbColors[Math.floor(Math.random()*7)], size: rnd(3,5) });
       }
     }
-    if (selectedAdSkin === 'neon' && Math.random() < 0.08) {
-      // 電気スパーク
+    if (selectedAdSkin === 'neon' && Math.random() < 0.12) {
+      // 電気スパーク（大きく頻繁に）
       const a = rnd(0, Math.PI*2);
-      addEffect('neonSpark', { x: px + Math.cos(a)*pr, y: py + Math.sin(a)*pr, life: 0.25, life0: 0.25, vx: Math.cos(a)*rnd(30,80), vy: Math.sin(a)*rnd(30,80) });
+      addEffect('neonSpark', { x: px + Math.cos(a)*pr*1.2, y: py + Math.sin(a)*pr*1.2, life: 0.3, life0: 0.3, vx: Math.cos(a)*rnd(50,120), vy: Math.sin(a)*rnd(50,120) });
+    }
+    if (selectedAdSkin === 'cosmo' && _speed > 15 && Math.random() < 0.3) {
+      // 星屑トレイル：移動中に金色の小さな光（広く散らばる）
+      addEffect('starDust', { x: px + rnd(-pr*0.8, pr*0.8), y: py + rnd(-pr*0.8, pr*0.8), life: 0.6, life0: 0.6, vx: rnd(-30,30), vy: rnd(-30,30), size: rnd(2, 4.5) });
     }
   }
 
@@ -14865,20 +14989,7 @@ if(state.weapons.orbit.lv>0){
   }
 }
 
-  // --- poisonField を敵の下に描画 ---
-  for (const ef of state.effects) {
-    if (ef.type !== 'poisonField') continue;
-    ctx.save();
-    const a = Math.max(0, ef.life / (ef.life0 || 5));
-    ctx.globalAlpha = 0.22 * a;
-    ctx.fillStyle = '#7eff7e';
-    ctx.beginPath(); ctx.arc(ef.x, ef.y, ef.r, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 0.10 * a;
-    ctx.beginPath();
-    ctx.arc(ef.x, ef.y, ef.r*0.7 + Math.sin(state.t*2.2)*6, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-  }
+  // poisonFieldはプレイヤー描画前のブロックで描画済み
 
   // enemies with HP bars
   for(const e of state.enemies){
@@ -15883,19 +15994,23 @@ for (const ef of state.effects) {
     ctx.restore();
   }
 
-} else if (ef.type === 'poisonField') {
-  // poisonFieldは敵より下のレイヤーで描画済み→ここではスキップ
+} else if (ef._drawnEarly) {
+  // プレイヤー描画前に先行描画済み → スキップ（poisonField, flameTrail, snowFlake, rainbowTrail, neonSpark, starDust）
 
   // === Premium Skin Effects ===
   } else if (ef.type === 'flameTrail') {
     ctx.save();
-    const a = Math.max(0, ef.life / (ef.life0 || 0.35));
-    const sz = 5 * a;
+    const a = Math.max(0, ef.life / (ef.life0 || 0.5));
+    const sz = 10 * a;
+    ctx.shadowBlur = sz * 0.8;
+    ctx.shadowColor = 'rgba(255,120,0,0.6)';
     const grad = ctx.createRadialGradient(ef.x, ef.y, 0, ef.x, ef.y, sz);
-    grad.addColorStop(0, `rgba(255,200,50,${0.8*a})`);
-    grad.addColorStop(1, `rgba(255,80,0,${0.2*a})`);
+    grad.addColorStop(0, `rgba(255,220,80,${0.9*a})`);
+    grad.addColorStop(0.5, `rgba(255,120,20,${0.6*a})`);
+    grad.addColorStop(1, `rgba(200,40,0,${0.1*a})`);
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.restore();
 
   } else if (ef.type === 'snowFlake') {
@@ -15918,15 +16033,12 @@ for (const ef of state.effects) {
   } else if (ef.type === 'rainbowTrail') {
     ctx.save();
     const a = Math.max(0, ef.life / (ef.life0 || 0.4));
-    const sz = 4 * a;
-    const hue = ef.hue || 0;
-    ctx.globalAlpha = 0.7 * a;
-    ctx.fillStyle = `hsl(${hue}, 90%, 65%)`;
+    const sz = (ef.size || 5) * a;
+    ef.x += (ef.vx || 0) * (1/60);
+    ef.y += (ef.vy || 0) * (1/60);
+    ctx.globalAlpha = 0.45 * a;
+    ctx.fillStyle = ef.color || '#fff';
     ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.fill();
-    // 白いコア
-    ctx.globalAlpha = 0.4 * a;
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(ef.x, ef.y, sz*0.4, 0, Math.PI*2); ctx.fill();
     ctx.restore();
 
   } else if (ef.type === 'neonSpark') {
@@ -15935,15 +16047,18 @@ for (const ef of state.effects) {
     ef.x += (ef.vx || 0) * (1/60);
     ef.y += (ef.vy || 0) * (1/60);
     ctx.globalAlpha = 0.9 * a;
-    ctx.strokeStyle = `rgba(0,255,255,${a})`;
-    ctx.lineWidth = 1.5;
-    // ミニ稲妻（3セグメント）
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = 'rgba(255,255,0,0.7)';
+    ctx.strokeStyle = `rgba(255,255,0,${a})`;
+    ctx.lineWidth = 2.5;
+    // 稲妻（3セグメント・大きく）
     ctx.beginPath();
     ctx.moveTo(ef.x, ef.y);
-    ctx.lineTo(ef.x + 3, ef.y - 4);
-    ctx.lineTo(ef.x - 2, ef.y - 7);
-    ctx.lineTo(ef.x + 1, ef.y - 11);
+    ctx.lineTo(ef.x + 5, ef.y - 7);
+    ctx.lineTo(ef.x - 3, ef.y - 12);
+    ctx.lineTo(ef.x + 2, ef.y - 18);
     ctx.stroke();
+    ctx.shadowBlur = 0;
     ctx.restore();
 
   } else if (ef.type === 'starBurst') {
@@ -15967,23 +16082,59 @@ for (const ef of state.effects) {
     ctx.closePath(); ctx.fill();
     ctx.restore();
 
-  } else if (ef.type === 'voidCollapse') {
+  } else if (ef.type === 'starDust') {
     ctx.save();
-    const a = Math.max(0, ef.life / 0.4);
+    const a = Math.max(0, ef.life / (ef.life0 || 0.6));
+    ef.x += (ef.vx || 0) * (1/60);
+    ef.y += (ef.vy || 0) * (1/60);
+    const twinkle = 0.5 + 0.5 * Math.sin((state ? state.t : 0) * 12 + ef.x * 0.5);
+    ctx.globalAlpha = a * twinkle;
+    ctx.fillStyle = '#ffd700';
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(ef.x, ef.y, (ef.size || 2) * a, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+  } else if (ef.type === 'cursedSkull') {
+    ctx.save();
+    const a = Math.max(0, ef.life / (ef.life0 || 0.8));
     const progress = 1 - a;
-    // 前半: 拡大、後半: 縮小
-    let sz;
-    if (progress < 0.4) {
-      sz = (ef.r || 30) * (progress / 0.4);
-    } else {
-      sz = (ef.r || 30) * (1 - (progress - 0.4) / 0.6);
+    // 上方向にふわっと浮く
+    const floatY = ef.y - progress * 20;
+    // ポップイン（最初の20%で拡大）
+    const scale = progress < 0.15 ? progress / 0.15 : 1;
+    ctx.globalAlpha = a * 0.85;
+    ctx.translate(ef.x, floatY);
+    ctx.scale(scale, scale);
+    const sr = 12;
+    // 紫グロー
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = 'rgba(160,80,255,0.7)';
+    // 頭蓋骨
+    ctx.fillStyle = 'rgba(180,130,255,0.9)';
+    ctx.beginPath();
+    ctx.arc(0, -sr*0.15, sr, 0, Math.PI*2);
+    ctx.fill();
+    // 目穴（暗い）
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(30,0,50,0.95)';
+    ctx.beginPath(); ctx.arc(-sr*0.35, -sr*0.25, sr*0.26, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(sr*0.35, -sr*0.25, sr*0.26, 0, Math.PI*2); ctx.fill();
+    // 鼻穴
+    ctx.beginPath(); ctx.arc(0, sr*0.1, sr*0.11, 0, Math.PI*2); ctx.fill();
+    // 顎（歯の部分）
+    ctx.fillStyle = 'rgba(180,130,255,0.85)';
+    ctx.fillRect(-sr*0.5, sr*0.4, sr*1.0, sr*0.32);
+    // 歯の溝
+    ctx.strokeStyle = 'rgba(30,0,50,0.7)';
+    ctx.lineWidth = 1.2;
+    for (let i = -2; i <= 2; i++) {
+      const tx = i * sr * 0.2;
+      ctx.beginPath(); ctx.moveTo(tx, sr*0.4); ctx.lineTo(tx, sr*0.72); ctx.stroke();
     }
-    ctx.globalAlpha = 0.7 * a;
-    ctx.fillStyle = '#111';
-    ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.fill();
-    // 紫の縁
-    ctx.strokeStyle = `rgba(124,58,237,${0.6*a})`; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(ef.x, ef.y, sz, 0, Math.PI*2); ctx.stroke();
     ctx.restore();
 
   } else if (ef.type === 'aim') {
@@ -16838,7 +16989,7 @@ if (!e._counted) {
       if (_ks === 'cosmo') {
         for (let _k=0;_k<5;_k++){const _a=rnd(0,Math.PI*2),_v=rnd(60,140);addEffect('starBurst',{x:e.x,y:e.y,vx:Math.cos(_a)*_v,vy:Math.sin(_a)*_v,life:0.5});}
       } else if (_ks === 'phantom') {
-        addEffect('voidCollapse',{x:e.x,y:e.y,r:25,life:0.4});
+        addEffect('cursedSkull',{x:e.x,y:e.y,life:0.8,life0:0.8});
       }
     } catch(_){}
   }
