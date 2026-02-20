@@ -10486,10 +10486,10 @@ orbit:{
 blade:{
   short:'BD', name:'ブレード', lv:0, awaken:false, cd:0,
   baseRate: 1.10,
-  baseDmg:  52,
-  span:     Math.PI * 0.5,  // 少し狭く
-  baseR:    50,
-  expandLv: [60, 90, 120, 180],  // 半径拡大UP
+  baseDmg:  65,
+  span:     Math.PI * 0.55, // やや広め
+  baseR:    55,
+  expandLv: [80, 120, 160, 200],  // 半径拡大UP（強化）
 
 update(dt){
   if (this.lv <= 0) return;
@@ -10515,7 +10515,7 @@ update(dt){
   const angleOffset = this.awaken ? 0.015 : [0.04, 0.03, 0.025][lvIdx];  // 角度ずれさらに縮小
   const interval = this.awaken ? 0.06 : [0.20, 0.15, 0.10][lvIdx];  // 間隔調整
   
-  const dmgBase = this.baseDmg * (1 + 0.25 * (this.lv - 1));
+  const dmgBase = this.baseDmg * (1 + 0.35 * (this.lv - 1));
   const dmg = Math.round(dmgBase * state.mods.dmgMul);
 
   for (let i = 0; i < count; i++){
@@ -10759,7 +10759,7 @@ for (const e of state.enemies){
       baseRate: 1.2,    // 発射間隔（0.8→1.2）
       baseDmg: 32,      // ★基本ダメージ
       baseWidth: 8,     // 基本太さ（6→8）
-      range: 800,       // 射程
+      range: 1500,      // 射程（画面対角線以上）
       // ★覚醒時の継続レーザー用
       beamActive: false,
       beamTimer: 0,
@@ -16029,10 +16029,10 @@ for (const ef of state.effects) {
     ctx.lineTo(endX, endY);
     ctx.stroke();
     
-    // メインビーム（白）
+    // メインビーム（白・コア）
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = ef.width * 0.8;
-    ctx.globalAlpha = a * 0.9;  // ★0.7→0.9（より見やすく）
+    ctx.lineWidth = ef.width * 1.0;
+    ctx.globalAlpha = a * 1.0;  // ★全力で白く
     ctx.beginPath();
     ctx.moveTo(ef.x, ef.y);
     ctx.lineTo(endX, endY);
