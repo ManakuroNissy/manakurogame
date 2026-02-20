@@ -28,11 +28,11 @@ window.addEventListener('orientationchange', function() {
 
 <title>10min's Survivor</title>
 
-<!-- Ad SDK stubs (no-op for itch.io / GitHub) -->
+<!-- Ad SDK stubs — GitHub test version: ads disabled, rewarded always succeeds -->
 <script>
 function isGDReady() { return false; }
 function showGDInterstitial(callback) { if (callback) callback(); }
-function showGDRewarded(onComplete, onSkip) { if (onSkip) onSkip(); }
+function showGDRewarded(onComplete, onSkip) { if (onComplete) onComplete(); }
 </script>
 
 <style>
