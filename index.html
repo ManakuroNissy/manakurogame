@@ -10781,19 +10781,25 @@ for (const e of state.enemies){
             if(e.hp > bestHP){ bestHP = e.hp; bestTarget = e; }
           }
 
-          // --- 旋回追尾（回転速度制限付き） ---
+          // --- 旋回追尾（低速・±30°制限） ---
           if(bestTarget){
             const goalAngle = Math.atan2(bestTarget.y - state.player.y, bestTarget.x - state.player.x);
             let diff = goalAngle - this.beamAngle;
-            // -π〜πに正規化
             while(diff > Math.PI) diff -= Math.PI * 2;
             while(diff < -Math.PI) diff += Math.PI * 2;
-            const turnSpeed = Math.PI * 0.75; // 最大旋回: 135°/秒
+            const turnSpeed = Math.PI * 0.25; // 最大旋回: 45°/秒
             if(Math.abs(diff) < turnSpeed * dt){
               this.beamAngle = goalAngle;
             } else {
               this.beamAngle += Math.sign(diff) * turnSpeed * dt;
             }
+            // 基準角度から±30°にクランプ
+            const maxSwing = Math.PI / 6; // 30°
+            let swing = this.beamAngle - this.beamBaseAngle;
+            while(swing > Math.PI) swing -= Math.PI * 2;
+            while(swing < -Math.PI) swing += Math.PI * 2;
+            if(swing > maxSwing) this.beamAngle = this.beamBaseAngle + maxSwing;
+            if(swing < -maxSwing) this.beamAngle = this.beamBaseAngle - maxSwing;
           }
 
           // ビーム継続中はダメージを与え続ける
@@ -10864,6 +10870,7 @@ for (const e of state.enemies){
           this.beamActive = true;
           this.beamTimer = 1.2; // 1.2秒間継続
           this.beamAngle = angle;
+          this.beamBaseAngle = angle; // 追従制限の基準角度
           this.beamDmg = dmg * 4.0; // ★毎秒ダメージ（旋回追尾でボスに集中）
           this.beamWidth = width;
           this.beamRange = range;
