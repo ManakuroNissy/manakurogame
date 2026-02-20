@@ -10770,21 +10770,43 @@ for (const e of state.enemies){
       update(dt){
         if(this.lv<=0) return;
         
-        // ★覚醒時：継続レーザー処理（追尾なし、固定方向）
+        // ★覚醒時：継続レーザー処理（旋回追尾、HP優先ターゲット）
         if(this.awaken && this.beamActive){
           this.beamTimer -= dt;
-          
-          // ビーム継続中はダメージを与え続ける（追尾なし）
+
+          // --- HP優先ターゲット選択（ボス＞雑魚、死亡スキップ） ---
+          let bestTarget = null, bestHP = -1;
+          for(const e of state.enemies){
+            if(e.invincible || e.hp <= 0) continue;
+            if(e.hp > bestHP){ bestHP = e.hp; bestTarget = e; }
+          }
+
+          // --- 旋回追尾（回転速度制限付き） ---
+          if(bestTarget){
+            const goalAngle = Math.atan2(bestTarget.y - state.player.y, bestTarget.x - state.player.x);
+            let diff = goalAngle - this.beamAngle;
+            // -π〜πに正規化
+            while(diff > Math.PI) diff -= Math.PI * 2;
+            while(diff < -Math.PI) diff += Math.PI * 2;
+            const turnSpeed = Math.PI * 0.75; // 最大旋回: 135°/秒
+            if(Math.abs(diff) < turnSpeed * dt){
+              this.beamAngle = goalAngle;
+            } else {
+              this.beamAngle += Math.sign(diff) * turnSpeed * dt;
+            }
+          }
+
+          // ビーム継続中はダメージを与え続ける
           const endX = state.player.x + Math.cos(this.beamAngle) * this.beamRange;
           const endY = state.player.y + Math.sin(this.beamAngle) * this.beamRange;
-          
+
           // 継続ダメージ（毎フレーム）
           for(const e of state.enemies){
-            if(e.invincible) continue;
+            if(e.invincible || e.hp <= 0) continue;
             const dx = endX - state.player.x;
             const dy = endY - state.player.y;
             const len = Math.hypot(dx, dy);
-            const t = Math.max(0, Math.min(1, 
+            const t = Math.max(0, Math.min(1,
               ((e.x - state.player.x) * dx + (e.y - state.player.y) * dy) / (len * len)
             ));
             const closestX = state.player.x + t * dx;
@@ -10816,24 +10838,33 @@ for (const e of state.enemies){
         
         this.cd -= dt; if(this.cd>0) return;
         
-        // 近くの敵を自動で狙う
-        const target = nearestEnemy(state.player.x, state.player.y);
+        // 覚醒時はHP最大の敵を優先、通常時は最寄り
+        let target;
+        if(this.awaken){
+          let bestHP = -1;
+          for(const e of state.enemies){
+            if(e.invincible || e.hp <= 0) continue;
+            if(e.hp > bestHP){ bestHP = e.hp; target = e; }
+          }
+        } else {
+          target = nearestEnemy(state.player.x, state.player.y);
+        }
         if(!target) return;
-        
+
         const angle = Math.atan2(target.y - state.player.y, target.x - state.player.x);
-        
+
         // レベルで威力と太さが増加
         const awakenMul = this.awaken ? 2.5 : 1;
         const dmg = (this.baseDmg + 25 * (this.lv - 1)) * awakenMul * state.mods.dmgMul;
         const width = (this.baseWidth + 4 * (this.lv - 1)) * awakenMul * state.mods.sizeMul;
         const range = this.range * (this.awaken ? 1.2 : 1);
-        
+
         // ★覚醒時は継続レーザーを発射
         if(this.awaken){
           this.beamActive = true;
-          this.beamTimer = 0.8; // 0.8秒間継続
+          this.beamTimer = 1.2; // 1.2秒間継続
           this.beamAngle = angle;
-          this.beamDmg = dmg * 2.5; // ★毎秒ダメージ（貫通あるので控えめ）
+          this.beamDmg = dmg * 4.0; // ★毎秒ダメージ（旋回追尾でボスに集中）
           this.beamWidth = width;
           this.beamRange = range;
           
@@ -10967,6 +10998,7 @@ function strikeLightning(hit, mult){
   function nearestEnemy(x,y){
     let best=null, bestD=1e9;
     for(const e of state.enemies){
+      if(e.invincible) continue;
       const d=dist2(x,y,e.x,e.y);
       if(d<bestD){ bestD=d; best=e; }
     }
