@@ -10793,8 +10793,8 @@ for (const e of state.enemies){
             } else {
               this.beamAngle += Math.sign(diff) * turnSpeed * dt;
             }
-            // 基準角度から±30°にクランプ
-            const maxSwing = Math.PI / 6; // 30°
+            // 基準角度から±15°にクランプ
+            const maxSwing = Math.PI / 12; // 15°
             let swing = this.beamAngle - this.beamBaseAngle;
             while(swing > Math.PI) swing -= Math.PI * 2;
             while(swing < -Math.PI) swing += Math.PI * 2;
@@ -10808,7 +10808,8 @@ for (const e of state.enemies){
 
           // 継続ダメージ（毎フレーム）
           for(const e of state.enemies){
-            if(e.invincible || e.hp <= 0) continue;
+            if(e.invincible || e.chargeInvincible || e.hp <= 0) continue;
+            if(e.type === 'spinner' && e.spinPhase === 'highspin') continue;
             const dx = endX - state.player.x;
             const dy = endY - state.player.y;
             const len = Math.hypot(dx, dy);
@@ -10879,11 +10880,12 @@ for (const e of state.enemies){
           const endX = state.player.x + Math.cos(angle) * range;
           const endY = state.player.y + Math.sin(angle) * range;
           for(const e of state.enemies){
-            if(e.invincible) continue;
+            if(e.invincible || e.chargeInvincible) continue;
+            if(e.type === 'spinner' && e.spinPhase === 'highspin') continue;
             const dx = endX - state.player.x;
             const dy = endY - state.player.y;
             const len = Math.hypot(dx, dy);
-            const t = Math.max(0, Math.min(1, 
+            const t = Math.max(0, Math.min(1,
               ((e.x - state.player.x) * dx + (e.y - state.player.y) * dy) / (len * len)
             ));
             const closestX = state.player.x + t * dx;
@@ -10891,7 +10893,7 @@ for (const e of state.enemies){
             const distToLaser = Math.hypot(e.x - closestX, e.y - closestY);
             const hitRadius = (e.size || 15) / 2 + width / 2;
             if(distToLaser < hitRadius){
-              e.hp -= dmg; // ★初撃は通常覚醒ダメージ（330）
+              e.hp -= dmg; // ★初撃は通常覚醒ダメージ
               e.hitFlash = Math.max(e.hitFlash, 0.15);
             }
           }
@@ -10906,7 +10908,8 @@ for (const e of state.enemies){
         
         // 貫通ダメージ（ライン上の全敵にダメージ）
         for(const e of state.enemies){
-          if(e.invincible) continue;
+          if(e.invincible || e.chargeInvincible) continue;
+          if(e.type === 'spinner' && e.spinPhase === 'highspin') continue;
           
           // 敵とレーザーラインの距離を計算
           const dx = endX - state.player.x;
